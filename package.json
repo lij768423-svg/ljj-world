@@ -1,0 +1,46 @@
+{
+  "name": "lijunjie-personal-portfolio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "An interactive personal portfolio for products, experiments, and self-hosted infrastructure.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lij768423-svg/personal-portfolio.git"
+  },
+  "homepage": "https://ljj.world",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "capture:projects": "node scripts/capture-project-assets.mjs",
+    "prepare:about-images": "node scripts/prepare-about-images.mjs",
+    "typecheck": "tsc -b --pretty false",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/zcool-kuaile": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "motion": "^12.42.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.185.1",
+    "wouter": "3.10.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@types/three": "^0.185.1",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  }
+}

@@ -1,0 +1,21 @@
+portfolio.example.com {
+	encode zstd gzip
+
+	header {
+		-Server
+		Cross-Origin-Opener-Policy "same-origin"
+		Origin-Agent-Cluster "?1"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	root * /srv/portfolio/current
+	try_files {path} /index.html
+	file_server
+}
