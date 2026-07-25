@@ -28,8 +28,9 @@ type ParticleStyle = CSSProperties & {
   "--gooey-particle-delay": string;
 };
 
-const PARTICLE_COUNT = 9;
-const PARTICLE_LIFETIME = 580;
+const PARTICLE_COUNT = 12;
+const PARTICLE_LIFETIME = 760;
+const EFFECT_PADDING = 11;
 
 function matchesPath(pathname: string, item: GooeyNavItem) {
   return item.end
@@ -40,14 +41,14 @@ function matchesPath(pathname: string, item: GooeyNavItem) {
 function createParticles(seed: number): GooeyParticle[] {
   return Array.from({ length: PARTICLE_COUNT }, (_, index) => {
     const angle = ((Math.PI * 2) / PARTICLE_COUNT) * index + seed * 0.37;
-    const distance = 10 + ((index * 7 + seed * 3) % 11);
+    const distance = 19 + ((index * 7 + seed * 3) % 15);
 
     return {
       id: seed * 100 + index,
       x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * Math.min(distance, 13),
-      size: 2 + ((index + seed) % 4),
-      delay: (index % 3) * 18,
+      y: Math.sin(angle) * Math.min(distance, 21),
+      size: 4 + ((index + seed) % 5),
+      delay: (index % 4) * 20,
     };
   });
 }
@@ -74,8 +75,8 @@ export function GooeyNav({ items, ariaLabel }: GooeyNavProps) {
 
     const navRect = nav.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
-    effect.style.setProperty("--gooey-nav-x", `${itemRect.left - navRect.left}px`);
-    effect.style.setProperty("--gooey-nav-width", `${itemRect.width}px`);
+    effect.style.setProperty("--gooey-nav-x", `${itemRect.left - navRect.left - EFFECT_PADDING}px`);
+    effect.style.setProperty("--gooey-nav-width", `${itemRect.width + EFFECT_PADDING * 2}px`);
     effect.dataset.ready = "true";
     effect.dataset.immediate = immediate ? "true" : "false";
   }, []);

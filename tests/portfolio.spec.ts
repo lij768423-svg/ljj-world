@@ -304,7 +304,7 @@ test("desktop Gooey Nav follows SPA routing and respects reduced motion", async 
   await expect(page).toHaveURL(/\/systems$/);
   await expect(nav).toHaveAttribute("data-active-index", "2");
   await expect(nav.getByRole("link", { name: "服务器" })).toHaveAttribute("aria-current", "page");
-  await expect(nav.locator(".gooey-nav-particle")).toHaveCount(9);
+  await expect(nav.locator(".gooey-nav-particle")).toHaveCount(12);
   await expect.poll(() => indicator.evaluate((element) => getComputedStyle(element).transform)).not.toBe(homePosition);
   expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(navigationEntryCount);
 
