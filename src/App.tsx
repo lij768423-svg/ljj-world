@@ -2068,7 +2068,10 @@ function FavoriteProjectsScene() {
               viewport={{ once: true, amount: 0.28 }}
               transition={{ duration: 0.72, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Link className="favorite-project-link" to="/projects">
+              <ExternalLink
+                className="favorite-project-link"
+                href={project.repo ?? project.site ?? "https://github.com/lij768423-svg"}
+              >
                 <div className="favorite-project-media">
                   <img
                     src={project.cardPreview.image}
@@ -2084,7 +2087,7 @@ function FavoriteProjectsScene() {
                   <h3>{project.title}</h3>
                   <p>{project.description}</p>
                 </div>
-              </Link>
+              </ExternalLink>
             </motion.article>
           ))}
         </div>

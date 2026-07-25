@@ -74,8 +74,8 @@ test("home story has three usable scenes with separated artwork", async ({ page 
     images.every((image) => !image.getAttribute("src"))
   ))).toBe(true);
   await expect(page.locator("[data-featured-project]")).toHaveCount(2);
-  await expect(page.locator('[data-featured-project="408-web"] a')).toHaveAttribute("href", "/projects");
-  await expect(page.locator('[data-featured-project="law-site"] a')).toHaveAttribute("href", "/projects");
+  await expect(page.locator('[data-featured-project="408-web"] a')).toHaveAttribute("href", "https://github.com/lij768423-svg/408-");
+  await expect(page.locator('[data-featured-project="law-site"] a')).toHaveAttribute("href", "https://lawweb.hermesjj.com/");
   await expect(page.locator(".favorite-follow")).toHaveCount(0);
 
   const stackedEntry = await page.locator(".home-story").evaluate((story) => {
@@ -129,6 +129,12 @@ test("home story has three usable scenes with separated artwork", async ({ page 
   const favoriteLinks = page.locator(".favorite-project-link");
   await expect(favoriteLinks).toHaveCount(2);
   for (const link of await favoriteLinks.all()) await expect(link).toBeVisible();
+  await expect(favoriteLinks.nth(0)).toHaveAttribute("href", "https://github.com/lij768423-svg/408-");
+  await expect(favoriteLinks.nth(1)).toHaveAttribute("href", "https://lawweb.hermesjj.com/");
+  for (const link of await favoriteLinks.all()) {
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", "noreferrer");
+  }
   const favoriteCovers = await page.locator(".favorite-project-media img").evaluateAll((images) => images.map((image) => {
     const target = image as HTMLImageElement;
     return {
