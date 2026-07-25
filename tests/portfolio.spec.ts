@@ -286,6 +286,56 @@ test("navigation, metadata, and browser history work across pages", async ({ pag
   await expect(page.locator(".site-footer")).toHaveCount(0);
 });
 
+test("desktop Gooey Nav follows SPA routing and respects reduced motion", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Gooey Nav is desktop-only by design.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  const nav = page.getByRole("navigation", { name: "主要导航" });
+  const indicator = nav.getByTestId("gooey-nav-indicator");
+  await expect(nav.getByRole("link")).toHaveCount(4);
+  await expect(nav).toHaveAttribute("data-active-index", "0");
+  await expect(indicator).toHaveAttribute("data-ready", "true");
+  const homePosition = await indicator.evaluate((element) => getComputedStyle(element).transform);
+
+  const navigationEntryCount = await page.evaluate(() => performance.getEntriesByType("navigation").length);
+  await nav.getByRole("link", { name: "服务器" }).click();
+  await expect(page).toHaveURL(/\/systems$/);
+  await expect(nav).toHaveAttribute("data-active-index", "2");
+  await expect(nav.getByRole("link", { name: "服务器" })).toHaveAttribute("aria-current", "page");
+  await expect(nav.locator(".gooey-nav-particle")).toHaveCount(9);
+  await expect.poll(() => indicator.evaluate((element) => getComputedStyle(element).transform)).not.toBe(homePosition);
+  expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(navigationEntryCount);
+
+  const aboutLink = nav.getByRole("link", { name: "关于" });
+  await aboutLink.focus();
+  await expect(aboutLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/about$/);
+  await expect(nav).toHaveAttribute("data-active-index", "3");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/projects");
+  await expect(nav).toHaveAttribute("data-reduced-motion", "true");
+  await nav.getByRole("link", { name: "首页" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(nav.locator(".gooey-nav-particle")).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "首页" })).toHaveAttribute("aria-current", "page");
+});
+
+test("mobile overlay navigation remains the only primary menu", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "Mobile-only navigation check.");
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "主要导航" })).toBeHidden();
+  const menuButton = page.getByRole("button", { name: "Menu - 打开导航" });
+  await expect(menuButton).toBeVisible();
+  await menuButton.click();
+  const mobileNav = page.getByRole("navigation", { name: "移动端导航" });
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: /全部项目/ })).toBeVisible();
+});
+
 test("project DNA helix expands, keeps moving on hover, and unfolds into project summaries", async ({ page }, testInfo) => {
   await page.goto("/projects");
   const projectIndex = page.locator(".project-index");

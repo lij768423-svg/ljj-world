@@ -1300,3 +1300,128 @@ body.project-transition-active {
 .server-story-stage {
   background-color: transparent;
 }
+
+/* Gooey Nav is adapted from React Bits into the portfolio's restrained red line language. */
+.gooey-nav {
+  --gooey-nav-x: 0px;
+  --gooey-nav-width: 0px;
+  isolation: isolate;
+}
+
+.gooey-nav ul {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: inherit;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gooey-nav li {
+  position: relative;
+}
+
+.gooey-nav a::after {
+  display: none;
+}
+
+.gooey-nav li.is-active a {
+  color: var(--text);
+}
+
+.gooey-nav li:focus-within {
+  z-index: 3;
+}
+
+.gooey-nav-effect {
+  position: absolute;
+  z-index: 1;
+  top: 23px;
+  left: 0;
+  width: var(--gooey-nav-width);
+  height: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(var(--gooey-nav-x), 0, 0);
+  transition:
+    width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 120ms ease;
+  will-change: width, transform;
+}
+
+.gooey-nav-effect[data-ready="true"] {
+  opacity: 1;
+}
+
+.gooey-nav-effect[data-immediate="true"] {
+  transition-duration: 0ms;
+}
+
+.gooey-nav-liquid {
+  position: absolute;
+  inset: 0;
+  filter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeGaussianBlur in='SourceGraphic' stdDeviation='1.8' result='b'/%3E%3CfeColorMatrix in='b' mode='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -7' result='g'/%3E%3CfeComposite in='SourceGraphic' in2='g' operator='atop'/%3E%3C/filter%3E%3C/svg%3E%23g");
+}
+
+.gooey-nav-core {
+  position: absolute;
+  right: 15%;
+  bottom: 1px;
+  left: 15%;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  transform-origin: center;
+  transition: transform 220ms ease;
+}
+
+.gooey-nav-effect.is-moving .gooey-nav-core {
+  animation: gooey-nav-core-pulse 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gooey-nav-particle {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: var(--gooey-particle-size);
+  height: var(--gooey-particle-size);
+  margin-left: calc(var(--gooey-particle-size) / -2);
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  animation: gooey-nav-particle-in 540ms cubic-bezier(0.22, 1, 0.36, 1) var(--gooey-particle-delay) both;
+}
+
+@keyframes gooey-nav-core-pulse {
+  0% { transform: scaleX(0.52) scaleY(1.7); }
+  58% { transform: scaleX(1.18) scaleY(0.86); }
+  100% { transform: scaleX(1) scaleY(1); }
+}
+
+@keyframes gooey-nav-particle-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--gooey-particle-x), var(--gooey-particle-y), 0) scale(0.35);
+  }
+  28% { opacity: 0.84; }
+  72% { opacity: 0.66; }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gooey-nav-effect,
+  .gooey-nav-core {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .gooey-nav-particle {
+    display: none;
+  }
+}

@@ -37,6 +37,7 @@ import { BlurText } from "./components/effects/BlurText";
 import { DecryptedText } from "./components/effects/DecryptedText";
 import { GlobalFlowingLights } from "./components/effects/GlobalFlowingLights";
 import { GlobalPixelTrail } from "./components/effects/GlobalPixelTrail";
+import { GooeyNav } from "./components/effects/GooeyNav";
 import { InteractiveDotGrid } from "./components/effects/InteractiveDotGrid";
 import { Magnetic } from "./components/effects/Magnetic";
 import { PixelReveal, type PixelRevealHandle } from "./components/effects/PixelReveal";
@@ -53,12 +54,6 @@ type ThemeMode = "light" | "dark";
 function useLocation() {
   const [pathname] = useWouterLocation();
   return { pathname };
-}
-
-function NavLink({ to, end = false, children }: { to: string; end?: boolean; children: ReactNode }) {
-  const { pathname } = useLocation();
-  const active = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
-  return <Link to={to} aria-current={active ? "page" : undefined}>{children}</Link>;
 }
 
 type ProjectPreview = {
@@ -1587,12 +1582,15 @@ function Header({
           </Link>
         </Magnetic>
 
-        <nav className="desktop-nav" aria-label="主要导航">
-          <NavLink to="/" end>首页</NavLink>
-          <NavLink to="/projects">项目</NavLink>
-          <NavLink to="/systems">服务器</NavLink>
-          <NavLink to="/about">关于</NavLink>
-        </nav>
+        <GooeyNav
+          ariaLabel="主要导航"
+          items={[
+            { label: "首页", to: "/", end: true },
+            { label: "项目", to: "/projects" },
+            { label: "服务器", to: "/systems" },
+            { label: "关于", to: "/about" },
+          ]}
+        />
 
         <div className="nav-actions">
           <Magnetic strength={0.12}>
