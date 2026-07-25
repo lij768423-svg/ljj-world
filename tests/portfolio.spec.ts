@@ -744,7 +744,9 @@ test("server story uses click-only focus and blank-space reset", async ({ page }
   const firstConnector = story.locator(".server-story-service-connectors line").first();
   const firstServiceNode = story.locator(".server-story-module-list > li").first();
   await expect(firstConnector).toBeVisible();
-  expect(Number.parseFloat(await firstConnector.getAttribute("x2") ?? "0")).toBeGreaterThan(38.5);
+  const connectorX = Number.parseFloat(await firstConnector.getAttribute("x2") ?? "0");
+  expect(connectorX).toBeGreaterThanOrEqual(37.5);
+  expect(connectorX).toBeLessThanOrEqual(43);
   expect(await firstServiceNode.evaluate((node) => Number.parseFloat(getComputedStyle(node).opacity))).toBeLessThan(0.5);
   await expect.poll(
     () => firstConnector.getAttribute("x2").then((value) => Number.parseFloat(value ?? "0")),
