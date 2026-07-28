@@ -5,6 +5,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => {
     localStorage.setItem("portfolio-color-mode", "light");
+    localStorage.setItem("portfolio-language", "zh");
     localStorage.setItem("portfolio-pointer-trail", "off");
   });
 });
@@ -26,6 +27,7 @@ test("mobile header controls remain touchable and menu navigation works", async 
   await expect(menu).toHaveAttribute("aria-expanded", "true");
   const mobileNav = page.getByRole("navigation", { name: "移动端导航" });
   await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: /桌搭展示/ })).toBeVisible();
   await mobileNav.getByRole("link", { name: /全部项目/ }).click();
   await expect(page).toHaveURL(/\/projects$/);
   await expect(page.getByRole("heading", { name: "项目索引" })).toBeVisible();

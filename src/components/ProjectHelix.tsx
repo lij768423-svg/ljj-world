@@ -45,6 +45,30 @@ const HELIX_VERTICAL_LIMIT = 4.2;
 const HELIX_AXIS_MS = 460;
 const HELIX_BLOOM_MS = 1040;
 
+async function waitForProjectImages(stage: HTMLElement) {
+  const images = Array.from(stage.querySelectorAll<HTMLImageElement>(".project-card-media img"));
+  await Promise.all(images.map(async (image) => {
+    if (!image.complete) {
+      await new Promise<void>((resolve) => {
+        const finish = () => {
+          image.removeEventListener("load", finish);
+          image.removeEventListener("error", finish);
+          resolve();
+        };
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
+        if (image.complete) finish();
+      });
+    }
+    if (!image.decode || image.naturalWidth === 0) return;
+    try {
+      await image.decode();
+    } catch {
+      // A failed preview must not hold the whole DNA sequence in its loading state.
+    }
+  }));
+}
+
 function readThemeColor(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
@@ -211,6 +235,7 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
   const pausedRef = useRef(false);
   const selectedRef = useRef(false);
   const [selection, setSelection] = useState<PaperSelection | null>(null);
+  const [animationReady, setAnimationReady] = useState(Boolean(reduceMotion));
   const [axisSeedExpired, setAxisSeedExpired] = useState(Boolean(reduceMotion));
 
   useEffect(() => {
@@ -219,10 +244,14 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
       return;
     }
 
-    setAxisSeedExpired(false);
+    if (!animationReady) {
+      setAxisSeedExpired(false);
+      return;
+    }
+
     const timeout = window.setTimeout(() => setAxisSeedExpired(true), 1100);
     return () => window.clearTimeout(timeout);
-  }, [reduceMotion]);
+  }, [animationReady, reduceMotion]);
 
   useEffect(() => {
     selectedRef.current = Boolean(selection);
@@ -240,6 +269,8 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
     const stage = stageRef.current;
     const canvas = canvasRef.current;
     if (!stage || !canvas || window.innerWidth <= 1080) return;
+    let disposed = false;
+    setAnimationReady(Boolean(reduceMotion));
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -303,7 +334,7 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
     let frame: number | null = null;
     let visible = true;
     let lastTimestamp = performance.now();
-    const expansionStartedAt = performance.now();
+    let expansionStartedAt: number | null = reduceMotion ? performance.now() - HELIX_AXIS_MS - HELIX_BLOOM_MS : null;
     let phase = 0.44;
     const vector = new THREE.Vector3();
 
@@ -353,7 +384,7 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
 
       const delta = Math.min((timestamp - lastTimestamp) / 1000, 0.08);
       lastTimestamp = timestamp;
-      const elapsed = timestamp - expansionStartedAt;
+      const elapsed = expansionStartedAt === null ? 0 : timestamp - expansionStartedAt;
       const axisLinear = reduceMotion ? 1 : clamp(elapsed / HELIX_AXIS_MS);
       const bloomLinear = reduceMotion ? 1 : clamp((elapsed - HELIX_AXIS_MS) / HELIX_BLOOM_MS);
       const axisExpansion = 1 - Math.pow(1 - axisLinear, 4);
@@ -444,7 +475,7 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
         geometry.attributes.position.needsUpdate = true;
       }
       renderer.render(scene, camera);
-      if (!reduceMotion) frame = window.requestAnimationFrame(renderFrame);
+      if (!reduceMotion && expansionStartedAt !== null) frame = window.requestAnimationFrame(renderFrame);
     };
 
     const requestFrame = () => {
@@ -476,7 +507,24 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
     resize();
     requestFrame();
 
+    const prepareAnimation = async () => {
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      if (disposed) return;
+      renderer.compile(scene, camera);
+      renderer.render(scene, camera);
+      await waitForProjectImages(stage);
+      if (disposed) return;
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      if (disposed) return;
+      expansionStartedAt = performance.now();
+      lastTimestamp = expansionStartedAt;
+      setAnimationReady(true);
+      requestFrame();
+    };
+    if (!reduceMotion) void prepareAnimation();
+
     return () => {
+      disposed = true;
       if (frame !== null) window.cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
@@ -522,9 +570,10 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
       data-reduced-motion={reduceMotion ? "true" : "false"}
       data-helix-entry="line-to-dna"
       data-helix-sequence="axis-bloom-live"
+      data-helix-ready={animationReady ? "true" : "false"}
       data-axis-seed-expired={axisSeedExpired ? "true" : "false"}
     >
-      {reduceMotion ? null : (
+      {!reduceMotion && animationReady ? (
         <motion.div
           className="project-helix-axis-seed"
           aria-hidden="true"
@@ -537,7 +586,7 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
           }}
           onAnimationComplete={() => setAxisSeedExpired(true)}
         />
-      )}
+      ) : null}
       <canvas ref={canvasRef} className="project-helix-canvas" aria-hidden="true" />
       <div className="project-helix-nodes" role="list">
         {projects.map((project, index) => (

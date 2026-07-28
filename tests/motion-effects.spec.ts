@@ -1,9 +1,51 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("portfolio-language", "zh"));
+});
+
+test("home entry draws the technical grid before revealing the first scene", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The home entry choreography is desktop-first.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    localStorage.setItem("portfolio-color-mode", "light");
+    localStorage.setItem("portfolio-pointer-trail", "off");
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const intro = page.locator(".home-entry-intro");
+  await expect(intro).toHaveCount(1);
+  await expect(intro).toHaveCSS("animation-name", "home-entry-surface");
+  await expect(intro.locator(".home-entry-mark span")).toHaveText("ljj.world");
+  await expect(intro.locator(".home-entry-grid-line.is-vertical")).toHaveCount(49);
+  await expect(intro.locator(".home-entry-grid-line.is-horizontal")).toHaveCount(28);
+  await expect(intro.locator(".home-entry-grid-line").first()).toHaveCSS("animation-name", "home-entry-line-draw");
+  await expect(intro.locator(".home-entry-blueprint")).toHaveCount(1);
+  await expect(intro.locator(".home-entry-blueprint-portrait-frame")).toHaveCSS("animation-name", "home-entry-frame-draw");
+  await expect(intro.locator(".home-entry-blueprint-portrait, .home-entry-filter-defs")).toHaveCount(0);
+  expect(await intro.locator(".home-entry-blueprint-portrait-frame").evaluate((frame) => (
+    getComputedStyle(frame, "::before").content
+  ))).toBe("none");
+  await expect(page.locator(".home-story")).toHaveAttribute("aria-busy", "true");
+
+  await expect(intro).toHaveClass(/is-finished/, { timeout: 4500 });
+  await expect(intro).toHaveCSS("visibility", "hidden");
+  await expect(intro).toHaveCSS("pointer-events", "none");
+  await expect(page.locator(".home-story")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".hero-intro")).toBeVisible();
+
+  const primaryNav = page.getByRole("navigation", { name: "主要导航" });
+  await primaryNav.getByRole("link", { name: "项目" }).click();
+  await primaryNav.getByRole("link", { name: "首页" }).click();
+  await expect(page.locator(".home-entry-intro:visible")).toHaveCount(0);
+});
+
 test("React Bits kinetic layers render and respond to pointer input", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Pointer effects are desktop-first.");
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/", { waitUntil: "networkidle" });
+  await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
 
   const dotGrid = page.locator(".interactive-dot-grid");
   await expect(dotGrid).toBeVisible();
@@ -104,12 +146,38 @@ test("React Bits kinetic layers render and respond to pointer input", async ({ p
   expect(await firstBreather.evaluate((sticker) => getComputedStyle(sticker).transform)).not.toBe(breathingTransform);
 });
 
+test("project DNA waits for cold cover decoding before its entry animation starts", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The DNA choreography is desktop-first.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem("portfolio-pointer-trail", "off"));
+  await page.route("**/assets/project-covers/408-web.webp", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 420));
+    await route.continue();
+  });
+
+  await page.goto("/projects", { waitUntil: "domcontentloaded" });
+  const helix = page.locator(".project-helix");
+  await expect(helix).toHaveAttribute("data-helix-ready", "false");
+  await expect(helix.locator(".project-helix-axis-seed")).toHaveCount(0);
+  await expect(helix).toHaveAttribute("data-helix-axis", "0.0000");
+
+  await expect(helix).toHaveAttribute("data-helix-ready", "true", { timeout: 3_000 });
+  await expect(helix.locator(".project-helix-axis-seed")).toHaveCount(1);
+  expect(await helix.locator(".project-card-media img").evaluateAll((images) => (
+    images.every((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)
+  ))).toBe(true);
+  await expect(helix).toHaveAttribute("data-helix-stage", "live", { timeout: 3_000 });
+});
+
 test("pixel trail remains global across portfolio routes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Pointer effects are desktop-first.");
   await page.setViewportSize({ width: 1280, height: 720 });
 
-  for (const route of ["/projects", "/systems", "/about", "/projects/408"]) {
+  for (const route of ["/projects", "/systems", "/about", "/projects/408", "/desk"]) {
     await page.goto(route, { waitUntil: "networkidle" });
+    if (route === "/desk") {
+      await expect(page.locator(".circular-gallery").first()).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+    }
     const flowingLights = page.locator('[data-flowing-lights="global"]');
     await expect(flowingLights).toHaveCount(1);
     await expect(flowingLights).toBeVisible();
@@ -125,16 +193,17 @@ test("pixel trail remains global across portfolio routes", async ({ page }, test
     const trail = page.locator(".global-pixel-trail");
     await expect(trail).toHaveCount(1);
     await expect(trail).toBeVisible();
-    await page.mouse.move(420, 260);
-    await expect.poll(() => trail.evaluate((node) => {
+    const point = route === "/desk" ? { x: 640, y: 394 } : { x: 420, y: 260 };
+    await page.mouse.move(point.x, point.y);
+    await expect.poll(() => trail.evaluate((node, samplePoint) => {
       const canvas = node as HTMLCanvasElement;
       const context = canvas.getContext("2d");
       if (!context) return false;
       const bounds = canvas.getBoundingClientRect();
       const scaleX = canvas.width / bounds.width;
       const scaleY = canvas.height / bounds.height;
-      const x = Math.max(0, Math.floor((420 - bounds.left) * scaleX) - 20);
-      const y = Math.max(0, Math.floor((260 - bounds.top) * scaleY) - 20);
+      const x = Math.max(0, Math.floor((samplePoint.x - bounds.left) * scaleX) - 20);
+      const y = Math.max(0, Math.floor((samplePoint.y - bounds.top) * scaleY) - 20);
       const width = Math.min(40, canvas.width - x);
       const height = Math.min(40, canvas.height - y);
       const pixels = context.getImageData(x, y, width, height).data;
@@ -142,7 +211,33 @@ test("pixel trail remains global across portfolio routes", async ({ page }, test
         if (pixels[index] > 0) return true;
       }
       return false;
-    }), { timeout: 700 }).toBe(true);
+    }, point), { timeout: 700 }).toBe(true);
+
+    if (route === "/desk") {
+      const layerOrder = await trail.evaluate((node) => {
+        const gallery = document.querySelector(".desk-gallery-layout");
+        const desk = document.querySelector(".desk-page");
+        return {
+          clipPath: getComputedStyle(node).clipPath,
+          trailZ: Number(getComputedStyle(node).zIndex),
+          galleryZ: gallery ? Number(getComputedStyle(gallery).zIndex) : 0,
+          deskIsolation: desk ? getComputedStyle(desk).isolation : "isolate",
+        };
+      });
+      expect(layerOrder.clipPath).toBe("none");
+      expect(layerOrder.galleryZ).toBeGreaterThan(layerOrder.trailZ);
+      expect(layerOrder.deskIsolation).toBe("auto");
+    } else {
+      const layerOrder = await trail.evaluate((node) => {
+        const routeMain = document.querySelector(".route-main");
+        return {
+          trailZ: Number(getComputedStyle(node).zIndex),
+          routeZ: routeMain ? Number(getComputedStyle(routeMain).zIndex) : 0,
+        };
+      });
+      expect(layerOrder.trailZ).toBe(0);
+      expect(layerOrder.routeZ).toBeGreaterThan(layerOrder.trailZ);
+    }
 
     const trailPixel = await trail.evaluate((node) => {
       const canvas = node as HTMLCanvasElement;
@@ -170,6 +265,303 @@ test("pixel trail remains global across portfolio routes", async ({ page }, test
     expect(Math.abs((trailBox?.y ?? 0) - (navBox?.height ?? 0))).toBeLessThanOrEqual(4);
     expect(await trail.evaluate((node) => getComputedStyle(node).pointerEvents)).toBe("none");
   }
+});
+
+test("desk galleries enter from opposite sides before enabling drag", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk loading choreography is desktop-first.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem("portfolio-pointer-trail", "off"));
+  await page.goto("/desk", { waitUntil: "domcontentloaded" });
+
+  const galleries = page.locator(".circular-gallery");
+  await expect(galleries).toHaveCount(2);
+  await expect(galleries.nth(0)).toHaveAttribute("data-entry-direction", "left");
+  await expect(galleries.nth(1)).toHaveAttribute("data-entry-direction", "right");
+  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "running", { timeout: 2000 });
+  await expect(galleries.nth(1)).toHaveAttribute("data-intro-state", "running", { timeout: 2000 });
+
+  const upperBefore = await galleries.nth(0).screenshot();
+  const lowerBefore = await galleries.nth(1).screenshot();
+  await page.waitForTimeout(180);
+  expect((await galleries.nth(0).screenshot()).equals(upperBefore)).toBe(false);
+  expect((await galleries.nth(1).screenshot()).equals(lowerBefore)).toBe(false);
+
+  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 2500 });
+  await expect(galleries.nth(1)).toHaveAttribute("data-intro-state", "complete", { timeout: 2500 });
+  await expect(galleries.nth(0)).toHaveCSS("cursor", "grab");
+  await expect(galleries.nth(1)).toHaveCSS("cursor", "grab");
+});
+
+test("desk gallery cards brighten, grow, and tilt toward the pointer", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The gallery hover response is desktop-first.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem("portfolio-pointer-trail", "off"));
+  await page.goto("/desk", { waitUntil: "networkidle" });
+
+  const gallery = page.locator(".desk-gallery-scene-home .circular-gallery");
+  await expect(gallery).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  const box = await gallery.boundingBox();
+  expect(box).not.toBeNull();
+  const y = box!.y + box!.height * 0.5;
+
+  await page.mouse.move(box!.x + box!.width * 0.43, y);
+  await expect(gallery).toHaveClass(/is-hovering-card/);
+  await expect(gallery).toHaveCSS("cursor", "pointer");
+  await expect.poll(() => gallery.getAttribute("data-hover-intensity").then(Number), { timeout: 1000 }).toBeGreaterThan(0.7);
+  await expect.poll(() => gallery.getAttribute("data-hover-x").then(Number), { timeout: 1000 }).toBeLessThan(-0.15);
+
+  const hoveredItem = await gallery.getAttribute("data-hovered-item");
+  await page.mouse.move(box!.x + box!.width * 0.57, y);
+  await expect(gallery).toHaveAttribute("data-hovered-item", hoveredItem!);
+  await expect.poll(() => gallery.getAttribute("data-hover-x").then(Number), { timeout: 1000 }).toBeGreaterThan(0.15);
+
+  await page.mouse.move(12, 12);
+  await expect(gallery).not.toHaveClass(/is-hovering-card/);
+  await expect(gallery).toHaveAttribute("data-hovered-item", "");
+});
+
+test("desk lightbox zooms smoothly into its fullscreen presentation", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk lightbox is desktop-first.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem("portfolio-pointer-trail", "off"));
+  await page.goto("/desk", { waitUntil: "networkidle" });
+
+  const gallery = page.locator(".desk-gallery-scene-home .circular-gallery");
+  await expect(gallery).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  const galleryBox = await gallery.boundingBox();
+  expect(galleryBox).not.toBeNull();
+  const clickPoint = {
+    x: galleryBox!.x + galleryBox!.width * 0.5,
+    y: galleryBox!.y + galleryBox!.height * 0.5,
+  };
+  await page.mouse.click(clickPoint.x, clickPoint.y);
+
+  const zoomShell = page.locator(".desk-lightbox-zoom-shell");
+  await expect(zoomShell).toBeVisible();
+  await expect(zoomShell).toHaveAttribute("data-origin-x", String(Math.round(clickPoint.x)));
+  await expect(zoomShell).toHaveAttribute("data-origin-y", String(Math.round(clickPoint.y)));
+  const openingTransform = await zoomShell.evaluate((node) => {
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(node).transform);
+    return { scale: matrix.a, y: matrix.f };
+  });
+  expect(openingTransform.scale).toBeLessThan(0.9);
+  expect(Math.abs(openingTransform.y)).toBeGreaterThan(20);
+  await expect.poll(
+    () => zoomShell.evaluate((node) => new DOMMatrixReadOnly(getComputedStyle(node).transform).a),
+    { timeout: 1000 },
+  ).toBeCloseTo(1, 2);
+  await expect(zoomShell).toHaveCSS("opacity", "1");
+});
+
+test("desk theme wipes in from opposite sides and restores the entry theme after exit", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk theme choreography is desktop-first.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    localStorage.setItem("portfolio-color-mode", "light");
+    localStorage.setItem("portfolio-pointer-trail", "off");
+  });
+  await page.goto("/desk", { waitUntil: "domcontentloaded" });
+
+  await expect(page.locator(".desk-page")).toHaveAttribute("data-intro-ready", "true", { timeout: 2200 });
+  await expect(page.locator("html")).toHaveCSS("overflow-y", "hidden");
+  expect(await page.evaluate(() => window.innerWidth - document.documentElement.clientWidth)).toBe(0);
+  const upperWipe = page.locator(".desk-theme-wipe .is-upper");
+  const lowerWipe = page.locator(".desk-theme-wipe .is-lower");
+  await expect(upperWipe).toHaveCSS("animation-name", "desk-theme-wipe-in");
+  await expect(lowerWipe).toHaveCSS("animation-name", "desk-theme-wipe-in");
+  await expect(upperWipe).toHaveCSS("animation-duration", "1.24s");
+  await expect(lowerWipe).toHaveCSS("animation-duration", "1.24s");
+  await expect(upperWipe).toHaveCSS("will-change", "transform");
+  await expect(lowerWipe).toHaveCSS("will-change", "transform");
+  expect(await upperWipe.evaluate((node) => getComputedStyle(node, "::after").width)).toBe("1px");
+  await expect(page.locator("body")).toHaveClass(/desk-chrome-dark/);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator(".site-header")).toHaveCSS("transition-duration", "1.24s, 1.24s, 1.24s");
+  await expect(page.locator(".desktop-nav")).toHaveCSS("transition-duration", "1.24s");
+  await expect(page.locator(".theme-switch").first()).toHaveCSS("transition-duration", "1.24s, 1.24s, 1.24s, 0.18s");
+
+  const galleries = page.locator(".circular-gallery");
+  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  const wipeWidth = await page.locator(".desk-theme-wipe").evaluate((node) => node.getBoundingClientRect().width);
+  const wipeExitOffsets = Promise.all([
+    upperWipe.evaluate((node) => new Promise<number>((resolve) => {
+      node.addEventListener("animationend", () => resolve(new DOMMatrixReadOnly(getComputedStyle(node).transform).m41), { once: true });
+    })),
+    lowerWipe.evaluate((node) => new Promise<number>((resolve) => {
+      node.addEventListener("animationend", () => resolve(new DOMMatrixReadOnly(getComputedStyle(node).transform).m41), { once: true });
+    })),
+  ]);
+  await page.getByRole("navigation", { name: "主要导航" }).getByRole("link", { name: "关于" }).click();
+  await expect(galleries.nth(0)).toHaveAttribute("data-exit-state", "running");
+  await expect(galleries.nth(1)).toHaveAttribute("data-exit-state", "running");
+  await expect(upperWipe).toHaveCSS("animation-name", "desk-theme-wipe-out");
+  await expect(lowerWipe).toHaveCSS("animation-name", "desk-theme-wipe-out");
+  await expect(page.locator("body")).toHaveClass(/desk-chrome-dark/);
+  const [upperOffset, lowerOffset] = await wipeExitOffsets;
+  expect(upperOffset).toBeLessThanOrEqual(-wipeWidth + 1);
+  expect(lowerOffset).toBeGreaterThanOrEqual(wipeWidth - 1);
+  await expect(page.locator("body")).not.toHaveClass(/desk-chrome-dark/, { timeout: 1500 });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page).toHaveURL(/\/about$/);
+});
+
+test("desk route keeps the header dock fixed while entering and leaving", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desktop dock is hidden on phone layouts.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    localStorage.setItem("portfolio-color-mode", "light");
+    localStorage.setItem("portfolio-pointer-trail", "off");
+  });
+  await page.goto("/about", { waitUntil: "domcontentloaded" });
+
+  const readDockLayout = () => page.locator(".site-header").evaluate(() => {
+    const shell = document.querySelector<HTMLElement>(".nav-shell")!.getBoundingClientRect();
+    const dock = document.querySelector<HTMLElement>(".desktop-nav")!.getBoundingClientRect();
+    return {
+      shellWidth: shell.width,
+      dockCenter: dock.left + dock.width / 2,
+    };
+  });
+  const before = await readDockLayout();
+  await expect(page.locator("html")).toHaveCSS("scrollbar-width", "none");
+
+  await page.getByRole("navigation", { name: "主要导航" }).getByRole("link", { name: "桌搭" }).click();
+  await expect(page).toHaveURL(/\/desk$/);
+  const entered = await readDockLayout();
+  expect(entered.shellWidth).toBeCloseTo(before.shellWidth, 2);
+  expect(entered.dockCenter).toBeCloseTo(before.dockCenter, 2);
+
+  await page.getByRole("navigation", { name: "主要导航" }).getByRole("link", { name: "关于" }).click();
+  await expect(page).toHaveURL(/\/about$/);
+  const duringExit = await readDockLayout();
+  expect(duringExit.shellWidth).toBeCloseTo(before.shellWidth, 2);
+  expect(duringExit.dockCenter).toBeCloseTo(before.dockCenter, 2);
+
+  await page.waitForTimeout(1_300);
+  const afterExit = await readDockLayout();
+  expect(afterExit.shellWidth).toBeCloseTo(before.shellWidth, 2);
+  expect(afterExit.dockCenter).toBeCloseTo(before.dockCenter, 2);
+});
+
+test("desk technical line field animates behind the photographic galleries", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk line field is desktop-first.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    localStorage.setItem("portfolio-color-mode", "dark");
+    localStorage.setItem("portfolio-pointer-trail", "off");
+  });
+  await page.goto("/desk", { waitUntil: "domcontentloaded" });
+
+  const ornaments = page.locator('[data-line-ornaments="desk"]');
+  const gallery = page.locator(".desk-gallery-layout");
+  await expect(ornaments).toHaveCount(1);
+  await expect(ornaments.locator(".scene-line-rail")).toHaveCount(5);
+  await expect(ornaments.locator(".scene-line-corner")).toHaveCount(3);
+  await expect(ornaments.locator(".rail-a")).toHaveCSS("animation-name", "scene-line-travel-x");
+  await expect(ornaments.locator(".rail-c")).toHaveCSS("animation-name", "scene-line-travel-y");
+
+  const layers = await ornaments.evaluate((node) => {
+    const galleryNode = document.querySelector(".desk-gallery-layout");
+    const lowerRail = node.querySelector(".rail-d");
+    const galleryBounds = galleryNode?.getBoundingClientRect();
+    const dividerY = galleryBounds ? galleryBounds.top + galleryBounds.height / 2 : 0;
+    return {
+      ornamentZ: Number(getComputedStyle(node).zIndex),
+      galleryZ: galleryNode ? Number(getComputedStyle(galleryNode).zIndex) : 0,
+      lowerRailDistanceFromDivider: lowerRail
+        ? Math.abs(lowerRail.getBoundingClientRect().top - dividerY)
+        : 0,
+    };
+  });
+  expect(layers.galleryZ).toBeGreaterThan(layers.ornamentZ);
+  expect(layers.lowerRailDistanceFromDivider).toBeGreaterThan(20);
+  await expect(gallery).toBeVisible();
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(ornaments.locator(".scene-line-rail").first()).toHaveCSS("animation-name", "none");
+  await expect(ornaments.locator(".scene-line-corner").first()).toHaveCSS("animation-name", "none");
+});
+
+test("desk switches from a dark entry to a synchronized light presentation", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk theme choreography is desktop-first.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    localStorage.setItem("portfolio-color-mode", "dark");
+    localStorage.setItem("portfolio-pointer-trail", "off");
+  });
+  await page.goto("/desk", { waitUntil: "domcontentloaded" });
+
+  const galleries = page.locator(".circular-gallery");
+  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  const deskPage = page.locator(".desk-page");
+  const upperWipe = page.locator(".desk-theme-wipe .is-upper");
+  const lowerWipe = page.locator(".desk-theme-wipe .is-lower");
+  await expect(deskPage).toHaveAttribute("data-visual-theme", "dark");
+
+  const wipeOffsets = Promise.all([
+    upperWipe.evaluate((node) => new Promise<number>((resolve) => {
+      node.addEventListener("animationend", () => resolve(new DOMMatrixReadOnly(getComputedStyle(node).transform).m41), { once: true });
+    })),
+    lowerWipe.evaluate((node) => new Promise<number>((resolve) => {
+      node.addEventListener("animationend", () => resolve(new DOMMatrixReadOnly(getComputedStyle(node).transform).m41), { once: true });
+    })),
+  ]);
+
+  await page.getByRole("switch", { name: "深色模式" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(deskPage).toHaveAttribute("data-visual-theme", "light");
+  await expect(upperWipe).toHaveCSS("animation-name", "desk-theme-wipe-out");
+  await expect(lowerWipe).toHaveCSS("animation-name", "desk-theme-wipe-out");
+  await expect(page.locator("body")).toHaveClass(/desk-chrome-dark/);
+
+  const [upperOffset, lowerOffset] = await wipeOffsets;
+  expect(upperOffset).toBeLessThanOrEqual(-1439);
+  expect(lowerOffset).toBeGreaterThanOrEqual(1439);
+  await expect(page.locator("body")).not.toHaveClass(/desk-chrome-dark/, { timeout: 1500 });
+  await expect(page.locator(".desk-gallery-scene-label strong").first()).toHaveCSS("color", "rgb(23, 24, 21)");
+
+  await page.getByRole("link", { name: "服务器", exact: true }).click();
+  await expect(page.locator("body")).not.toHaveClass(/desk-chrome-dark/);
+  await expect(page).toHaveURL(/\/systems$/);
+});
+
+test("server entry keeps the header and canvas color transition alive", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The server transition is desktop-first.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    localStorage.setItem("portfolio-color-mode", "light");
+    localStorage.setItem("portfolio-pointer-trail", "off");
+  });
+  await page.goto("/desk", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".circular-gallery").first()).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  await expect(page.locator("body")).toHaveClass(/desk-chrome-dark/);
+
+  const headerTransition = page.locator(".site-header").evaluate((header) => new Promise<{
+    start: string;
+    middle: string;
+    duration: string;
+  }>((resolve) => {
+    const observer = new MutationObserver(() => {
+      if (document.body.classList.contains("desk-route")) return;
+      observer.disconnect();
+      const start = getComputedStyle(header).backgroundColor;
+      const duration = getComputedStyle(header).transitionDuration;
+      window.setTimeout(() => {
+        resolve({ start, middle: getComputedStyle(header).backgroundColor, duration });
+      }, 180);
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  }));
+
+  await page.getByRole("link", { name: "服务器", exact: true }).click();
+  const transitionFrames = await headerTransition;
+  expect(transitionFrames.duration).toContain("0.72s");
+  expect(transitionFrames.middle).not.toBe(transitionFrames.start);
+  await expect(page.locator(".route-main.is-systems-route")).toHaveCSS("opacity", "1", { timeout: 1500 });
+  await expect(page.locator(".site-header")).toHaveCSS("background-color", "rgba(243, 244, 241, 0.88)", { timeout: 1500 });
 });
 
 test("suspended photos follow a held pointer and spring back on release", async ({ page }, testInfo) => {
@@ -241,6 +633,7 @@ test("reduced motion keeps the content and removes continuous kinetic effects", 
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/", { waitUntil: "networkidle" });
 
+  await expect(page.locator(".home-entry-intro")).toHaveCount(0);
   await expect(page.locator(".click-spark-canvas")).toHaveCount(0);
   await expect(page.locator(".pixel-reveal-layer")).toHaveCount(0);
   await expect(page.locator(".global-pixel-trail")).toHaveCount(0);

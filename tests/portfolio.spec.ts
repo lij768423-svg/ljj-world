@@ -8,7 +8,7 @@ const routes = [
   { path: "/projects/hermes-ios", heading: "Hermes for iOS", title: "Hermes for iOS 案例 | lij768423-svg" },
   { path: "/projects/law-site", heading: "根旺律所数字站", title: "根旺律所数字站案例 | lij768423-svg" },
   { path: "/projects/harmonyos", heading: "408 for HarmonyOS", title: "408 for HarmonyOS 案例 | lij768423-svg" },
-  { path: "/projects/mineradio", heading: "Mineradio", title: "Mineradio | lij768423-svg" },
+  { path: "/projects/mineradio", heading: "Mineradio Web 适配", title: "Mineradio Web 适配 | lij768423-svg" },
   { path: "/projects/agent-console", heading: "Agent Console", title: "Agent Console | lij768423-svg" },
   { path: "/projects/codex-api", heading: "Codex API", title: "Codex API | lij768423-svg" },
   { path: "/projects/wiki-api", heading: "Wiki Question API", title: "Wiki Question API | lij768423-svg" },
@@ -18,6 +18,7 @@ const routes = [
   { path: "/projects/home-lab", heading: "Home Lab 基础设施", title: "Home Lab 基础设施 | lij768423-svg" },
   { path: "/systems", heading: "我的服务器", title: "我的服务器 | lij768423-svg" },
   { path: "/about", heading: "关于我", title: "关于 | lij768423-svg" },
+  { path: "/desk", heading: "我的桌搭", title: "我的桌搭 | lij768423-svg" },
 ] as const;
 
 const flagshipRoutes = [
@@ -54,6 +55,10 @@ const dossierRoutes = routes.filter((route) => (
 
 test.beforeAll(async () => {
   await mkdir(".qa", { recursive: true });
+});
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("portfolio-language", "zh"));
 });
 
 test("home story has three usable scenes with separated artwork", async ({ page }, testInfo) => {
@@ -159,6 +164,33 @@ test("home story keeps small wheel gestures continuous in both directions", asyn
   const downwardPosition = await story.evaluate((element) => element.scrollTop);
   await page.mouse.wheel(0, -80);
   await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeLessThan(downwardPosition);
+});
+
+test("home scene rail returns to the introduction from the scroll boundary", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The home scene rail is desktop-only.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
+
+  const story = page.locator(".home-story");
+  await story.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeGreaterThan(2000);
+
+  const stickyOffsets = await story.locator("[data-home-scene]").evaluateAll((scenes) => (
+    scenes.map((scene) => (scene as HTMLElement).offsetTop)
+  ));
+  expect(new Set(stickyOffsets).size).toBe(1);
+
+  const rail = page.getByRole("navigation", { name: "首页章节" });
+  await rail.getByRole("button", { name: "介绍" }).click();
+  await expect.poll(
+    () => story.evaluate((element) => element.scrollTop),
+    { timeout: 2200 },
+  ).toBeLessThanOrEqual(1);
+  await expect(rail.getByRole("button", { name: "介绍" })).toHaveClass(/is-active/);
 });
 
 test("about scene buffers light wheel gestures before projects enter", async ({ page }, testInfo) => {
@@ -271,10 +303,14 @@ test("navigation, metadata, and browser history work across pages", async ({ pag
 
   await primaryNav.getByRole("link", { name: "关于" }).click();
   await expect(page).toHaveURL(/\/about$/);
+  await expect(primaryNav.getByRole("link", { name: "桌搭" })).toBeVisible();
+  await primaryNav.getByRole("link", { name: "桌搭" }).click();
+  await expect(page).toHaveURL(/\/desk$/);
+  await expect(primaryNav.getByRole("link", { name: "桌搭" })).toHaveAttribute("aria-current", "page");
   await page.goBack();
-  await expect(page).toHaveURL(/\/projects$/);
-  await page.goForward();
   await expect(page).toHaveURL(/\/about$/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/desk$/);
 
   await page.goto("/missing");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("这个页面不存在。");
@@ -284,6 +320,110 @@ test("navigation, metadata, and browser history work across pages", async ({ pag
   await page.goto("/about");
   await expect(page.locator(".about-console")).toBeVisible();
   await expect(page.locator(".site-footer")).toHaveCount(0);
+});
+
+test("desk archive renders two independent circular galleries", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk archive is designed around a desktop viewport.");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/about", { waitUntil: "networkidle" });
+
+  const deskLink = page.getByRole("link", { name: /数码桌搭/ });
+  await expect(deskLink).toBeVisible();
+  await deskLink.click();
+  await expect(page).toHaveURL(/\/desk$/);
+  await expect(page.getByRole("heading", { level: 1, name: "我的桌搭" })).toBeVisible();
+  await expect(page.locator('.desk-gallery-layout a[href="/about"]')).toHaveCount(0);
+  const galleries = page.locator(".circular-gallery");
+  await expect(galleries).toHaveCount(2);
+  await expect(page.locator(".desk-gallery-scene-home .desk-gallery-scene-label strong")).toHaveText("HOME");
+  await expect(page.locator(".desk-gallery-scene-school .desk-gallery-scene-label strong")).toHaveText("DORM");
+  await expect(galleries.nth(0).locator("canvas")).toBeVisible();
+  await expect(galleries.nth(1).locator("canvas")).toBeVisible();
+
+  await expect(galleries.nth(0)).toHaveAttribute("data-resources-ready", "true");
+  await expect(galleries.nth(1)).toHaveAttribute("data-resources-ready", "true");
+  for (const index of [0, 1]) {
+    const gallery = galleries.nth(index);
+    const canvas = gallery.locator("canvas");
+    const rendered = await gallery.screenshot();
+    await canvas.evaluate((node) => { node.style.visibility = "hidden"; });
+    const withoutCanvas = await gallery.screenshot();
+    await canvas.evaluate((node) => { node.style.visibility = ""; });
+    expect(rendered.equals(withoutCanvas)).toBe(false);
+  }
+
+  const homeGallery = galleries.nth(0);
+  const schoolGallery = galleries.nth(1);
+  const homeBefore = await homeGallery.screenshot();
+  const schoolBefore = await schoolGallery.screenshot();
+  const homeBox = await homeGallery.boundingBox();
+  expect(homeBox).not.toBeNull();
+  await page.mouse.move(homeBox!.x + homeBox!.width * 0.64, homeBox!.y + homeBox!.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(homeBox!.x + homeBox!.width * 0.36, homeBox!.y + homeBox!.height * 0.5, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(80);
+  const homeAfter = await homeGallery.screenshot();
+  const schoolAfter = await schoolGallery.screenshot();
+  expect(homeAfter.equals(homeBefore)).toBe(false);
+  expect(schoolAfter.equals(schoolBefore)).toBe(true);
+
+  await schoolGallery.focus();
+  const schoolKeyboardBefore = await schoolGallery.screenshot();
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(50);
+  const schoolKeyboardAfter = await schoolGallery.screenshot();
+  expect(schoolKeyboardAfter.equals(schoolKeyboardBefore)).toBe(false);
+
+  const geometry = await page.locator(".desk-gallery-layout").evaluate((archive) => {
+    const box = archive.getBoundingClientRect();
+    return {
+      top: box.top,
+      bottom: box.bottom,
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      bodyHeight: document.body.scrollHeight,
+      viewportHeight: window.innerHeight,
+    };
+  });
+  expect(geometry.top).toBeGreaterThanOrEqual(64);
+  expect(geometry.bottom).toBeLessThanOrEqual(1000);
+  expect(geometry.overflow).toBeLessThanOrEqual(1);
+  expect(geometry.bodyHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+});
+
+test("desk lightbox stays within its gallery group and supports every close path", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The desk lightbox is designed around a desktop viewport.");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/desk", { waitUntil: "networkidle" });
+
+  const homeGallery = page.locator(".desk-gallery-scene-home .circular-gallery");
+  const homeBox = await homeGallery.boundingBox();
+  expect(homeBox).not.toBeNull();
+  await page.mouse.click(homeBox!.x + homeBox!.width * 0.5, homeBox!.y + homeBox!.height * 0.5);
+
+  const lightbox = page.getByRole("dialog");
+  await expect(lightbox).toBeVisible();
+  await expect(lightbox).toHaveAttribute("data-desk-group", "home");
+  await expect(lightbox.locator("img")).toHaveAttribute("src", /desk-2026-blue-1600\.webp$/);
+  await expect(lightbox.locator(".desk-lightbox-meta")).toContainText("HOME");
+  await expect(lightbox.locator(".desk-lightbox-meta")).toContainText("DISPLAY / PC");
+
+  const firstSource = await lightbox.locator("img").getAttribute("src");
+  await lightbox.getByRole("button", { name: "下一张" }).click();
+  await expect(lightbox.locator("img")).not.toHaveAttribute("src", firstSource!);
+  await expect(lightbox).toHaveAttribute("data-desk-group", "home");
+  await page.keyboard.press("ArrowLeft");
+  await expect(lightbox.locator("img")).toHaveAttribute("src", firstSource!);
+
+  await page.keyboard.press("Escape");
+  await expect(lightbox).toHaveCount(0);
+
+  await page.mouse.click(homeBox!.x + homeBox!.width * 0.5, homeBox!.y + homeBox!.height * 0.5);
+  await expect(lightbox).toBeVisible();
+  await page.mouse.click(8, 500);
+  await expect(lightbox).toHaveCount(0);
 });
 
 test("project DNA helix expands, keeps moving on hover, and unfolds into project summaries", async ({ page }, testInfo) => {
@@ -857,10 +997,18 @@ test("theme and overlay menu persist across navigation", async ({ page }) => {
   const themeSwitch = page.getByRole("switch", { name: "深色模式" });
   const portrait = page.locator(".hero-portrait-image");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).not.toContain("-light");
+  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).not.toContain("-white");
+  const lightPortraitLayout = await portrait.evaluate((image) => {
+    const style = getComputedStyle(image);
+    return { objectFit: style.objectFit, objectPosition: style.objectPosition, transform: style.transform };
+  });
   await themeSwitch.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).toContain("-light");
+  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).toContain("virtual-developer-avatar-white");
+  await expect.poll(() => portrait.evaluate((image) => {
+    const style = getComputedStyle(image);
+    return { objectFit: style.objectFit, objectPosition: style.objectPosition, transform: style.transform };
+  })).toEqual(lightPortraitLayout);
 
   await page.getByRole("button", { name: "打开导航" }).click();
   const menu = page.getByRole("navigation", { name: "移动端导航" });
@@ -939,6 +1087,7 @@ test("home introduction and generated portrait remain stable", async ({ page }, 
   }
 
   test.skip(testInfo.project.name !== "desktop", "Portrait parallax is desktop-only.");
+  await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
   await page.mouse.move(1120, 180);
   await page.waitForTimeout(150);
   const parallaxX = await page.locator(".hero").evaluate((element) => (

@@ -2,7 +2,7 @@
 
 ## React Bits
 
-Interaction components in `src/components/effects/` are adapted from ideas and source code in [React Bits](https://github.com/DavidHDev/react-bits). Those adapted portions remain subject to the upstream MIT + Commons Clause License Condition v1.0 and are excluded from any broader permission that would conflict with that condition.
+The animation components in `src/components/effects/`, `src/components/CircularGallery.tsx`, and `src/components/FlowingMenu.tsx` are adapted from ideas and source code in [React Bits](https://github.com/DavidHDev/react-bits). Those adapted portions remain subject to the upstream MIT + Commons Clause License Condition v1.0 and are excluded from any broader permission that would conflict with that condition.
 
 Copyright (c) 2026 David Haz
 
@@ -16,4 +16,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Package dependencies
 
-React, Vite, Motion, Three.js, Wouter, Phosphor Icons, Fontsource packages, Playwright, and their transitive dependencies retain their own licenses. See `package-lock.json` and the packages' distributed license files for exact versions and terms.
+React, Vite, Motion, Three.js, OGL, GSAP, Wouter, Phosphor Icons, Fontsource packages, Playwright, and their transitive dependencies retain their own licenses. See `package-lock.json` and the packages' distributed license files for exact versions and terms.

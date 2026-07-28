@@ -10,7 +10,9 @@
 - 基于 Three.js 的 DNA 项目索引
 - 可展开的项目案例与真实产品截图
 - SVG 服务器拓扑、组件聚焦和服务节点动画
-- 深浅色主题、全局像素拖影与响应式布局
+- HOME / DORM 双弧线桌搭画廊与全屏图片预览
+- 中英文即时切换与 DecryptedText 字符解密过渡
+- 深浅色主题、全局像素拖影与桌面端适配
 - `prefers-reduced-motion` 无障碍降级
 - Playwright 视觉与交互回归测试
 
@@ -19,7 +21,8 @@
 - React 19 + TypeScript
 - Vite 8
 - Motion for React
-- Three.js
+- Three.js + OGL
+- GSAP
 - Wouter
 - Playwright
 
@@ -62,6 +65,13 @@ npm run test:e2e
 - `topologyCategories`：服务器分类、服务节点和说明
 - `pageMetadata`：各路由的标题、摘要和分享图片
 - `AboutPage`：个人介绍与生活照片
+- `deskScenes`：HOME / DORM 桌搭图片、时间和地点信息
+
+中英文文案映射位于 [`src/i18n`](./src/i18n)，新增界面文字后可以运行：
+
+```bash
+node scripts/generate-portfolio-translations.mjs
+```
 
 样式与动效分别位于：
 

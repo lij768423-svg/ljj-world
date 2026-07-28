@@ -29,9 +29,11 @@ import { ShareNetwork } from "@phosphor-icons/react/ShareNetwork";
 import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { Stack } from "@phosphor-icons/react/Stack";
 import { Sun } from "@phosphor-icons/react/Sun";
+import { Translate } from "@phosphor-icons/react/Translate";
 import { X } from "@phosphor-icons/react/X";
-import { animate, AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
+import { animate, AnimatePresence, motion, useIsPresent, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { Link, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation, useParams } from "wouter";
 import { BlurText } from "./components/effects/BlurText";
 import { DecryptedText } from "./components/effects/DecryptedText";
@@ -42,9 +44,71 @@ import { Magnetic } from "./components/effects/Magnetic";
 import { PixelReveal, type PixelRevealHandle } from "./components/effects/PixelReveal";
 import { SceneLineOrnaments } from "./components/effects/SceneLineOrnaments";
 import { MobileServerStory } from "./components/MobileServerStory";
+import type { CircularGalleryClick, CircularGalleryItem } from "./components/CircularGallery";
+import type { FlowingMenuItemData } from "./components/FlowingMenu";
+import { PortfolioLanguageProvider, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
 
-const ProjectHelix = lazy(() => import("./components/ProjectHelix").then((module) => ({ default: module.ProjectHelix })));
+const loadProjectHelix = () => import("./components/ProjectHelix").then((module) => ({ default: module.ProjectHelix }));
+const ProjectHelix = lazy(loadProjectHelix);
 const ServerExplodedStory = lazy(() => import("./components/ServerExplodedStory").then((module) => ({ default: module.ServerExplodedStory })));
+const FlowingMenu = lazy(() => import("./components/FlowingMenu").then((module) => ({ default: module.FlowingMenu })));
+const loadCircularGallery = () => import("./components/CircularGallery");
+const deskGalleryPreloads = new Map<string, HTMLImageElement>();
+const projectCardPreloads = new Map<string, HTMLImageElement>();
+
+function preloadProjectCardImages() {
+  if (typeof Image === "undefined") return;
+  projects.forEach((project) => {
+    const preview = project.cardPreview;
+    if (projectCardPreloads.has(preview.image)) return;
+    const image = new Image();
+    image.decoding = "async";
+    image.fetchPriority = "low";
+    if (preview.srcSet) image.srcset = preview.srcSet;
+    if (preview.sizes) image.sizes = preview.sizes;
+    image.src = preview.image;
+    void image.decode().catch(() => undefined);
+    projectCardPreloads.set(preview.image, image);
+  });
+}
+
+const preloadProjectsPage = () => {
+  void loadProjectHelix();
+  preloadProjectCardImages();
+};
+
+function preloadDeskGalleryImages() {
+  if (typeof Image === "undefined") return;
+  [...homeGalleryItems, ...schoolGalleryItems].forEach((item) => {
+    if (deskGalleryPreloads.has(item.image)) return;
+    const image = new Image();
+    image.decoding = "async";
+    image.src = item.image;
+    deskGalleryPreloads.set(item.image, image);
+  });
+}
+
+const preloadCircularGallery = () => {
+  void loadCircularGallery().then((module) => module.prewarmCircularGallery());
+  preloadDeskGalleryImages();
+};
+const CircularGallery = lazy(loadCircularGallery);
+
+const flowingMenuImages = [
+  "/assets/flowing-menu/home.webp",
+  "/assets/flowing-menu/projects.webp",
+  "/assets/flowing-menu/server.webp",
+  "/assets/flowing-menu/desk.webp",
+  "/assets/flowing-menu/about.webp",
+];
+
+const flowingMenuItems: FlowingMenuItemData[] = [
+  { href: "/", label: "Home", ariaLabel: "Home - 首页", images: flowingMenuImages },
+  { href: "/projects", label: "Projects", ariaLabel: "Projects - 全部项目", images: [...flowingMenuImages.slice(1), flowingMenuImages[0]] },
+  { href: "/systems", label: "Server", ariaLabel: "Server - 我的服务器", images: [...flowingMenuImages.slice(2), ...flowingMenuImages.slice(0, 2)] },
+  { href: "/desk", label: "Desk setup", ariaLabel: "Desk setup - 桌搭展示", images: [...flowingMenuImages.slice(3), ...flowingMenuImages.slice(0, 3)] },
+  { href: "/about", label: "About", ariaLabel: "About - 关于", images: [...flowingMenuImages.slice(4), ...flowingMenuImages.slice(0, 4)] },
+];
 
 type Category = "product" | "ai" | "system";
 type Filter = "all" | Category;
@@ -58,7 +122,21 @@ function useLocation() {
 function NavLink({ to, end = false, children }: { to: string; end?: boolean; children: ReactNode }) {
   const { pathname } = useLocation();
   const active = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
-  return <Link to={to} aria-current={active ? "page" : undefined}>{children}</Link>;
+  const warmRoute = to === "/projects"
+    ? preloadProjectsPage
+    : to === "/desk"
+      ? preloadCircularGallery
+      : undefined;
+  return (
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      onPointerEnter={warmRoute}
+      onFocus={warmRoute}
+    >
+      {children}
+    </Link>
+  );
 }
 
 type ProjectPreview = {
@@ -279,7 +357,7 @@ const projects: Project[] = [
   },
   {
     id: "mineradio",
-    title: "Mineradio",
+    title: "Mineradio Web 适配",
     description: "参与沉浸式音乐播放器的视觉与工程迭代，并完成 Web 迁移、访问保护与发布链路重建。",
     category: "product",
     kind: "协作项目",
@@ -300,7 +378,7 @@ const projects: Project[] = [
     repo: "https://github.com/English-worse/Mineradio",
     detail: "/projects/mineradio",
     icon: <GlobeHemisphereWest size={22} weight="duotone" />,
-    cardPreview: projectCardPreview("mineradio", "Mineradio"),
+    cardPreview: projectCardPreview("mineradio", "Mineradio Web 适配"),
     preview: {
       image: "/assets/mineradio-app.webp",
       alt: "Mineradio 现代 Web 外壳真实界面",
@@ -1566,6 +1644,7 @@ function Header({
   const reduceMotion = useReducedMotion();
   const location = useLocation();
   const isDark = theme === "dark";
+  const { language, toggleLanguage } = usePortfolioLanguage();
 
   useEffect(() => {
     document.body.classList.toggle("menu-is-open", menuOpen);
@@ -1575,6 +1654,23 @@ function Header({
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      const preloadProjects = window.requestIdleCallback(preloadProjectsPage, { timeout: 900 });
+      const preloadGallery = window.requestIdleCallback(preloadCircularGallery, { timeout: 1800 });
+      return () => {
+        window.cancelIdleCallback(preloadProjects);
+        window.cancelIdleCallback(preloadGallery);
+      };
+    }
+    const preloadProjects = window.setTimeout(preloadProjectsPage, 450);
+    const preloadGallery = window.setTimeout(preloadCircularGallery, 900);
+    return () => {
+      window.clearTimeout(preloadProjects);
+      window.clearTimeout(preloadGallery);
+    };
+  }, []);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -1591,6 +1687,7 @@ function Header({
           <NavLink to="/" end>首页</NavLink>
           <NavLink to="/projects">项目</NavLink>
           <NavLink to="/systems">服务器</NavLink>
+          <NavLink to="/desk">桌搭</NavLink>
           <NavLink to="/about">关于</NavLink>
         </nav>
 
@@ -1606,6 +1703,20 @@ function Header({
             >
               <GithubLogo size={19} weight="fill" aria-hidden="true" />
             </a>
+          </Magnetic>
+          <Magnetic strength={0.12}>
+            <button
+              className="language-switch"
+              type="button"
+              data-no-translate
+              aria-pressed={language === "en"}
+              aria-label={language === "zh" ? "Switch to English" : "切换为中文"}
+              title={language === "zh" ? "Switch to English" : "切换为中文"}
+              onClick={toggleLanguage}
+            >
+              <Translate size={16} weight="bold" aria-hidden="true" />
+              <span>{language === "zh" ? "EN" : "中"}</span>
+            </button>
           </Magnetic>
           <Magnetic strength={0.12}>
             <button
@@ -1664,19 +1775,21 @@ function Header({
             transition={reduceMotion ? { duration: 0 } : { duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="site-menu-inner section-shell">
-              <p className="menu-label">Navigation / 目录</p>
-              <div className="menu-links">
-                <Link to="/" onClick={closeMenu}><span>Home</span><strong>首页</strong><ArrowRight /></Link>
-                <Link to="/projects" onClick={closeMenu}><span>Projects</span><strong>全部项目</strong><ArrowRight /></Link>
-                <Link to="/systems" onClick={closeMenu}><span>Server</span><strong>我的服务器</strong><ArrowRight /></Link>
-                <Link to="/about" onClick={closeMenu}><span>About</span><strong>关于</strong><ArrowRight /></Link>
-              </div>
-              <div className="menu-footer">
-                <span>产品、界面与个人服务器</span>
-                <ExternalLink href="https://github.com/lij768423-svg">
-                  GitHub <ArrowUpRight size={16} weight="bold" />
-                </ExternalLink>
-              </div>
+              <Suspense
+                fallback={(
+                  <div className="flowing-menu flowing-menu-fallback" role="list">
+                    {flowingMenuItems.map((item) => (
+                      <div className="flowing-menu-item" role="listitem" key={item.href}>
+                        <Link className="flowing-menu-link" to={item.href} aria-label={item.ariaLabel} onClick={closeMenu}>
+                          <strong>{item.label}</strong>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              >
+                <FlowingMenu items={flowingMenuItems} onSelect={closeMenu} speed={13} />
+              </Suspense>
             </div>
           </motion.nav>
         ) : null}
@@ -1690,10 +1803,10 @@ function Hero({ theme }: { theme: ThemeMode }) {
   const isPhone = window.matchMedia("(max-width: 767px)").matches;
   const pixelRevealRef = useRef<PixelRevealHandle>(null);
   const portraitSource = theme === "dark"
-    ? "/assets/virtual-developer-avatar-light.webp"
+    ? "/assets/virtual-developer-avatar-white.webp"
     : "/assets/virtual-developer-avatar.webp";
   const portraitSourceSet = theme === "dark"
-    ? "/assets/virtual-developer-avatar-light-512.webp 512w, /assets/virtual-developer-avatar-light-1024.webp 1024w, /assets/virtual-developer-avatar-light-1600.webp 1600w, /assets/virtual-developer-avatar-light.webp 2048w"
+    ? "/assets/virtual-developer-avatar-white-512.webp 512w, /assets/virtual-developer-avatar-white-1024.webp 1024w, /assets/virtual-developer-avatar-white-1600.webp 1600w, /assets/virtual-developer-avatar-white.webp 2048w"
     : "/assets/virtual-developer-avatar-512.webp 512w, /assets/virtual-developer-avatar-1024.webp 1024w, /assets/virtual-developer-avatar-1600.webp 1600w, /assets/virtual-developer-avatar.webp 2048w";
 
   return (
@@ -1779,8 +1892,8 @@ function Hero({ theme }: { theme: ThemeMode }) {
               <DecryptedText text="lij768423-svg / 独立开发者" />
             </span>
             <span className="hero-statement">
-              <BlurText className="hero-line" text="你好，我是 ljj。" delay={0.08} />
-              <BlurText className="hero-line" text="把想法做成长期运行的产品。" delay={0.3} />
+              <BlurText className="hero-line" text="你好，我是 ljj。" delay={0.08} crossFadeTransition />
+              <BlurText className="hero-line" text="把想法做成长期运行的产品。" delay={0.3} crossFadeTransition />
             </span>
           </h1>
           <p className="hero-summary">
@@ -2053,7 +2166,15 @@ function FavoriteProjectsScene() {
           viewport={{ once: true, amount: 0.6 }}
           transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
         >
-          <h2 id="favorite-projects-title">我的收藏项目</h2>
+          <h2 id="favorite-projects-title">
+            <DecryptedText
+              className="favorite-projects-title-text"
+              text="我的收藏项目"
+              startDelay={0}
+              animateOnMount={false}
+              constrainWidth
+            />
+          </h2>
           <Link to="/projects">查看全部 <ArrowRight size={17} weight="bold" /></Link>
         </motion.div>
 
@@ -2850,7 +2971,7 @@ function ProjectIndex({
                 <span>{String(visibleProjects.length).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}</span>
               </div>
               {stageTitle ? (
-                <Suspense fallback={<div className="project-helix-loading" aria-hidden="true" />}>
+                <Suspense fallback={null}>
                   <ProjectHelix
                     projects={visibleProjects.map((project) => ({
                       ...project,
@@ -3055,13 +3176,114 @@ function CaseLead({ projectId, summary }: { projectId: string; summary: string }
   );
 }
 
+const homeEntryVerticalLines = Array.from({ length: 49 }, (_, index) => index);
+const homeEntryHorizontalLines = Array.from({ length: 28 }, (_, index) => index);
+let hasPlayedHomeEntryIntro = false;
+
+function HomeEntryIntro({ theme, onComplete }: { theme: ThemeMode; onComplete: () => void }) {
+  const introRef = useRef<HTMLDivElement>(null);
+  const hasCompletedRef = useRef(false);
+  const finishIntro = useCallback(() => {
+    if (hasCompletedRef.current) return;
+    hasCompletedRef.current = true;
+    introRef.current?.classList.add("is-finished");
+    onComplete();
+  }, [onComplete]);
+
+  useEffect(() => {
+    const fallback = window.setTimeout(finishIntro, 4000);
+    return () => window.clearTimeout(fallback);
+  }, [finishIntro]);
+
+  const destination = theme === "dark" ? "#141412" : "#fbfbf8";
+  const lineDestination = theme === "dark" ? "rgba(242, 241, 235, 0.051)" : "rgba(17, 17, 15, 0.036)";
+  const blueprintDestination = theme === "dark" ? "rgba(242, 241, 235, 0.24)" : "rgba(17, 17, 15, 0.24)";
+  const lineStyle = (index: number, offset: number) => ({
+    "--home-entry-line-index": index,
+    "--home-entry-line-delay": `${360 + ((index * 7 + offset) % 13) * 18}ms`,
+  } as CSSProperties);
+
+  return createPortal(
+    <div
+      ref={introRef}
+      className="home-entry-intro"
+      aria-hidden="true"
+      style={{
+        "--home-entry-destination": destination,
+        "--home-entry-line-destination": lineDestination,
+        "--home-entry-blueprint-destination": blueprintDestination,
+      } as CSSProperties}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget && event.animationName === "home-entry-surface") {
+          finishIntro();
+        }
+      }}
+    >
+      <div className="home-entry-mark">
+        <span>ljj.world</span>
+        <i />
+      </div>
+      <div className="home-entry-grid">
+        {homeEntryVerticalLines.map((index) => (
+          <i
+            className={`home-entry-grid-line is-vertical${index % 2 ? " is-reverse" : ""}`}
+            key={`home-entry-v-${index}`}
+            style={lineStyle(index, 0)}
+          />
+        ))}
+        {homeEntryHorizontalLines.map((index) => (
+          <i
+            className={`home-entry-grid-line is-horizontal${index % 2 ? " is-reverse" : ""}`}
+            key={`home-entry-h-${index}`}
+            style={lineStyle(index, 5)}
+          />
+        ))}
+      </div>
+      <div className={`home-entry-blueprint is-${theme}`}>
+        <div className="home-entry-blueprint-header">
+          <i className="home-entry-blueprint-brand-frame" />
+          <div className="home-entry-blueprint-nav">
+            <i /><i /><i /><i /><i />
+          </div>
+          <div className="home-entry-blueprint-tools"><i /><i /><i /></div>
+        </div>
+        <div className="home-entry-blueprint-hero">
+          <div className="home-entry-blueprint-portrait-frame" />
+          <div className="home-entry-blueprint-copy">
+            <i className="home-entry-blueprint-meta-frame" />
+            <div className="home-entry-blueprint-title-frames"><i /><i /></div>
+            <i className="home-entry-blueprint-summary-frame" />
+            <div className="home-entry-blueprint-actions"><i /><i /></div>
+          </div>
+          <div className="home-entry-blueprint-signal" />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function HomePage({ theme }: { theme: ThemeMode }) {
+  const reduceMotion = useReducedMotion();
   const storyRef = useRef<HTMLDivElement>(null);
   const [activeScene, setActiveScene] = useState<HomeSceneId>("intro");
   const [aboutPhotosRequested, setAboutPhotosRequested] = useState(false);
   const [aboutStickersReady, setAboutStickersReady] = useState(false);
-  const reduceMotion = useReducedMotion();
+  const [shouldPlayEntryIntro] = useState(() => (
+    !hasPlayedHomeEntryIntro && !Boolean(reduceMotion)
+  ));
   const { scrollYProgress } = useScroll({ container: storyRef });
+  const completeEntryIntro = useCallback(() => {
+    document.body.classList.remove("home-intro-active");
+    storyRef.current?.setAttribute("aria-busy", "false");
+  }, []);
+
+  useEffect(() => {
+    if (!shouldPlayEntryIntro) return;
+    hasPlayedHomeEntryIntro = true;
+    document.body.classList.add("home-intro-active");
+    return () => document.body.classList.remove("home-intro-active");
+  }, [shouldPlayEntryIntro]);
 
   useMotionValueEvent(scrollYProgress, "change", () => {
     const story = storyRef.current;
@@ -3095,23 +3317,31 @@ function HomePage({ theme }: { theme: ThemeMode }) {
     if (targetIndex < 0 || !story) return;
     const target = story.querySelector<HTMLElement>(`[data-home-scene="${scene}"]`);
     if (!target) return;
+    let targetTop = 0;
+    for (const child of Array.from(story.children)) {
+      if (child === target) break;
+      if (child instanceof HTMLElement) targetTop += child.offsetHeight;
+    }
     setActiveScene(scene);
     if (scene !== "intro") setAboutPhotosRequested(true);
     if (scene === "about") setAboutStickersReady(true);
     story.scrollTo({
-      top: target.offsetTop,
+      top: targetTop,
       behavior: reduceMotion ? "auto" : "smooth",
     });
   }
 
   return (
-    <div ref={storyRef} className="home-story">
-      <Hero theme={theme} />
-      <AboutScene photosRequested={aboutPhotosRequested} stickersReady={aboutStickersReady} />
-      <div className="home-scene-buffer" aria-hidden="true" />
-      <FavoriteProjectsScene />
-      <HomeSceneRail activeScene={activeScene} onSelect={selectScene} />
-    </div>
+    <>
+      {shouldPlayEntryIntro ? <HomeEntryIntro theme={theme} onComplete={completeEntryIntro} /> : null}
+      <div ref={storyRef} className="home-story" aria-busy={shouldPlayEntryIntro ? true : false}>
+        <Hero theme={theme} />
+        <AboutScene photosRequested={aboutPhotosRequested} stickersReady={aboutStickersReady} />
+        <div className="home-scene-buffer" aria-hidden="true" />
+        <FavoriteProjectsScene />
+        <HomeSceneRail activeScene={activeScene} onSelect={selectScene} />
+      </div>
+    </>
   );
 }
 
@@ -3147,7 +3377,7 @@ function ProjectsPage() {
         {isPhone ? (
           <MobileProjectGrid projects={helixProjects} />
         ) : (
-          <Suspense fallback={<div className="project-helix-loading" aria-hidden="true" />}>
+          <Suspense fallback={null}>
             <ProjectHelix projects={helixProjects} />
           </Suspense>
         )}
@@ -3848,6 +4078,454 @@ function AboutBlurText({ text, delay = 0 }: { text: string; delay?: number }) {
   );
 }
 
+const deskScenes = {
+  school: {
+    label: "学校",
+    tone: "暖色 / 学习开发",
+    summary: "暖色灯光下的学校工位，承担备考、写代码和每天长时间使用。",
+    defaultIndex: 5,
+    desks: [
+      {
+        id: "school-night",
+        period: "2025 / 12",
+        title: "深夜只留下屏幕与输入设备",
+        description: "降低环境亮度后，显示器、键鼠和手柄成为画面焦点，更适合游戏与沉浸式使用。",
+        device: "DISPLAY / GAMEPAD",
+        image: "/assets/desk-setup/desk-dorm-2025-night",
+        alt: "寝室深夜桌搭，暗光中显示器、机械键盘、鼠标和手柄位于桌面中央",
+        width: 1600,
+        height: 1200,
+      },
+      {
+        id: "school-january-framed",
+        period: "2026 / 01",
+        title: "暖光覆盖完整工作区",
+        description: "收纳架与照明延伸到屏幕两侧，设备和小物件被统一在更完整的桌面框架里。",
+        device: "DESK LIGHT / STORAGE",
+        image: "/assets/desk-setup/desk-dorm-2026-january-framed",
+        alt: "暖色灯光下的寝室桌搭，显示器、收纳架、键盘和桌面摆件完整入镜",
+        width: 1600,
+        height: 1404,
+      },
+      {
+        id: "school-stable",
+        period: "2026 / 04",
+        title: "备考流程进入稳定状态",
+        description: "时钟、输入设备和随手可用的小工具被重新编排，桌面开始服务于连续的学习和开发。",
+        device: "DISPLAY / INPUT",
+        image: "/assets/desk-setup/desk-2026-warm",
+        alt: "学校暖色桌搭，显示器、键盘、桌面时钟和常用工具排列整齐",
+        width: 1600,
+        height: 1035,
+      },
+      {
+        id: "school-april",
+        period: "2026 / 04",
+        title: "功能与收藏进入同一画面",
+        description: "工作设备保持在中央，模型、手柄和植物向两侧展开，实用与个人偏好不再分开。",
+        device: "DISPLAY / COLLECTION",
+        image: "/assets/desk-setup/desk-dorm-2026-april",
+        alt: "寝室暖色桌搭，显示器两侧陈列植物、模型、手柄和多组桌面设备",
+        width: 1600,
+        height: 1200,
+      },
+      {
+        id: "school-may",
+        period: "2026 / 05",
+        title: "设备密度继续提高",
+        description: "主屏、迷你主机、时钟和输入设备集中在触手可及的位置，桌面更紧凑也更高效。",
+        device: "MAC MINI / INPUT",
+        image: "/assets/desk-setup/desk-dorm-2026-may",
+        alt: "寝室暖色桌搭近景，显示器、迷你主机、键盘、鼠标和桌面时钟集中排列",
+        width: 1600,
+        height: 1200,
+      },
+      {
+        id: "school-current",
+        period: "2026 / 07",
+        title: "学校：学习与开发主场",
+        description: "书架下的暖色工位同时承载备考、开发和日常整理，重点是长时间使用时依然顺手。",
+        device: "DISPLAY / STUDY KIT",
+        image: "/assets/desk-setup/desk-2026-current",
+        alt: "当前学校桌搭的俯视全景，书架下放置显示器、键盘和学习设备",
+        width: 1600,
+        height: 954,
+      },
+    ],
+  },
+  home: {
+    label: "家里",
+    tone: "冷色 / 硬件影音",
+    summary: "冷色调的家用工位，围绕白色主机、影音体验和硬件 DIY 展开。",
+    defaultIndex: 2,
+    desks: [
+      {
+        id: "home-blue",
+        period: "2026 / 02",
+        title: "家里的冷色主机桌",
+        description: "白色主机进入桌面视线，屏幕、灯光与硬件开始按照同一套冷色语言组织。",
+        device: "DISPLAY / PC",
+        image: "/assets/desk-setup/desk-2026-blue",
+        alt: "家里的冷色桌搭，显示器旁边放置白色透明侧板台式主机",
+        width: 1600,
+        height: 1200,
+      },
+      {
+        id: "home-pc-detail",
+        period: "2026 / 02",
+        title: "硬件本身就是展示内容",
+        description: "白色水冷主机、显卡和风扇不再藏在桌下，硬件结构成为家里桌面的主要视觉。",
+        device: "GPU / LIQUID COOLING",
+        image: "/assets/desk-setup/desk-home-pc-detail",
+        alt: "家里白色透明主机的内部特写，可见显卡、水冷管和多组风扇",
+        width: 1600,
+        height: 900,
+      },
+      {
+        id: "home-development",
+        period: "2026 / 06",
+        title: "在家也能快速进入开发状态",
+        description: "大屏负责主要内容，笔记本随时接入开发环境，音响和灯光则服务于更放松的使用节奏。",
+        device: "DISPLAY / LAPTOP",
+        image: "/assets/desk-setup/desk-home-development",
+        alt: "家里的冷色开发桌面，大屏幕前放着笔记本，两侧是透明音响和氛围灯",
+        width: 1600,
+        height: 801,
+      },
+      {
+        id: "home-pc",
+        period: "2026 / 06",
+        title: "主机与桌面形成一体",
+        description: "透明主机、曲面屏和输入设备共同组成家里的硬件空间，维护和调整部件都更直接。",
+        device: "ULTRAWIDE / PC",
+        image: "/assets/desk-setup/desk-2026-pc",
+        alt: "家里的冷色桌搭，曲面显示器旁陈列透明台式主机",
+        width: 1600,
+        height: 1200,
+      },
+      {
+        id: "home-current",
+        period: "2026 / 07",
+        title: "家里：影音与硬件空间",
+        description: "深色背景、透明音响和白色设备组成更安静的冷色环境，适合影音、硬件和自由探索。",
+        device: "DISPLAY / AUDIO / TABLET",
+        image: "/assets/desk-setup/desk-home-current",
+        alt: "当前家里桌搭，深色窗帘前放置显示器、透明音响、键盘和平板设备",
+        width: 1600,
+        height: 1200,
+      },
+    ],
+  },
+} as const;
+
+const homeGalleryItems: CircularGalleryItem[] = deskScenes.home.desks.map((desk) => ({
+  image: `${desk.image}-1024.webp`,
+  text: desk.title,
+}));
+
+const schoolGalleryItems: CircularGalleryItem[] = deskScenes.school.desks.map((desk) => ({
+  image: `${desk.image}-1024.webp`,
+  text: desk.title,
+}));
+
+function DeskGalleryFallback({ label }: { label: string }) {
+  return (
+    <div className="desk-gallery-loading" role="status">
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+
+type DeskGroup = keyof typeof deskScenes;
+type DeskSelection = CircularGalleryClick & { group: DeskGroup };
+
+function DeskLightbox({
+  selection,
+  onChange,
+  onClose,
+}: {
+  selection: DeskSelection;
+  onChange: (index: number) => void;
+  onClose: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const desks = selection.group === "home" ? deskScenes.home.desks : deskScenes.school.desks;
+  const desk = desks[selection.index];
+  const locationLabel = selection.group === "home" ? "HOME" : "DORM";
+  const lightboxOrigin = {
+    x: selection.clientX - window.innerWidth / 2,
+    y: selection.clientY - window.innerHeight / 2,
+  };
+
+  const move = useCallback((delta: number) => {
+    onChange((selection.index + delta + desks.length) % desks.length);
+  }, [desks.length, onChange, selection.index]);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") move(-1);
+      if (event.key === "ArrowRight") move(1);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [move, onClose]);
+
+  useEffect(() => {
+    const previous = desks[(selection.index - 1 + desks.length) % desks.length];
+    const next = desks[(selection.index + 1) % desks.length];
+    [previous, next].forEach((item) => {
+      const image = new Image();
+      image.src = `${item.image}-1600.webp`;
+    });
+  }, [desks, selection.index]);
+
+  return createPortal(
+    <motion.div
+      className="desk-lightbox"
+      data-trail-occluder
+      data-desk-lightbox-backdrop
+      data-desk-group={selection.group}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="desk-lightbox-title"
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
+      transition={reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <button ref={closeRef} className="desk-lightbox-close" type="button" onClick={onClose} title="关闭大图" aria-label="关闭大图">
+        <X size={22} weight="bold" aria-hidden="true" />
+      </button>
+
+      <button className="desk-lightbox-arrow is-previous" type="button" onClick={() => move(-1)} title="上一张" aria-label="上一张">
+        <ArrowLeft size={25} weight="bold" aria-hidden="true" />
+      </button>
+
+      <div
+        className="desk-lightbox-stage"
+        aria-live="polite"
+        onPointerDown={(event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target?.closest("img, figcaption, button")) onClose();
+        }}
+      >
+        <motion.div
+          className="desk-lightbox-zoom-shell"
+          data-origin-x={Math.round(selection.clientX)}
+          data-origin-y={Math.round(selection.clientY)}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.34, x: lightboxOrigin.x, y: lightboxOrigin.y }}
+          animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, scale: 0.34, x: lightboxOrigin.x, y: lightboxOrigin.y }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.figure
+              key={desk.id}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.965, x: 18 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, x: -18 }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <img
+                src={`${desk.image}-1600.webp`}
+                alt={desk.alt}
+                width={desk.width}
+                height={desk.height}
+              />
+              <figcaption>
+                <div className="desk-lightbox-copy">
+                  <h2 id="desk-lightbox-title">{desk.title}</h2>
+                  <p>{desk.description}</p>
+                  <div className="desk-lightbox-meta" aria-label="照片信息">
+                    <span>{desk.period}</span>
+                    <span>{locationLabel}</span>
+                    <span>{desk.device}</span>
+                  </div>
+                </div>
+                <span className="desk-lightbox-count" aria-label={`第 ${selection.index + 1} 张，共 ${desks.length} 张`}>
+                  {String(selection.index + 1).padStart(2, "0")} / {String(desks.length).padStart(2, "0")}
+                </span>
+              </figcaption>
+            </motion.figure>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      <button className="desk-lightbox-arrow is-next" type="button" onClick={() => move(1)} title="下一张" aria-label="下一张">
+        <ArrowRight size={25} weight="bold" aria-hidden="true" />
+      </button>
+    </motion.div>,
+    document.body,
+  );
+}
+
+function DeskArchivePage({ theme }: { theme: ThemeMode }) {
+  const isPresent = useIsPresent();
+  const entryTheme = useRef(theme);
+  const previousTheme = useRef(theme);
+  const [visualTheme, setVisualTheme] = useState<ThemeMode>("dark");
+  const currentVisualTheme = previousTheme.current === theme ? visualTheme : theme;
+  const [selection, setSelection] = useState<DeskSelection | null>(null);
+  const [schoolMounted, setSchoolMounted] = useState(theme === "dark");
+  const [galleryReady, setGalleryReady] = useState({ home: false, school: false });
+  const galleriesReady = galleryReady.home && galleryReady.school;
+  const openHome = useCallback((selection: CircularGalleryClick) => setSelection({ group: "home", ...selection }), []);
+  const openSchool = useCallback((selection: CircularGalleryClick) => setSelection({ group: "school", ...selection }), []);
+  const markHomeReady = useCallback(() => {
+    setGalleryReady((current) => current.home ? current : { ...current, home: true });
+  }, []);
+  const markSchoolReady = useCallback(() => {
+    setGalleryReady((current) => current.school ? current : { ...current, school: true });
+  }, []);
+  const closeLightbox = useCallback(() => setSelection(null), []);
+  const changeLightboxImage = useCallback((index: number) => {
+    setSelection((current) => current ? { ...current, index } : current);
+  }, []);
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.add("desk-route-root");
+    document.body.classList.add("desk-route");
+    return () => {
+      document.documentElement.classList.remove("desk-route-root");
+      document.body.classList.remove("desk-route");
+      document.body.classList.remove("desk-chrome-dark");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previousTheme.current === theme) return;
+    previousTheme.current = theme;
+    setVisualTheme(theme);
+  }, [theme]);
+
+  useLayoutEffect(() => {
+    if (theme === "dark") {
+      document.body.classList.remove("desk-chrome-dark");
+      return;
+    }
+    if (!isPresent && currentVisualTheme === "light") {
+      document.body.classList.remove("desk-chrome-dark");
+      return;
+    }
+    document.body.classList.add("desk-chrome-dark");
+    if (isPresent && currentVisualTheme === "dark") return;
+    const delay = isPresent ? 600 : 860;
+    const restoreChrome = window.setTimeout(() => {
+      document.body.classList.remove("desk-chrome-dark");
+    }, delay);
+    return () => window.clearTimeout(restoreChrome);
+  }, [currentVisualTheme, isPresent, theme]);
+
+  useEffect(() => {
+    if (!isPresent) setSelection(null);
+  }, [isPresent]);
+
+  useEffect(() => {
+    if (entryTheme.current === "dark") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setSchoolMounted(true);
+      return;
+    }
+    const mountSchool = window.setTimeout(() => setSchoolMounted(true), 180);
+    return () => window.clearTimeout(mountSchool);
+  }, []);
+
+  return (
+    <div
+      className="desk-page"
+      data-entry-theme={entryTheme.current}
+      data-visual-theme={isPresent ? currentVisualTheme : theme}
+      data-intro-ready={galleriesReady ? "true" : "false"}
+      data-present={isPresent ? "true" : "false"}
+    >
+      <div className="desk-theme-wipe" aria-hidden="true">
+        <span className="is-upper" />
+        <span className="is-lower" />
+      </div>
+      <SceneLineOrnaments variant="desk" />
+      <section className="desk-gallery-layout" aria-labelledby="page-title">
+        <div className="desk-gallery-scene desk-gallery-scene-home">
+          <div className="desk-gallery-scene-label" aria-hidden="true">
+            <strong>HOME</strong>
+          </div>
+          <Suspense fallback={<DeskGalleryFallback label="正在加载家里桌搭" />}>
+            <CircularGallery
+              items={homeGalleryItems}
+              bend={-5.8}
+              borderRadius={0.095}
+              textColor="#f2f1eb"
+              scrollSpeed={1.75}
+              scrollEase={0.072}
+              showTitles={false}
+              entryDirection="left"
+              introLead={entryTheme.current === "dark" ? 0 : 180}
+              startIntro={galleriesReady}
+              exiting={!isPresent}
+              onReady={markHomeReady}
+              onItemClick={openHome}
+              ariaLabel="家里桌搭曲线画廊，可拖动、使用左右方向键浏览或点击图片打开大图"
+            />
+          </Suspense>
+        </div>
+
+        <h1 id="page-title" className="desk-gallery-title" aria-label="我的桌搭">
+          <span>DESK</span>
+          <i />
+          <span>SETUP</span>
+          <span className="sr-only">我的桌搭</span>
+        </h1>
+
+        <div className="desk-gallery-scene desk-gallery-scene-school">
+          <div className="desk-gallery-scene-label" aria-hidden="true">
+            <strong>DORM</strong>
+          </div>
+          {schoolMounted ? (
+            <Suspense fallback={<DeskGalleryFallback label="正在加载寝室桌搭" />}>
+              <CircularGallery
+                items={schoolGalleryItems}
+                bend={5.8}
+                borderRadius={0.095}
+                textColor="#f2f1eb"
+                scrollSpeed={1.75}
+                scrollEase={0.072}
+                showTitles={false}
+                entryDirection="right"
+                introLead={entryTheme.current === "dark" ? 0 : 180}
+                startIntro={galleriesReady}
+                exiting={!isPresent}
+                onReady={markSchoolReady}
+                onItemClick={openSchool}
+                ariaLabel="寝室桌搭曲线画廊，可拖动、使用左右方向键浏览或点击图片打开大图"
+              />
+            </Suspense>
+          ) : (
+            <DeskGalleryFallback label="正在加载寝室桌搭" />
+          )}
+        </div>
+      </section>
+      <AnimatePresence>
+        {selection ? (
+          <DeskLightbox selection={selection} onChange={changeLightboxImage} onClose={closeLightbox} />
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function AboutPage() {
   const reduceMotion = useReducedMotion();
   const [portraitReady, setPortraitReady] = useState(false);
@@ -3886,7 +4564,11 @@ function AboutPage() {
           </div>
 
           <ul className="about-console-interests" aria-label="个人兴趣">
-            <li><AboutBlurText text="数码桌搭" delay={1.54} /></li>
+            <li>
+              <Link className="about-desk-link" to="/desk">
+                <AboutBlurText text="数码桌搭" delay={1.54} />
+              </Link>
+            </li>
             <li><AboutBlurText text="健身" delay={1.65} /></li>
             <li><AboutBlurText text="穿搭" delay={1.74} /></li>
             <li><AboutBlurText text="硬件 DIY" delay={1.83} /></li>
@@ -4048,6 +4730,11 @@ const pageMetadata: Record<string, { title: string; description: string; image: 
     description: "考研中的个人开发者，持续构建学习产品、AI 客户端与个人基础设施。",
     image: "/assets/virtual-developer-avatar-light.webp",
   },
+  "/desk": {
+    title: "我的桌搭 | lij768423-svg",
+    description: "两套独立桌搭：学校的暖色学习开发工位，以及家里的冷色影音与硬件空间。",
+    image: "/assets/desk-setup/desk-2026-current-1600.webp",
+  },
 };
 
 function getPageMetadata(pathname: string) {
@@ -4109,6 +4796,8 @@ function PortfolioRoutes({
   const location = useLocation();
   const reduceMotion = useReducedMotion();
   const isAbout = location.pathname === "/about";
+  const isDesk = location.pathname === "/desk";
+  const isSystems = location.pathname === "/systems";
 
   useEffect(() => {
     document.body.classList.toggle("systems-page", location.pathname === "/systems");
@@ -4132,11 +4821,30 @@ function PortfolioRoutes({
       <AnimatePresence mode="wait" initial={false}>
         <motion.main
           key={location.pathname}
-          className={`route-main${location.pathname === "/systems" ? " is-systems-route" : ""}`}
-          initial={reduceMotion || isAbout ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduceMotion || isAbout ? undefined : { opacity: 0, y: -8 }}
-          transition={reduceMotion || isAbout ? { duration: 0 } : { duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          className={`route-main${isSystems ? " is-systems-route" : ""}${isDesk ? " is-desk-route" : ""}`}
+          initial={reduceMotion || isAbout ? false : { opacity: 0, y: isSystems ? 0 : 10 }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            transition: reduceMotion || isAbout || isDesk
+              ? { duration: 0 }
+              : isSystems
+                ? { duration: 0.72, ease: [0.16, 1, 0.3, 1] }
+                : { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+          }}
+          exit={reduceMotion || isAbout
+            ? undefined
+            : isDesk
+              ? {
+                  opacity: 0,
+                  y: 0,
+                  transition: { duration: 0.12, delay: 1.04, ease: [0.16, 1, 0.3, 1] },
+                }
+              : {
+                  opacity: 0,
+                  y: -8,
+                  transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                }}
         >
           <Routes location={location.pathname}>
             <Route path="/"><HomePage theme={theme} /></Route>
@@ -4148,6 +4856,7 @@ function PortfolioRoutes({
             <Route path="/projects/:projectId"><ProjectDossierPage /></Route>
             <Route path="/systems"><SystemsPage /></Route>
             <Route path="/about"><AboutPage /></Route>
+            <Route path="/desk"><DeskArchivePage theme={theme} /></Route>
             <Route><NotFoundPage /></Route>
           </Routes>
         </motion.main>
@@ -4182,14 +4891,16 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <PortfolioRoutes
-        theme={theme}
-        trailEnabled={trailEnabled}
-        onThemeChange={toggleTheme}
-        onTrailChange={toggleTrail}
-      />
-    </BrowserRouter>
+    <PortfolioLanguageProvider>
+      <BrowserRouter>
+        <PortfolioRoutes
+          theme={theme}
+          trailEnabled={trailEnabled}
+          onThemeChange={toggleTheme}
+          onTrailChange={toggleTrail}
+        />
+      </BrowserRouter>
+    </PortfolioLanguageProvider>
   );
 }
 

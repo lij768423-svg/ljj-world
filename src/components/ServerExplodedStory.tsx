@@ -65,7 +65,7 @@ const categoryVisuals: Record<ServerCategoryId, { src: string; alt: string }> = 
 const serviceConnectorLayouts = [
   { segments: [[43, 38, 38, 31], [38, 31, 38, 22], [38, 22, 31, 22]], endX: 31, endY: 22 },
   { segments: [[57, 38, 62, 31], [62, 31, 62, 22], [62, 22, 69, 22]], endX: 69, endY: 22 },
-  { segments: [[63, 50, 72, 50], [72, 50, 77, 50], [77, 50, 84, 50]], endX: 84, endY: 50 },
+  { segments: [[63, 50, 72, 50], [72, 50, 77, 50], [77, 50, 82, 50]], endX: 82, endY: 50 },
   { segments: [[57, 62, 62, 69], [62, 69, 62, 78], [62, 78, 69, 78]], endX: 69, endY: 78 },
   { segments: [[43, 62, 38, 69], [38, 69, 38, 78], [38, 78, 31, 78]], endX: 31, endY: 78 },
 ] as const;

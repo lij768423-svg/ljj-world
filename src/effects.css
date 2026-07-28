@@ -36,6 +36,13 @@
   contain: strict;
 }
 
+/* The gallery sits one layer above this canvas, so photos occlude the trail naturally. */
+body.desk-route .global-pixel-trail {
+  z-index: 4;
+  -webkit-clip-path: none;
+  clip-path: none;
+}
+
 .global-flowing-lights {
   position: fixed;
   z-index: 52;
@@ -261,6 +268,10 @@
   will-change: transform, filter, opacity;
 }
 
+.blur-text.has-language-crossfade {
+  will-change: opacity, filter;
+}
+
 .decrypted-text {
   display: inline-grid;
   white-space: pre;
@@ -273,6 +284,27 @@
 
 .decrypted-text-measure {
   visibility: hidden;
+}
+
+.decrypted-text-display {
+  width: max-content;
+  justify-self: start;
+}
+
+.decrypted-text.is-width-constrained {
+  position: relative;
+}
+
+.decrypted-text.is-width-constrained .decrypted-text-display {
+  transform: scaleX(var(--decrypted-text-scale-x, 1));
+  transform-origin: left center;
+}
+
+.decrypted-text-bound-measure {
+  position: absolute;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .pixel-reveal-layer {
@@ -546,31 +578,6 @@
   background-size: 40px 40px;
 }
 
-.project-helix-loading {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.project-helix-loading::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 48px;
-  height: 4px;
-  margin-top: -2px;
-  background: color-mix(in srgb, var(--accent) 82%, var(--text));
-  transform: translateX(-50%);
-  animation: project-helix-loading-seed 560ms ease-in-out infinite alternate;
-}
-
-@keyframes project-helix-loading-seed {
-  from { opacity: 0.45; }
-  to { opacity: 1; }
-}
-
 .project-helix-axis-seed {
   position: absolute;
   z-index: 2;
@@ -582,13 +589,6 @@
   background: color-mix(in srgb, var(--accent) 82%, var(--text));
   pointer-events: none;
   transform-origin: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .project-helix-loading::before {
-    animation: none;
-    opacity: 1;
-  }
 }
 
 .project-helix[data-axis-seed-expired="true"] .project-helix-axis-seed,
@@ -1196,8 +1196,10 @@ body.project-transition-active {
 }
 
 .scene-line-ornaments.is-about .corner-a {
-  left: 3%;
-  top: 9%;
+  left: max(32px, calc((100% - 1480px) / 2));
+  top: 2%;
+  width: clamp(320px, 32vw, 460px);
+  height: clamp(120px, 18vh, 180px);
   border-left-width: 2px;
   border-top-width: 2px;
 }
@@ -1210,7 +1212,7 @@ body.project-transition-active {
 }
 
 .scene-line-ornaments.is-projects .rail-a {
-  top: 8%;
+  top: 1%;
   left: 3%;
   width: 25%;
 }
@@ -1271,6 +1273,83 @@ body.project-transition-active {
   bottom: 7%;
   border-right-width: 2px;
   border-bottom-width: 2px;
+}
+
+.scene-line-ornaments.is-desk {
+  z-index: 2;
+  color: #f06449;
+}
+
+.scene-line-ornaments.is-desk .scene-line-rail,
+.scene-line-ornaments.is-desk .scene-line-corner {
+  opacity: 0.44;
+}
+
+.scene-line-ornaments.is-desk .scene-line-rail {
+  filter: saturate(0.82);
+}
+
+.scene-line-ornaments.is-desk .rail-a {
+  top: 9%;
+  left: -2%;
+  width: 25%;
+}
+
+.scene-line-ornaments.is-desk .rail-b {
+  right: -3%;
+  bottom: 8%;
+  width: 28%;
+  animation-duration: 1.42s;
+  animation-direction: reverse;
+}
+
+.scene-line-ornaments.is-desk .rail-c {
+  top: 18%;
+  right: 4.5%;
+  height: 24%;
+  animation-duration: 1.28s;
+}
+
+.scene-line-ornaments.is-desk .rail-d {
+  top: 53.5%;
+  left: 4.5%;
+  width: 20%;
+  opacity: 0.36;
+  animation-duration: 1.7s;
+}
+
+.scene-line-ornaments.is-desk .rail-e {
+  left: 4.5%;
+  bottom: 17%;
+  height: 25%;
+  animation-duration: 1.36s;
+  animation-direction: reverse;
+}
+
+.scene-line-ornaments.is-desk .corner-a {
+  left: 3%;
+  top: 6%;
+  border-left-width: 2px;
+  border-top-width: 2px;
+}
+
+.scene-line-ornaments.is-desk .corner-b {
+  right: 3%;
+  bottom: 5%;
+  border-right-width: 2px;
+  border-bottom-width: 2px;
+  animation-delay: -1.6s;
+}
+
+.scene-line-ornaments.is-desk .corner-c {
+  right: 8%;
+  top: 39%;
+  width: clamp(72px, 8vw, 122px);
+  height: clamp(54px, 7vh, 82px);
+  border-right-width: 2px;
+  border-top-width: 2px;
+  opacity: 0.32;
+  animation-delay: -0.8s;
 }
 
 @keyframes scene-line-travel-x {

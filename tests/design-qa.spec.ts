@@ -20,6 +20,7 @@ async function openPortfolio(
   page.on("pageerror", (error) => consoleErrors.push(error.message));
   await page.addInitScript((savedTheme) => {
     window.localStorage.setItem("portfolio-color-mode", savedTheme);
+    window.localStorage.setItem("portfolio-language", "zh");
   }, theme);
 
   return { context, page, consoleErrors };
@@ -93,6 +94,8 @@ test("capture multi-page desktop visual QA states", async ({ browser }, testInfo
   await desktop.page.screenshot({ path: ".qa/final-server-hardware-topology.png", fullPage: false });
 
   await captureRoute(desktop.page, "/about", ".qa/final-about.png");
+  await captureRoute(desktop.page, "/desk", ".qa/final-desk.png");
+  await expect(desktop.page.locator(".circular-gallery canvas")).toHaveCount(2);
   expect(desktop.consoleErrors).toEqual([]);
   await desktop.context.close();
 
