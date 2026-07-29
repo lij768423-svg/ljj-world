@@ -1,34 +1,66 @@
-# Personal Portfolio · ljj.world
+# ljj.world
 
-一个以动画叙事为核心的个人作品集，用来介绍产品项目、个人经历和自建服务器。线上版本：[ljj.world](https://ljj.world)。
+> A desktop-first interactive portfolio for products, experiments, and a self-hosted home lab.
 
-![Portfolio preview](./docs/portfolio-preview.png)
+[Visit the live site](https://ljj.world) · [Report an issue](https://github.com/lij768423-svg/personal-portfolio/issues) · [MIT license](./LICENSE)
 
-## 特点
+`ljj.world` is not a landing-page template. It is a portfolio built as a set of kinetic scenes: a product index grows into a DNA helix, a server opens into the services it runs, and a desk archive becomes a pair of draggable photo arcs. The site is designed, implemented, deployed, and maintained as one personal system.
 
-- 单屏首页与覆盖式章节切换
-- 基于 Three.js 的 DNA 项目索引
-- 可展开的项目案例与真实产品截图
-- SVG 服务器拓扑、组件聚焦和服务节点动画
-- HOME / DORM 双弧线桌搭画廊与全屏图片预览
-- 中英文即时切换与 DecryptedText 字符解密过渡
-- 深浅色主题、全局像素拖影与桌面端适配
-- `prefers-reduced-motion` 无障碍降级
-- Playwright 视觉与交互回归测试
+中文：这是一个以产品、个人经历与自建服务器为内容的交互式作品集。它更像一组可以进入的场景，而不是一张静态简历。
 
-## 技术栈
+<img src="./docs/screenshots/home.jpg" alt="ljj.world home page with an illustrated developer portrait" width="100%" />
 
-- React 19 + TypeScript
-- Vite 8
-- Motion for React
-- Three.js + OGL
-- GSAP
-- Wouter
-- Playwright
+## What Is Inside
 
-## 本地运行
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="./docs/screenshots/projects.jpg" alt="Project index arranged along a DNA helix" />
+      <strong>Project index</strong><br />
+      Twelve projects orbit a continuously moving DNA sequence. Selecting a card unfolds a focused dossier instead of sending the visitor through a generic card grid.
+    </td>
+    <td width="50%" valign="top">
+      <img src="./docs/screenshots/server.jpg" alt="GPU and AI module from the server story" />
+      <strong>Server story</strong><br />
+      A line-art machine opens into network, hardware, AI, data, and container modules. Each module exposes the services behind the visual.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="./docs/screenshots/desk.jpg" alt="HOME and DORM desk photo archives on curved galleries" />
+      <strong>Desk archive</strong><br />
+      HOME and DORM collections use opposing curved galleries. Photos can be dragged, tilted on hover, opened full-screen, and browsed within their original group.
+    </td>
+    <td width="50%" valign="top">
+      <img src="./docs/screenshots/about.jpg" alt="About page showing the developer profile and working method" />
+      <strong>About as a system</strong><br />
+      The profile page keeps biography, working method, capabilities, and personal interests in the same visual language as the product scenes.
+    </td>
+  </tr>
+</table>
 
-需要 Node.js 20 或更高版本。
+## Experience Principles
+
+- **A route should have a point of view.** Home, Projects, Server, Desk, and About are distinct scenes rather than repeated page shells.
+- **Motion carries structure.** The project helix, server expansion, gallery entry, theme wipe, and language transition all reveal hierarchy or state instead of acting as decoration.
+- **Interaction stays local.** Project cards unfold in place; server modules focus by click and reset on blank space; desk photos retain their group and position in a full-screen viewer.
+- **The design remains inspectable.** A restrained grid, red connector system, stable dock, and reduced-motion fallback prevent the visual system from becoming a collection of effects.
+
+## Technical Shape
+
+| Concern | Implementation |
+| --- | --- |
+| Application | React 19, TypeScript, Vite 8, Wouter |
+| Motion | Motion for React, GSAP, custom CSS choreography |
+| 3D and canvas | Three.js DNA helix, OGL circular galleries, Canvas pointer effects |
+| Interface | CSS grid system, light/dark themes, English/Chinese language transition |
+| Quality | Playwright visual and interaction regression coverage, `prefers-reduced-motion` fallback |
+
+The portfolio is intentionally static: it has no runtime database, API, analytics dependency, or required environment variable. Content lives in the repository and the production output is a regular static build.
+
+## Run Locally
+
+Requires Node.js 20 or newer.
 
 ```bash
 git clone https://github.com/lij768423-svg/personal-portfolio.git
@@ -37,71 +69,57 @@ npm ci
 npm run dev
 ```
 
-默认开发地址为 `http://localhost:5173`。网站运行本身不需要后端、数据库或环境变量。
+Vite starts on `http://localhost:5173`. The desktop composition is the primary target; mobile keeps all routes usable but intentionally simplifies the heaviest kinetic behavior.
 
-## 验证
+## Verify Changes
 
-首次执行浏览器测试前安装 Chromium：
+Install Playwright Chromium once, then run the same checks used by CI:
 
 ```bash
 npx playwright install chromium
-```
-
-然后运行：
-
-```bash
 npm run typecheck
 npm run build
 npm run test:e2e
 ```
 
-若已经有可用的 Chromium，可通过 `PLAYWRIGHT_CHROMIUM_PATH` 指定路径。
+If Chromium is already installed elsewhere, set `PLAYWRIGHT_CHROMIUM_PATH` before running the browser tests.
 
-## 内容定制
+## Make It Yours
 
-主要内容集中在 [`src/App.tsx`](./src/App.tsx)：
+This repository is easiest to adapt by replacing content first, then assets, then visual details.
 
-- `projects`：项目标题、描述、链接和截图
-- `topologyCategories`：服务器分类、服务节点和说明
-- `pageMetadata`：各路由的标题、摘要和分享图片
-- `AboutPage`：个人介绍与生活照片
-- `deskScenes`：HOME / DORM 桌搭图片、时间和地点信息
+| Change | Where |
+| --- | --- |
+| Projects, outbound links, server services, metadata | [`src/App.tsx`](./src/App.tsx) |
+| English/Chinese text mapping and global transition | [`src/i18n`](./src/i18n) |
+| Project DNA and paper-style project detail | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
+| Server machine and service expansion | [`src/components/ServerExplodedStory.tsx`](./src/components/ServerExplodedStory.tsx) |
+| Desk arcs and full-screen image viewer | [`src/components/CircularGallery.tsx`](./src/components/CircularGallery.tsx) |
+| Visual system and page layout | [`src/styles.css`](./src/styles.css) |
+| Reusable interaction layers | [`src/effects.css`](./src/effects.css) and [`src/components/effects`](./src/components/effects) |
 
-中英文文案映射位于 [`src/i18n`](./src/i18n)，新增界面文字后可以运行：
+New Chinese copy can be added to the translation mapping with:
 
 ```bash
 node scripts/generate-portfolio-translations.mjs
 ```
 
-样式与动效分别位于：
-
-- [`src/styles.css`](./src/styles.css)
-- [`src/effects.css`](./src/effects.css)
-- [`src/components`](./src/components)
-
-替换个人内容时，也请同步替换 `public/assets` 中的头像、生活照片和项目截图。
-
-## 截图采集
-
-仓库包含一套可选的 Playwright 截图采集工具，用于从真实项目刷新展示素材：
+Replace identity-specific copy and the contents of `public/assets` before publishing a derivative. The screenshot capture utility is optional and only needed when refreshing project previews:
 
 ```bash
 cp .env.example .env.local
 npm run capture:projects -- law
-npm run capture:projects -- 408
 ```
 
-可用分组包括 `408`、`408-demo`、`harmony`、`ios`、`law`、`wiki`、`agent`、`writing`、`hardware`、`tailscale`、`mineradio`、`mineradio-cover`、`tools` 和 `variants`。除公开页面外，采集源必须通过环境变量显式提供；敏感密码只从进程环境读取，不写入源码或日志。完整变量见 [`.env.example`](./.env.example)。
+The supported capture groups are `408`, `408-demo`, `harmony`, `ios`, `law`, `wiki`, `agent`, `writing`, `hardware`, `tailscale`, `mineradio`, `mineradio-cover`, `tools`, and `variants`. See [`.env.example`](./.env.example) for optional source locations. Review any captured image before committing it: do not publish private addresses, device names, credentials, or user data.
 
-采集后的图片不会自动视为安全。提交前请人工检查用户名、内网地址、设备名、令牌和私人数据。
-
-## 部署
+## Deploy
 
 ```bash
 npm run build
 ```
 
-将 `dist/` 部署到任意静态托管服务。由于项目使用 History API 路由，服务器必须把不存在的页面路径回退到 `index.html`。仓库提供了通用的 [Caddy 示例](./deploy/caddy/portfolio.caddy.example)。Nginx 可使用：
+Deploy `dist/` to any static host. Because the app uses History API routing, unknown paths must fall back to `index.html`. A generic [Caddy example](./deploy/caddy/portfolio.caddy.example) is included. For Nginx:
 
 ```nginx
 location / {
@@ -109,21 +127,24 @@ location / {
 }
 ```
 
-## 项目结构
+## Repository Map
 
 ```text
 personal-portfolio/
-├── deploy/              # 通用部署示例
-├── public/assets/       # 网站展示素材
-├── scripts/             # 素材处理与截图采集
-├── src/components/      # DNA、服务器拓扑和交互动效
-├── src/App.tsx          # 页面、内容模型和路由
-├── src/styles.css       # 主视觉系统
-└── tests/               # Playwright 回归测试
+├── docs/screenshots/    # README visuals captured from the running site
+├── deploy/              # static-hosting examples
+├── public/assets/       # portfolio-specific images and generated artwork
+├── scripts/             # asset preparation, capture, and translation helpers
+├── src/components/      # visual scenes and interaction primitives
+├── src/i18n/            # language transition and text mapping
+├── src/App.tsx          # content model, routes, and page composition
+└── tests/               # Playwright regression coverage
 ```
 
-## 许可
+## License and Asset Use
 
-项目代码使用 [MIT License](./LICENSE)。`public/assets` 中的个人照片、项目截图和生成式视觉素材不包含在 MIT 授权中，具体见 [ASSET_LICENSE.md](./ASSET_LICENSE.md)。第三方代码与署名见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
+The source code and documentation are released under the [MIT License](./LICENSE).
 
-如果你基于这个仓库制作自己的作品集，请替换个人文案、品牌、项目内容与素材，而不是直接部署成相同身份的网站。
+The visuals in `public/assets` and `docs/screenshots` are not automatically covered by MIT. They include personal images, identity-specific copy, product screenshots, marks, and generated artwork. Their use is described in [ASSET_LICENSE.md](./ASSET_LICENSE.md); replace them before redistributing a derivative as your own portfolio.
+
+Some animation components adapt ideas or source from React Bits. Dependency and attribution details are in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

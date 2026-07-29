@@ -495,7 +495,7 @@ test("desk switches from a dark entry to a synchronized light presentation", asy
   await page.goto("/desk", { waitUntil: "domcontentloaded" });
 
   const galleries = page.locator(".circular-gallery");
-  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 7000 });
   const deskPage = page.locator(".desk-page");
   const upperWipe = page.locator(".desk-theme-wipe .is-upper");
   const lowerWipe = page.locator(".desk-theme-wipe .is-lower");

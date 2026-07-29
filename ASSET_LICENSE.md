@@ -1,6 +1,6 @@
 # Asset license
 
-The MIT License in this repository applies to the source code and documentation, not automatically to portfolio content in `public/assets`.
+The MIT License in this repository applies to the source code and documentation, not automatically to portfolio content in `public/assets` or the rendered portfolio screenshots in `docs/screenshots`.
 
 Unless a file carries its own license or is covered by a third-party notice, the following remain copyright of their respective owner and are provided only so the portfolio can be reviewed as designed:
 
