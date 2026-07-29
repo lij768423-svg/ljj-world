@@ -2,7 +2,7 @@
 
 > A desktop-first interactive portfolio for products, experiments, and a self-hosted home lab.
 
-[Visit the live site](https://ljj.world) · [Report an issue](https://github.com/lij768423-svg/personal-portfolio/issues) · [MIT license](./LICENSE)
+[Visit the live site](https://ljj.world) · [Report an issue](https://github.com/lij768423-svg/ljj-world/issues) · [MIT license](./LICENSE)
 
 [English](./README.md) · [简体中文](./README.zh-CN.md)
 
@@ -65,8 +65,8 @@ The portfolio is intentionally static: it has no runtime database, API, analytic
 Requires Node.js 20 or newer.
 
 ```bash
-git clone https://github.com/lij768423-svg/personal-portfolio.git
-cd personal-portfolio
+git clone https://github.com/lij768423-svg/ljj-world.git
+cd ljj-world
 npm ci
 npm run dev
 ```

@@ -2,7 +2,7 @@
 
 > 一个围绕产品、实验项目和自建服务器展开的桌面优先交互式作品集。
 
-[访问线上网站](https://ljj.world) · [提交问题](https://github.com/lij768423-svg/personal-portfolio/issues) · [MIT 许可证](./LICENSE)
+[访问线上网站](https://ljj.world) · [提交问题](https://github.com/lij768423-svg/ljj-world/issues) · [MIT 许可证](./LICENSE)
 
 [English](./README.md) · [简体中文](./README.zh-CN.md)
 
@@ -63,8 +63,8 @@
 需要 Node.js 20 或更高版本。
 
 ```bash
-git clone https://github.com/lij768423-svg/personal-portfolio.git
-cd personal-portfolio
+git clone https://github.com/lij768423-svg/ljj-world.git
+cd ljj-world
 npm ci
 npm run dev
 ```
