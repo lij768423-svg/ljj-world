@@ -113,6 +113,23 @@ test("reduced motion switches language without running the scramble loop", async
   expect(await page.locator(".nav-shell").evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
 });
 
+test("DecryptedText stays stable on pointer hover", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Pointer hover is covered on desktop.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
+  await page.locator("#featured-projects").scrollIntoViewIfNeeded();
+
+  const title = page.locator("#favorite-projects-title .decrypted-text-display");
+  await expect(title).toHaveText("Selected projects");
+  await title.hover();
+  await page.waitForTimeout(180);
+  await expect(title).toHaveText("Selected projects");
+  await page.waitForTimeout(520);
+  await expect(title).toHaveText("Selected projects");
+});
+
 test("English follows every primary route and newly mounted content", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Primary route copy is audited at the desktop composition.");
   await page.emulateMedia({ reducedMotion: "reduce" });

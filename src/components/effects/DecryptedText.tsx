@@ -64,10 +64,6 @@ export function DecryptedText({
     frameRef.current = window.requestAnimationFrame(update);
   }, [reduceMotion, stop]);
 
-  const decrypt = useCallback(() => {
-    transitionTo(resolvedText, resolvedText);
-  }, [resolvedText, transitionTo]);
-
   useEffect(() => {
     const languageChanged = targetRef.current !== resolvedText;
     targetRef.current = resolvedText;
@@ -108,7 +104,6 @@ export function DecryptedText({
   return (
     <span
       className={`decrypted-text${constrainWidth ? " is-width-constrained" : ""} ${className}`.trim()}
-      onPointerEnter={decrypt}
     >
       <span className="sr-only">{resolvedText}</span>
       <span className="decrypted-text-measure" aria-hidden="true">{resolvedText}</span>
