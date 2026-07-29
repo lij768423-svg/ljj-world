@@ -4,6 +4,8 @@
 
 [Visit the live site](https://ljj.world) · [Report an issue](https://github.com/lij768423-svg/personal-portfolio/issues) · [MIT license](./LICENSE)
 
+[English](./README.md) · [简体中文](./README.zh-CN.md)
+
 `ljj.world` is not a landing-page template. It is a portfolio built as a set of kinetic scenes: a product index grows into a DNA helix, a server opens into the services it runs, and a desk archive becomes a pair of draggable photo arcs. The site is designed, implemented, deployed, and maintained as one personal system.
 
 中文：这是一个以产品、个人经历与自建服务器为内容的交互式作品集。它更像一组可以进入的场景，而不是一张静态简历。
