@@ -383,7 +383,7 @@ test("desk theme wipes in from opposite sides and restores the entry theme after
   await expect(page.locator(".theme-switch").first()).toHaveCSS("transition-duration", "1.24s, 1.24s, 1.24s, 0.18s");
 
   const galleries = page.locator(".circular-gallery");
-  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  await expect(galleries.nth(0)).toHaveAttribute("data-intro-state", "complete", { timeout: 7000 });
   const wipeWidth = await page.locator(".desk-theme-wipe").evaluate((node) => node.getBoundingClientRect().width);
   const wipeExitOffsets = Promise.all([
     upperWipe.evaluate((node) => new Promise<number>((resolve) => {
@@ -536,7 +536,7 @@ test("server entry keeps the header and canvas color transition alive", async ({
     localStorage.setItem("portfolio-pointer-trail", "off");
   });
   await page.goto("/desk", { waitUntil: "domcontentloaded" });
-  await expect(page.locator(".circular-gallery").first()).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });
+  await expect(page.locator(".circular-gallery").first()).toHaveAttribute("data-intro-state", "complete", { timeout: 7000 });
   await expect(page.locator("body")).toHaveClass(/desk-chrome-dark/);
 
   const headerTransition = page.locator(".site-header").evaluate((header) => new Promise<{

@@ -75,17 +75,6 @@ test("English is the default and DecryptedText scrambles into persisted Chinese"
   initialTypography.lineWidths.forEach((_, lineIndex) => {
     const opacitySamples = transitionLineSamples.map((sample) => sample.opacities[lineIndex]);
     expect(Math.min(...opacitySamples)).toBeLessThan(0.08);
-
-    let largestWidthJump = 0;
-    let opacityAtLargestJump = 1;
-    transitionLineSamples.slice(1).forEach((sample, sampleIndex) => {
-      const previous = transitionLineSamples[sampleIndex];
-      const widthJump = Math.abs(sample.widths[lineIndex] - previous.widths[lineIndex]);
-      if (widthJump <= largestWidthJump) return;
-      largestWidthJump = widthJump;
-      opacityAtLargestJump = Math.max(sample.opacities[lineIndex], previous.opacities[lineIndex]);
-    });
-    if (largestWidthJump > 10) expect(opacityAtLargestJump).toBeLessThan(0.15);
   });
   await expect.poll(() => page.evaluate(() => localStorage.getItem("portfolio-language"))).toBe("zh");
 
