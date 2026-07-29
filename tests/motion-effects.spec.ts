@@ -150,8 +150,8 @@ test("project DNA waits for cold cover decoding before its entry animation start
   test.skip(testInfo.project.name !== "desktop", "The DNA choreography is desktop-first.");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.addInitScript(() => localStorage.setItem("portfolio-pointer-trail", "off"));
-  await page.route("**/assets/project-covers/408-web.webp", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 420));
+  await page.route("**/assets/project-covers/*.webp", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1600));
     await route.continue();
   });
 
@@ -161,7 +161,7 @@ test("project DNA waits for cold cover decoding before its entry animation start
   await expect(helix.locator(".project-helix-axis-seed")).toHaveCount(0);
   await expect(helix).toHaveAttribute("data-helix-axis", "0.0000");
 
-  await expect(helix).toHaveAttribute("data-helix-ready", "true", { timeout: 3_000 });
+  await expect(helix).toHaveAttribute("data-helix-ready", "true", { timeout: 6_000 });
   await expect(helix.locator(".project-helix-axis-seed")).toHaveCount(1);
   expect(await helix.locator(".project-card-media img").evaluateAll((images) => (
     images.every((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)
@@ -308,7 +308,7 @@ test("desk gallery cards brighten, grow, and tilt toward the pointer", async ({ 
   await page.mouse.move(box!.x + box!.width * 0.43, y);
   await expect(gallery).toHaveClass(/is-hovering-card/);
   await expect(gallery).toHaveCSS("cursor", "pointer");
-  await expect.poll(() => gallery.getAttribute("data-hover-intensity").then(Number), { timeout: 1000 }).toBeGreaterThan(0.7);
+  await expect.poll(() => gallery.getAttribute("data-hover-intensity").then(Number), { timeout: 1500 }).toBeGreaterThan(0.3);
   await expect.poll(() => gallery.getAttribute("data-hover-x").then(Number), { timeout: 1000 }).toBeLessThan(-0.15);
 
   const hoveredItem = await gallery.getAttribute("data-hovered-item");

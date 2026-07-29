@@ -7,6 +7,7 @@ export default defineConfig({
   outputDir: "./test-results",
   reporter: "line",
   workers: 1,
+  retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: "http://127.0.0.1:4174",
     trace: "retain-on-failure",

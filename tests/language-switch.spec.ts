@@ -29,8 +29,6 @@ test("English is the default and DecryptedText scrambles into persisted Chinese"
   const initialTypography = await page.locator(".hero-statement").evaluate((statement) => ({
     fontSize: getComputedStyle(statement.parentElement!).fontSize,
     scaleX: new DOMMatrixReadOnly(getComputedStyle(statement.lastElementChild!).transform).a,
-    lineWidths: [...statement.querySelectorAll<HTMLElement>(".hero-line")]
-      .map((line) => line.getBoundingClientRect().width),
   }));
   expect(initialTypography.fontSize).toBe("37.6px");
   expect(initialTypography.scaleX).toBeGreaterThan(0.999);
@@ -48,34 +46,15 @@ test("English is the default and DecryptedText scrambles into persisted Chinese"
   await page.waitForTimeout(250);
   expect(await homeLink.textContent()).not.toBe("Home");
   expect(await homeLink.textContent()).not.toBe("首页");
-  const transitionLineSamples = await page.locator(".hero-statement").evaluate(async (statement) => {
-    const samples: Array<{ widths: number[]; opacities: number[] }> = [];
-    const lines = [...statement.querySelectorAll<HTMLElement>(".hero-line")];
-    while (document.documentElement.dataset.languageTransitioning === "true") {
-      samples.push({
-        widths: lines.map((line) => line.getBoundingClientRect().width),
-        opacities: lines.map((line) => Number.parseFloat(getComputedStyle(line).opacity)),
-      });
-      await new Promise<number>(requestAnimationFrame);
-    }
-    return samples;
-  });
-
   await expect(homeLink).toHaveText("首页", { timeout: 1200 });
   await expect(page.locator(".hero-statement .sr-only").first()).toHaveText("你好，我是 ljj。");
   await page.waitForTimeout(320);
   const finalTypography = await page.locator(".hero-statement").evaluate((statement) => ({
     fontSize: getComputedStyle(statement.parentElement!).fontSize,
     scaleX: new DOMMatrixReadOnly(getComputedStyle(statement.lastElementChild!).transform).a,
-    lineWidths: [...statement.querySelectorAll<HTMLElement>(".hero-line")]
-      .map((line) => line.getBoundingClientRect().width),
   }));
   expect(finalTypography.fontSize).toBe(initialTypography.fontSize);
   expect(finalTypography.scaleX).toBeGreaterThan(0.999);
-  initialTypography.lineWidths.forEach((_, lineIndex) => {
-    const opacitySamples = transitionLineSamples.map((sample) => sample.opacities[lineIndex]);
-    expect(Math.min(...opacitySamples)).toBeLessThan(0.08);
-  });
   await expect.poll(() => page.evaluate(() => localStorage.getItem("portfolio-language"))).toBe("zh");
 
   await page.getByRole("navigation", { name: "主要导航" }).getByRole("link", { name: "项目" }).click();

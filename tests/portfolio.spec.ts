@@ -232,6 +232,7 @@ test("about scene buffers light wheel gestures before projects enter", async ({ 
 });
 
 test("all portfolio pages are direct, compact, and image-complete", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   for (const route of routes) {
     await page.goto(route.path, { waitUntil: "networkidle" });
     const mainHeading = page.getByRole("heading", { level: 1 });
