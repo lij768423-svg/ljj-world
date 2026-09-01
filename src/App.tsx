@@ -176,6 +176,7 @@ type Project = {
   cardPreview: ProjectPreview;
   preview?: ProjectPreview;
   story: ProjectStory;
+  liveDemo?: { url: string; label: string };
 };
 
 type GalleryShot = {
@@ -595,6 +596,44 @@ const projects: Project[] = [
     detail: "/projects/home-lab",
     icon: <HardDrives size={22} weight="duotone" />,
     cardPreview: projectCardPreview("home-lab", "Home Lab 基础设施"),
+  },
+  {
+    id: "animejs-lab",
+    title: "Anime.js 1:1 复刻 Lab",
+    description: "对 animejs.com 的离线 1:1 复刻：three.js 滚动机箱由 anime.js v4 时间线导演，派生层整体换肤到本站设计语言，动画层预留自研引擎接口。",
+    category: "system",
+    kind: "交互实验",
+    status: "Lab / 内网",
+    year: "2026",
+    tags: ["three.js", "anime.js", "WebGL", "逆向复刻"],
+    site: "http://100.102.32.24:4177/",
+    story: {
+      problem: "anime.js 官网的滚动机箱（DOM 几何驱动时间线时长、CSS3D 把 demo 钉进同一台相机）没有公开工程资料，想复现只能整站逆向。",
+      approach: "968 份文件字节级镜像，14 个 Vite chunk 重拼为 117 个源码切片并逐字节回拼校验；派生层只在响应层做 :root token 映射换肤，站点本体一字节不改。",
+      outcome: "内网可运行的 1:1 复刻站，源码层 / 复刻层 / 换肤层三层分离：GLB、章节内容与彩虹色环均可整体替换为自有资产，滚动骨架原样保留。",
+      highlights: [
+        { title: "三层分离", description: "源码层保字节、复刻层跑门禁、皮肤层代理注入，互不干扰，任何一层可独立重建。" },
+        { title: "设计语言换肤", description: "源站调色板、字体与圆角整体映射为本站暖灰阶梯、电蓝与直角语言，明暗章节自适配。" },
+        { title: "自研引擎可插", description: "动画归属地图标清 22 个 GLB 与 8 个 demo 的驱动方与替换点，换自有资产不动时间线骨架。" },
+      ],
+    },
+    icon: <Pulse size={22} weight="duotone" />,
+    cardPreview: {
+      image: "/assets/project-covers/animejs-lab.png",
+      alt: "Anime.js 1:1 复刻 Lab：作品集换肤后的 three.js 滚动机箱首页",
+      width: 1200,
+      height: 750,
+    },
+    preview: {
+      image: "/assets/project-covers/animejs-lab.png",
+      alt: "Anime.js 复刻 Lab 首页：作品集换肤后的 three.js 滚动机箱与 feature demo",
+      width: 1200,
+      height: 750,
+    },
+    liveDemo: {
+      url: "http://100.102.32.24:4177/",
+      label: "Lab 站点（滚动整机箱，建议新标签全屏体验）",
+    },
   },
 ];
 
@@ -3424,12 +3463,13 @@ function MobileProjectGrid({ projects: mobileProjects }: { projects: Array<Proje
   );
 }
 
-type ProjectDossierTab = "overview" | "build" | "result";
+type ProjectDossierTab = "overview" | "build" | "result" | "live";
 
 const projectDossierTabs: Array<{ id: ProjectDossierTab; label: string }> = [
   { id: "overview", label: "概览" },
   { id: "build", label: "实现" },
   { id: "result", label: "成果" },
+  { id: "live", label: "在线体验" },
 ];
 
 function projectHref(project: Project) {
@@ -3851,12 +3891,16 @@ function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: string 
   const previousProject = projects[(projectIndex - 1 + projects.length) % projects.length];
   const nextProject = projects[(projectIndex + 1) % projects.length];
   const visual = project.preview ?? project.cardPreview;
-  const hasSystemsView = project.category === "system" || project.id === "mineradio";
+  const hasSystemsView =
+    (project.category === "system" && project.id !== "animejs-lab") || project.id === "mineradio";
+  const dossierTabs = project.liveDemo
+    ? projectDossierTabs
+    : projectDossierTabs.filter((tab) => tab.id !== "live");
 
   function moveTab(direction: -1 | 1) {
-    const currentIndex = projectDossierTabs.findIndex((tab) => tab.id === activeTab);
-    const nextIndex = (currentIndex + direction + projectDossierTabs.length) % projectDossierTabs.length;
-    const nextTab = projectDossierTabs[nextIndex];
+    const currentIndex = dossierTabs.findIndex((tab) => tab.id === activeTab);
+    const nextIndex = (currentIndex + direction + dossierTabs.length) % dossierTabs.length;
+    const nextTab = dossierTabs[nextIndex];
     setActiveTab(nextTab.id);
     window.requestAnimationFrame(() => document.getElementById(`project-tab-${nextTab.id}`)?.focus());
   }
@@ -3954,7 +3998,7 @@ function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: string 
               }
             }}
           >
-            {projectDossierTabs.map((tab) => (
+            {dossierTabs.map((tab) => (
               <button
                 key={tab.id}
                 id={`project-tab-${tab.id}`}
@@ -4036,6 +4080,21 @@ function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: string 
                         <span><LockKey size={16} weight="bold" /> 仅展示已公开的实现信息</span>
                       ) : null}
                     </div>
+                  </div>
+                ) : null}
+
+                {activeTab === "live" && project.liveDemo ? (
+                  <div className="project-dossier-live">
+                    <div className="project-dossier-live-frame">
+                      <iframe
+                        src={project.liveDemo.url}
+                        title={`${project.title} 在线体验`}
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="project-dossier-live-note">
+                      {project.liveDemo.label}。
+                    </p>
                   </div>
                 ) : null}
               </motion.article>
