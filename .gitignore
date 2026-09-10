@@ -19,6 +19,8 @@ public/assets/server-parts/container-core.png
 
 *.log
 *.tsbuildinfo
+__pycache__/
+*.pyc
 vite.config.js
 vite.config.d.ts
 .DS_Store

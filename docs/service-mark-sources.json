@@ -1,0 +1,72 @@
+[
+  {
+    "id": "immich",
+    "repository": "immich-app/immich",
+    "commit": "d6dc6dcc3b18635f3389403f72a9e2d619e5f83f",
+    "originalPath": "design/immich-logo.svg",
+    "source": "https://raw.githubusercontent.com/immich-app/immich/d6dc6dcc3b18635f3389403f72a9e2d619e5f83f/design/immich-logo.svg",
+    "filename": "immich-dfa5ef704d07.svg",
+    "sha256": "dfa5ef704d07854914306c0c224173bda2710f8fc0dffeb7d78690f58f9811a6",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  },
+  {
+    "id": "paperless",
+    "repository": "paperless-ngx/paperless-ngx",
+    "commit": "54a6f0fd2b777fd6eec9331c873c5e14ebf35083",
+    "originalPath": "docs/assets/logo_leaf.svg",
+    "source": "https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/54a6f0fd2b777fd6eec9331c873c5e14ebf35083/docs/assets/logo_leaf.svg",
+    "filename": "paperless-27a6a4519fa4.svg",
+    "sha256": "27a6a4519fa481a1181a3b9b52513763740dce9d0eb073bc874a1a4ae3d7d759",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  },
+  {
+    "id": "syncthing",
+    "repository": "syncthing/syncthing",
+    "commit": "2ca95cf1498104113fdfde46df4107f2450a0f71",
+    "originalPath": "assets/logo-only.svg",
+    "source": "https://raw.githubusercontent.com/syncthing/syncthing/2ca95cf1498104113fdfde46df4107f2450a0f71/assets/logo-only.svg",
+    "filename": "syncthing-32a59ba5e16e.svg",
+    "sha256": "32a59ba5e16eea315c533d38358107984049d54c8130122cd0a63480fffa80dd",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  },
+  {
+    "id": "minio",
+    "repository": "minio/minio",
+    "commit": "7aac2a2c5b7c882e68c1ce017d8256be2feea27f",
+    "originalPath": ".github/logo.svg",
+    "source": "https://raw.githubusercontent.com/minio/minio/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/.github/logo.svg",
+    "filename": "minio-feefe1f9bd8e.svg",
+    "sha256": "feefe1f9bd8ecda2c7f4067aa82fd78276129da77d4b37b5decea4efc4f42ac7",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  },
+  {
+    "id": "tailscale",
+    "repository": "tailscale/tailscale",
+    "commit": "3d3261b66ee1dd57e390abce4c2828f8b542d5a2",
+    "originalPath": "client/web/src/assets/icons/tailscale-icon.svg",
+    "source": "https://raw.githubusercontent.com/tailscale/tailscale/3d3261b66ee1dd57e390abce4c2828f8b542d5a2/client/web/src/assets/icons/tailscale-icon.svg",
+    "filename": "tailscale-cdb2875c923f.svg",
+    "sha256": "cdb2875c923ff7bed97086446f5892f8bedb5d874b027750d0572adb3364f76f",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  },
+  {
+    "id": "uptime-kuma",
+    "repository": "louislam/uptime-kuma",
+    "commit": "c0fedd8c6e1a523c4cc3b4d20438958f46562e52",
+    "originalPath": "public/icon.svg",
+    "source": "https://raw.githubusercontent.com/louislam/uptime-kuma/c0fedd8c6e1a523c4cc3b4d20438958f46562e52/public/icon.svg",
+    "filename": "uptime-kuma-1f7b4df28ef0.svg",
+    "sha256": "1f7b4df28ef01c74e334382dab159d96b2ff145ac835b5d2febbbc4166857831",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  },
+  {
+    "id": "docker",
+    "repository": "docker/docs",
+    "commit": "c4f0e5b32deb9d3365c1f0be62305038a24e15e5",
+    "originalPath": "assets/icons/Whale.svg",
+    "source": "https://raw.githubusercontent.com/docker/docs/c4f0e5b32deb9d3365c1f0be62305038a24e15e5/assets/icons/Whale.svg",
+    "filename": "docker-8a395df2fd64.svg",
+    "sha256": "8a395df2fd644ae59bc49e2f58b4eaa6bc1a5f4484eb00f532d033123ae2e920",
+    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
+  }
+]

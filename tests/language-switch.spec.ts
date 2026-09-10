@@ -104,7 +104,7 @@ test("English follows every primary route and newly mounted content", async ({ p
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  for (const route of ["/projects", "/systems", "/desk", "/about"]) {
+  for (const route of ["/projects", "/systems", "/desk", "/blog", "/blog/home-server-as-a-product", "/about"]) {
     await page.goto(route, { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-language", "en");
     await page.waitForTimeout(route === "/systems" || route === "/desk" ? 900 : 250);
@@ -140,6 +140,21 @@ test("English follows every primary route and newly mounted content", async ({ p
       await expect(page.getByText("NETWORK / NETWORK", { exact: true })).toHaveCount(0);
     }
   }
+});
+
+test("blog index titles switch language on the live list", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The blog console is tested at the desktop composition.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/blog", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-language", "en");
+
+  const title = page.locator(".blog-index-list a strong").first();
+  const englishTitle = await title.textContent();
+  expect(englishTitle).not.toMatch(/[\u3400-\u9fff]/u);
+  await page.getByRole("button", { name: "切换为中文" }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-language-transitioning", "true", { timeout: 1500 });
+  await expect(title).toContainText(/[\u3400-\u9fff]/u);
 });
 
 test("English server module cards keep whole words and clear the focus heading", async ({ page }, testInfo) => {

@@ -9,7 +9,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   use: {
-    baseURL: "http://127.0.0.1:4174",
+    baseURL: "http://127.0.0.1:4186",
     trace: "retain-on-failure",
     launchOptions: {
       ...(executablePath ? { executablePath } : {}),
@@ -31,9 +31,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- --port 4174",
-    url: "http://127.0.0.1:4174",
-    reuseExistingServer: true,
+    command: "npm run dev -- --host 127.0.0.1 --port 4186 --strictPort",
+    url: "http://127.0.0.1:4186",
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 });

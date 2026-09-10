@@ -19,6 +19,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "capture:projects": "node scripts/capture-project-assets.mjs",
     "prepare:about-images": "node scripts/prepare-about-images.mjs",
+    "prepare:release-covers": "node scripts/prepare-release-covers.mjs",
+    "release:package": "node scripts/package-release.mjs",
     "typecheck": "tsc -b --pretty false",
     "test:e2e": "playwright test"
   },

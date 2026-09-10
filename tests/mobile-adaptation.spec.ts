@@ -39,6 +39,7 @@ test("mobile routes reflow without horizontal overflow", async ({ page }) => {
     { path: "/projects", heading: "项目索引" },
     { path: "/projects/408", heading: "408 刷题库" },
     { path: "/systems", heading: "我的服务器" },
+    { path: "/blog", heading: "文章与笔记" },
     { path: "/about", heading: "关于我" },
   ];
 
@@ -77,8 +78,8 @@ test("server categories and service details are touch-operable", async ({ page }
 
   await story.locator(".server-mobile-categories button").nth(1).click();
   await expect(story.getByRole("heading", { name: "Agent 与 AI" })).toBeVisible();
-  await story.locator(".server-mobile-services > ul button").nth(1).click();
-  await expect(story.locator(".server-mobile-service-detail h3")).toHaveText("Codex API");
+  await story.locator(".server-mobile-services > ul button").filter({ hasText: "Grok2API" }).click();
+  await expect(story.locator(".server-mobile-service-detail h3")).toHaveText("Grok2API");
   await expect(story.locator(".server-mobile-service-detail")).toContainText("部署记录");
 });
 

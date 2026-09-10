@@ -39,6 +39,12 @@ function translateDynamicText(value: string) {
   match = value.match(/^第 (\d+) 张，共 (\d+) 张$/u);
   if (match) return `${match[1]} of ${match[2]}`;
 
+  match = value.match(/^(\d+) 分钟$/u);
+  if (match) return `${match[1]} min`;
+
+  match = value.match(/^(\d+) 节$/u);
+  if (match) return `${match[1]} sections`;
+
   match = value.match(/^(.+) 项目地址$/u);
   if (match) return `${match[1]} links`;
 
@@ -106,7 +112,9 @@ function textTarget(node: Text, language: PortfolioLanguage) {
 
 function isVisible(node: Text) {
   const parent = node.parentElement;
-  if (!parent || parent.closest(".sr-only, [aria-hidden='true']")) return false;
+  if (!parent || parent.closest(".sr-only")) return false;
+  const hiddenAncestor = parent.closest("[aria-hidden='true']");
+  if (hiddenAncestor && !hiddenAncestor.closest("[data-language-animate-hidden]")) return false;
   if (!parent.getClientRects().length) return false;
   const rect = parent.getBoundingClientRect();
   return rect.bottom >= 0 && rect.top <= window.innerHeight && rect.right >= 0 && rect.left <= window.innerWidth;

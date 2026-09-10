@@ -9,14 +9,15 @@ const routes = [
   { path: "/projects/law-site", heading: "根旺律所数字站", title: "根旺律所数字站案例 | lij768423-svg" },
   { path: "/projects/harmonyos", heading: "408 for HarmonyOS", title: "408 for HarmonyOS 案例 | lij768423-svg" },
   { path: "/projects/mineradio", heading: "Mineradio Web 适配", title: "Mineradio Web 适配 | lij768423-svg" },
-  { path: "/projects/agent-console", heading: "Agent Console", title: "Agent Console | lij768423-svg" },
+  { path: "/projects/grok-register-panel", heading: "Grok Register Panel", title: "Grok Register Panel | lij768423-svg" },
   { path: "/projects/codex-api", heading: "Codex API", title: "Codex API | lij768423-svg" },
-  { path: "/projects/wiki-api", heading: "Wiki Question API", title: "Wiki Question API | lij768423-svg" },
+  { path: "/projects/grok2api-egress-enhancements", heading: "Egress Quality Guard", title: "Egress Quality Guard | lij768423-svg" },
   { path: "/projects/writing-studio", heading: "Writing Studio", title: "Writing Studio | lij768423-svg" },
   { path: "/projects/hardware-control", heading: "Hardware Control", title: "Hardware Control | lij768423-svg" },
   { path: "/projects/tailscale-latency", heading: "Tailscale 延迟测试", title: "Tailscale 延迟测试 | lij768423-svg" },
   { path: "/projects/home-lab", heading: "Home Lab 基础设施", title: "Home Lab 基础设施 | lij768423-svg" },
   { path: "/systems", heading: "我的服务器", title: "我的服务器 | lij768423-svg" },
+  { path: "/blog", heading: "文章与笔记", title: "文章与笔记 | lij768423-svg" },
   { path: "/about", heading: "关于我", title: "关于 | lij768423-svg" },
   { path: "/desk", heading: "我的桌搭", title: "我的桌搭 | lij768423-svg" },
 ] as const;
@@ -79,7 +80,7 @@ test("home story has three usable scenes with separated artwork", async ({ page 
     images.every((image) => !image.getAttribute("src"))
   ))).toBe(true);
   await expect(page.locator("[data-featured-project]")).toHaveCount(2);
-  await expect(page.locator('[data-featured-project="408-web"] a')).toHaveAttribute("href", "https://github.com/lij768423-svg/408-");
+  await expect(page.locator('[data-featured-project="grok-register-panel"] a')).toHaveAttribute("href", "https://github.com/lij768423-svg/grok-register-panel");
   await expect(page.locator('[data-featured-project="law-site"] a')).toHaveAttribute("href", "https://lawweb.hermesjj.com/");
   await expect(page.locator(".favorite-follow")).toHaveCount(0);
 
@@ -323,6 +324,35 @@ test("navigation, metadata, and browser history work across pages", async ({ pag
   await expect(page.locator(".site-footer")).toHaveCount(0);
 });
 
+test("blog index previews articles and opens a readable article route", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The editorial blog index is desktop-led.");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/blog", { waitUntil: "networkidle" });
+
+  await expect(page.getByRole("heading", { level: 1, name: "文章与笔记" })).toBeVisible();
+  await expect(page.locator(".blog-console")).toBeVisible();
+
+  const posts = page.locator(".blog-index-list a");
+  await expect(posts).toHaveCount(5);
+  const previewImages = page.locator(".blog-console-portrait img");
+  await expect(previewImages).toHaveCount(1);
+  await expect.poll(() => previewImages.evaluateAll((images) => images.every((image) => (
+    (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
+  )))).toBe(true);
+
+  await posts.nth(2).hover();
+  await expect(posts.nth(2)).toHaveClass(/is-active/);
+  await expect(page.locator(".blog-console-story strong")).toHaveText("考研、开发与 AI，如何共享同一套工作流");
+  await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("alt", "408 学习产品概念封面");
+
+  await posts.nth(1).click();
+  await expect(page).toHaveURL(/\/blog\/home-server-as-a-product$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("我为什么把个人服务器当成长期产品");
+  await expect(page.locator(".blog-article-copy section")).toHaveCount(3);
+  await expect(page.getByRole("link", { name: "全部文章" })).toHaveAttribute("href", "/blog");
+});
+
 test("desk archive renders two independent circular galleries", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "The desk archive is designed around a desktop viewport.");
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -447,10 +477,10 @@ test("project DNA helix expands, keeps moving on hover, and unfolds into project
     ));
     expect(mobileCoverSources).toHaveLength(12);
     expect(mobileCoverSources.every((source) => source?.startsWith("/assets/project-covers/"))).toBe(true);
-    const mobileAgentConsoleLink = projectIndex.locator(".index-item").filter({ hasText: "Agent Console" }).getByRole("link");
-    await mobileAgentConsoleLink.click();
-    await expect(page).toHaveURL(/\/projects\/agent-console$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Agent Console");
+    const mobileRegisterPanelLink = projectIndex.locator(".index-item").filter({ hasText: "Grok Register Panel" }).getByRole("link");
+    await mobileRegisterPanelLink.click();
+    await expect(page).toHaveURL(/\/projects\/grok-register-panel$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Grok Register Panel");
     return;
   }
 
@@ -942,8 +972,8 @@ test("all server modules expose complete deployment details", async ({ page }, t
   const story = page.locator(".server-story");
   const modules = [
     { trigger: "聚焦网络与入口模块", services: ["Tailscale", "Cloudflare Tunnel", "Caddy", "Uptime Kuma", "延迟探针"] },
-    { trigger: "聚焦 CPU 与内存模块", services: ["Ryzen 9 9950X", "RTX 5060 Ti", "3.6 TB NVMe", "Beszel / Netdata", "硬件控制"] },
-    { trigger: "聚焦 GPU 与 AI 模块", services: ["Sub2API", "Codex API", "Agent Console", "ComfyUI", "每日 AI 巡检"] },
+    { trigger: "聚焦 CPU 与内存模块", services: ["Ryzen 9 9950X", "RTX 4090", "5.4 TB NVMe", "Beszel / Netdata", "硬件控制"] },
+    { trigger: "聚焦 GPU 与 AI 模块", services: ["Sub2API", "Grok2API", "Qwen 3.8 27B", "ComfyUI", "Agent Console"] },
     { trigger: "聚焦 NVMe 数据模块", services: ["Immich", "Paperless-ngx", "MinIO", "Syncthing", "Linkwarden"] },
     { trigger: "聚焦 Docker 容器模块", services: ["Homepage", "Vaultwarden", "Memos", "Stirling PDF", "Docker"] },
   ] as const;
@@ -998,14 +1028,14 @@ test("theme and overlay menu persist across navigation", async ({ page }) => {
   const themeSwitch = page.getByRole("switch", { name: "深色模式" });
   const portrait = page.locator(".hero-portrait-image");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).not.toContain("-white");
+  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).toContain("virtual-developer-avatar-dark");
   const lightPortraitLayout = await portrait.evaluate((image) => {
     const style = getComputedStyle(image);
     return { objectFit: style.objectFit, objectPosition: style.objectPosition, transform: style.transform };
   });
   await themeSwitch.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).toContain("virtual-developer-avatar-white");
+  await expect.poll(() => portrait.evaluate((image) => (image as HTMLImageElement).currentSrc)).toContain("virtual-developer-avatar-dark");
   await expect.poll(() => portrait.evaluate((image) => {
     const style = getComputedStyle(image);
     return { objectFit: style.objectFit, objectPosition: style.objectPosition, transform: style.transform };
@@ -1013,7 +1043,7 @@ test("theme and overlay menu persist across navigation", async ({ page }) => {
 
   await page.getByRole("button", { name: "打开导航" }).click();
   const menu = page.getByRole("navigation", { name: "移动端导航" });
-  await expect(menu.getByRole("link")).toHaveCount(5);
+  await expect(menu.getByRole("link")).toHaveCount(6);
   await menu.getByRole("link", { name: /我的服务器/ }).click();
   await expect(page).toHaveURL(/\/systems$/);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

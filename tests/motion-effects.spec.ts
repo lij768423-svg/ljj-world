@@ -173,7 +173,7 @@ test("pixel trail remains global across portfolio routes", async ({ page }, test
   test.skip(testInfo.project.name !== "desktop", "Pointer effects are desktop-first.");
   await page.setViewportSize({ width: 1280, height: 720 });
 
-  for (const route of ["/projects", "/systems", "/about", "/projects/408", "/desk"]) {
+  for (const route of ["/projects", "/systems", "/about", "/projects/408", "/desk", "/blog"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     if (route === "/desk") {
       await expect(page.locator(".circular-gallery").first()).toHaveAttribute("data-intro-state", "complete", { timeout: 3000 });

@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ServerServiceArt } from "./ServerServiceArt";
 
 type MobileServerService = {
   id: string;
@@ -158,6 +159,7 @@ export function MobileServerStory({
             >
               <span>{activeService.kind}</span>
               <h3>{activeService.name}</h3>
+              <ServerServiceArt className="server-mobile-service-art" serviceId={activeService.id} name={activeService.name} />
               <p>{activeService.description}</p>
               <dl>
                 <div>

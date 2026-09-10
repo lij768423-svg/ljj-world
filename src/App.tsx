@@ -3,7 +3,6 @@ import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
 import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
 import { ArrowsOutSimple } from "@phosphor-icons/react/ArrowsOutSimple";
 import { Books } from "@phosphor-icons/react/Books";
-import { BracketsCurly } from "@phosphor-icons/react/BracketsCurly";
 import { Browser } from "@phosphor-icons/react/Browser";
 import { ChatCircleDots } from "@phosphor-icons/react/ChatCircleDots";
 import { CloudArrowUp } from "@phosphor-icons/react/CloudArrowUp";
@@ -43,10 +42,13 @@ import { InteractiveDotGrid } from "./components/effects/InteractiveDotGrid";
 import { Magnetic } from "./components/effects/Magnetic";
 import { PixelReveal, type PixelRevealHandle } from "./components/effects/PixelReveal";
 import { SceneLineOrnaments } from "./components/effects/SceneLineOrnaments";
+import { BlogArticlePage, BlogPage } from "./components/BlogPages";
 import { MobileServerStory } from "./components/MobileServerStory";
 import type { CircularGalleryClick, CircularGalleryItem } from "./components/CircularGallery";
 import type { FlowingMenuItemData } from "./components/FlowingMenu";
-import { PortfolioLanguageProvider, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
+import { PortfolioLanguageProvider, translatePortfolioText, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
+import { blogPosts, getBlogPost } from "./blog";
+import { optimizedCovers } from "./assets/optimizedCovers";
 
 const loadProjectHelix = () => import("./components/ProjectHelix").then((module) => ({ default: module.ProjectHelix }));
 const ProjectHelix = lazy(loadProjectHelix);
@@ -55,6 +57,7 @@ const FlowingMenu = lazy(() => import("./components/FlowingMenu").then((module) 
 const loadCircularGallery = () => import("./components/CircularGallery");
 const deskGalleryPreloads = new Map<string, HTMLImageElement>();
 const projectCardPreloads = new Map<string, HTMLImageElement>();
+const blogImagePreloads = new Map<string, HTMLImageElement>();
 
 function preloadProjectCardImages() {
   if (typeof Image === "undefined") return;
@@ -76,6 +79,21 @@ const preloadProjectsPage = () => {
   void loadProjectHelix();
   preloadProjectCardImages();
 };
+
+function preloadBlogImages() {
+  if (typeof Image === "undefined") return;
+  blogPosts.slice(0, 1).forEach((post) => {
+    if (blogImagePreloads.has(post.image)) return;
+    const image = new Image();
+    image.decoding = "async";
+    image.fetchPriority = "low";
+    if (post.srcSet) image.srcset = post.srcSet;
+    image.sizes = "(max-width: 760px) calc(100vw - 32px), (max-width: 980px) max(44vw, 640px), max(32vw, calc(160vh - 420px))";
+    image.src = post.image;
+    void image.decode().catch(() => undefined);
+    blogImagePreloads.set(post.image, image);
+  });
+}
 
 function preloadDeskGalleryImages() {
   if (typeof Image === "undefined") return;
@@ -99,6 +117,7 @@ const flowingMenuImages = [
   "/assets/flowing-menu/projects.webp",
   "/assets/flowing-menu/server.webp",
   "/assets/flowing-menu/desk.webp",
+  "/assets/writing-studio-github.webp",
   "/assets/flowing-menu/about.webp",
 ];
 
@@ -107,7 +126,8 @@ const flowingMenuItems: FlowingMenuItemData[] = [
   { href: "/projects", label: "Projects", ariaLabel: "Projects - 全部项目", images: [...flowingMenuImages.slice(1), flowingMenuImages[0]] },
   { href: "/systems", label: "Server", ariaLabel: "Server - 我的服务器", images: [...flowingMenuImages.slice(2), ...flowingMenuImages.slice(0, 2)] },
   { href: "/desk", label: "Desk setup", ariaLabel: "Desk setup - 桌搭展示", images: [...flowingMenuImages.slice(3), ...flowingMenuImages.slice(0, 3)] },
-  { href: "/about", label: "About", ariaLabel: "About - 关于", images: [...flowingMenuImages.slice(4), ...flowingMenuImages.slice(0, 4)] },
+  { href: "/blog", label: "Blog", ariaLabel: "Blog - 文章与笔记", images: [...flowingMenuImages.slice(4), ...flowingMenuImages.slice(0, 4)] },
+  { href: "/about", label: "About", ariaLabel: "About - 关于", images: [...flowingMenuImages.slice(5), ...flowingMenuImages.slice(0, 5)] },
 ];
 
 type Category = "product" | "ai" | "system";
@@ -121,18 +141,38 @@ function useLocation() {
 
 function NavLink({ to, end = false, children }: { to: string; end?: boolean; children: ReactNode }) {
   const { pathname } = useLocation();
+  const warmTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
   const warmRoute = to === "/projects"
     ? preloadProjectsPage
     : to === "/desk"
       ? preloadCircularGallery
-      : undefined;
+      : to === "/blog"
+        ? preloadBlogImages
+        : undefined;
+  const cancelWarmup = () => {
+    if (warmTimeout.current !== null) clearTimeout(warmTimeout.current);
+    warmTimeout.current = null;
+  };
+  useEffect(() => cancelWarmup, []);
+  const requestWarmup = () => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; downlink?: number } }).connection;
+    if (active || connection?.saveData || /^(slow-2g|2g|3g)$/.test(connection?.effectiveType ?? "") || (connection?.downlink !== undefined && connection.downlink < 2)) return;
+    cancelWarmup();
+    warmTimeout.current = setTimeout(() => {
+      warmTimeout.current = null;
+      warmRoute?.();
+    }, 140);
+  };
   return (
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      onPointerEnter={warmRoute}
-      onFocus={warmRoute}
+      onPointerEnter={(event) => { if (event.pointerType !== "touch") requestWarmup(); }}
+      onPointerLeave={cancelWarmup}
+      onPointerCancel={cancelWarmup}
+      onFocus={requestWarmup}
+      onBlur={cancelWarmup}
     >
       {children}
     </Link>
@@ -214,11 +254,13 @@ type FlagshipCaseStudy = {
 };
 
 function projectCardPreview(id: string, title: string): ProjectPreview {
+  const optimized = optimizedCovers[id as keyof typeof optimizedCovers];
   return {
     image: `/assets/project-covers/${id}.webp`,
     alt: `${title} AI 生成概念海报`,
     width: 1200,
     height: 750,
+    ...(optimized ? { ...optimized, sizes: "(max-width: 680px) calc(100vw - 48px), 320px" } : {}),
   };
 }
 
@@ -391,35 +433,33 @@ const projects: Project[] = [
     },
   },
   {
-    id: "agent-console",
-    title: "Agent Console",
-    description: "在浏览器里启动、观察和配置本机 coding agents，统一任务、日志、Git 与 Provider 状态。",
+    id: "grok-register-panel",
+    title: "Grok Register Panel",
+    description: "把长链路浏览器任务、邮箱与代理池、失败恢复和运行统计收进一个实时控制面板。",
     category: "ai",
-    kind: "开发者工具",
-    status: "私有构建",
+    kind: "自动化运维",
+    status: "开源",
     year: "2026",
-    tags: ["React", "Vite", "Codex CLI"],
+    tags: ["Python", "Camoufox", "Operations"],
     story: {
-      problem: "本机多个 coding agents 的任务、日志、Provider 与 Git 配置散落在终端和配置文件中。",
-      approach: "以 React 操作台连接本地 API，真实启动 Codex 进程，并把任务、日志和配置状态统一落盘。",
-      outcome: "形成可排队、启动、停止和追踪结果的本地代理工作台，配置变更也进入可恢复流程。",
+      problem: "浏览器自动化任务横跨邮箱验证码、代理出口和多阶段授权，单靠日志难以判断卡点和恢复进度。",
+      approach: "以 Camoufox 执行任务，将代理预检、邮箱后端、批次编排、失败补录和时段统计连接到受令牌保护的 Web 面板。",
+      outcome: "形成可启停、可观测、可恢复的长链路自动化控制面，并为代理与邮箱域名池保留独立状态。",
       highlights: [
-        { title: "真实任务队列", description: "任务从排队到完成或失败都有明确状态，并可停止底层进程。" },
-        { title: "Provider 与 MCP", description: "读取真实配置，切换前先备份，再同步到对应客户端。" },
-        { title: "安全配置分支", description: "Git dirty 状态会阻止危险切换，并提供 dry-run 预检。" },
+        { title: "实时运行面板", description: "启停、并发、批次进度、时段成功率和账号补录集中在同一控制面。" },
+        { title: "出口与域名治理", description: "代理池、ASN 预检、邮箱后端和域名轮换各自维护健康与冷却状态。" },
+        { title: "失败恢复", description: "待处理授权可以补录并自动出队，编排器也会对卡死任务做有限重建。" },
       ],
     },
-    detail: "/projects/agent-console",
-    icon: <BracketsCurly size={22} weight="duotone" />,
-    cardPreview: projectCardPreview("agent-console", "Agent Console"),
-    preview: {
-      image: "/assets/agent-console-branches.webp",
-      alt: "Agent Console 配置分支管理真实界面",
-      width: 2024,
-      height: 1206,
-      srcSet: "/assets/agent-console-branches-800.webp 800w, /assets/agent-console-branches-1600.webp 1600w, /assets/agent-console-branches.webp 2024w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "center top",
+    repo: "https://github.com/lij768423-svg/grok-register-panel",
+    detail: "/projects/grok-register-panel",
+    icon: <Browser size={22} weight="duotone" />,
+    cardPreview: {
+      ...optimizedCovers["grok-register-panel"],
+      sizes: "(max-width: 680px) calc(100vw - 48px), 320px",
+      alt: "Grok Register Panel AI 生成概念海报",
+      width: 1584,
+      height: 993,
     },
   },
   {
@@ -446,35 +486,33 @@ const projects: Project[] = [
     cardPreview: projectCardPreview("codex-api", "Codex API"),
   },
   {
-    id: "wiki-api",
-    title: "Wiki Question API",
-    description: "将刷题笔记可靠写入 WebDAV / Obsidian Markdown 知识库，支持幂等保存、更新与搜索。",
+    id: "grok2api-egress-enhancements",
+    title: "Egress Quality Guard",
+    description: "为 Grok2API 与 CPA 增加出口质量探测、隔离、迁移和自动恢复，避免异常节点继续承载请求。",
     category: "system",
-    kind: "知识库服务",
-    status: "私有运行",
+    kind: "网络可靠性",
+    status: "开源增强",
     year: "2026",
-    tags: ["FastAPI", "WebDAV", "Obsidian"],
+    tags: ["Go", "Proxy", "Observability"],
     story: {
-      problem: "刷题后的错题与解释需要可靠进入 Obsidian，而重复请求和多用户路径容易产生冲突。",
-      approach: "用 FastAPI 接收结构化题目，生成 Markdown、更新索引和日志，再以本地文件为真源进行可选同步。",
-      outcome: "得到可幂等保存、按用户隔离并可追踪更新记录的知识库写入服务。",
+      problem: "多账号、多出口服务遇到连接故障或质量异常时，单纯重试会继续把请求送往问题节点，也难以区分账号与网络故障。",
+      approach: "为 Grok2API 发布可审计补丁，并提供独立 CPA 原生插件，用主动探针、质量阈值和状态机管理摘流、迁移与恢复。",
+      outcome: "固定代理具备快速复测，异常出口能够隔离并迁移账号，恢复前还会经过真实质量验证。",
       highlights: [
-        { title: "幂等写入", description: "Idempotency-Key 与 SQLite 记录避免同一次保存产生重复笔记。" },
-        { title: "路径与用户隔离", description: "学科别名、slug 和用户 vault 都经过约束后再落盘。" },
-        { title: "本地真源", description: "Markdown、索引和日志先在本地完成，再按需要回写 WebDAV。" },
+        { title: "快速复测", description: "并发连接故障只触发一个共享探针，健康后重新读取状态并恢复节点。" },
+        { title: "质量熔断", description: "被动指标与固定 Prompt 主动复测共同决定隔离，避免短时流式突增造成误判。" },
+        { title: "CPA 原生插件", description: "独立插件提供节点管理、批量导入、质量检测、隔离迁号和策略热加载。" },
       ],
     },
-    detail: "/projects/wiki-api",
-    icon: <Database size={22} weight="duotone" />,
-    cardPreview: projectCardPreview("wiki-api", "Wiki Question API"),
-    preview: {
-      image: "/assets/wiki-api-docs.webp",
-      alt: "Wiki Question API Swagger 文档真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/wiki-api-docs-800.webp 800w, /assets/wiki-api-docs-1600.webp 1600w, /assets/wiki-api-docs.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
+    repo: "https://github.com/lij768423-svg/grok2api-egress-enhancements",
+    detail: "/projects/grok2api-egress-enhancements",
+    icon: <ShareNetwork size={22} weight="duotone" />,
+    cardPreview: {
+      ...optimizedCovers["grok2api-egress-enhancements"],
+      sizes: "(max-width: 680px) calc(100vw - 48px), 320px",
+      alt: "Egress Quality Guard AI 生成概念海报",
+      width: 1024,
+      height: 640,
     },
   },
   {
@@ -596,44 +634,6 @@ const projects: Project[] = [
     detail: "/projects/home-lab",
     icon: <HardDrives size={22} weight="duotone" />,
     cardPreview: projectCardPreview("home-lab", "Home Lab 基础设施"),
-  },
-  {
-    id: "animejs-lab",
-    title: "Anime.js 1:1 复刻 Lab",
-    description: "对 animejs.com 的离线 1:1 复刻：three.js 滚动机箱由 anime.js v4 时间线导演，派生层整体换肤到本站设计语言，动画层预留自研引擎接口。",
-    category: "system",
-    kind: "交互实验",
-    status: "Lab / 内网",
-    year: "2026",
-    tags: ["three.js", "anime.js", "WebGL", "逆向复刻"],
-    site: "http://100.102.32.24:4177/",
-    story: {
-      problem: "anime.js 官网的滚动机箱（DOM 几何驱动时间线时长、CSS3D 把 demo 钉进同一台相机）没有公开工程资料，想复现只能整站逆向。",
-      approach: "968 份文件字节级镜像，14 个 Vite chunk 重拼为 117 个源码切片并逐字节回拼校验；派生层只在响应层做 :root token 映射换肤，站点本体一字节不改。",
-      outcome: "内网可运行的 1:1 复刻站，源码层 / 复刻层 / 换肤层三层分离：GLB、章节内容与彩虹色环均可整体替换为自有资产，滚动骨架原样保留。",
-      highlights: [
-        { title: "三层分离", description: "源码层保字节、复刻层跑门禁、皮肤层代理注入，互不干扰，任何一层可独立重建。" },
-        { title: "设计语言换肤", description: "源站调色板、字体与圆角整体映射为本站暖灰阶梯、电蓝与直角语言，明暗章节自适配。" },
-        { title: "自研引擎可插", description: "动画归属地图标清 22 个 GLB 与 8 个 demo 的驱动方与替换点，换自有资产不动时间线骨架。" },
-      ],
-    },
-    icon: <Pulse size={22} weight="duotone" />,
-    cardPreview: {
-      image: "/assets/project-covers/animejs-lab.png",
-      alt: "Anime.js 1:1 复刻 Lab：作品集换肤后的 three.js 滚动机箱首页",
-      width: 1200,
-      height: 750,
-    },
-    preview: {
-      image: "/assets/project-covers/animejs-lab.png",
-      alt: "Anime.js 复刻 Lab 首页：作品集换肤后的 three.js 滚动机箱与 feature demo",
-      width: 1200,
-      height: 750,
-    },
-    liveDemo: {
-      url: "http://100.102.32.24:4177/",
-      label: "Lab 站点（滚动整机箱，建议新标签全屏体验）",
-    },
   },
 ];
 
@@ -967,9 +967,9 @@ const labCases = [
 
 const serverFacts = [
   { label: "主机", value: "home-serve" },
-  { label: "运行容器", value: "70" },
+  { label: "运行容器", value: "119" },
   { label: "内存", value: "59 GiB" },
-  { label: "NVMe 存储", value: "3.6 TB" },
+  { label: "NVMe 存储", value: "5.4 TB" },
 ] as const;
 
 const serverRoles = [
@@ -982,8 +982,8 @@ const serverRoles = [
   {
     icon: <Robot size={25} weight="duotone" />,
     title: "AI 与自动化",
-    stack: "Sub2API / Codex API / ComfyUI",
-    description: "模型网关、兼容接口、图片生成与代理任务集中运行，手机、浏览器和项目服务共用同一组能力。",
+    stack: "Sub2API / Grok2API / vLLM / ComfyUI",
+    description: "模型网关、本地 27B 推理、图片生成与代理任务集中运行，手机、浏览器和项目服务共用同一组能力。",
   },
   {
     icon: <Database size={25} weight="duotone" />,
@@ -1003,7 +1003,7 @@ const serverRoute = [
   { label: "私有接入", title: "Tailscale", description: "远程开发、后台和管理端只在 Tailnet 内访问。" },
   { label: "公开入口", title: "Cloudflare Tunnel", description: "只有需要公开的产品域名才进入公网。" },
   { label: "服务路由", title: "Caddy 与代理层", description: "按域名和接口路径把请求送到正确服务。" },
-  { label: "应用与数据", title: "Docker 与本地 NVMe", description: "应用、数据库和对象存储在主机内协同运行。" },
+  { label: "应用与数据", title: "Docker 与本地 NVMe", description: "三块 NVMe 分别承载系统、应用数据与扩展存储，应用与对象存储落在本机。" },
   { label: "运行保障", title: "监控与备份", description: "状态检查、维护日志和备份负责最后一道恢复。" },
 ] as const;
 
@@ -1072,7 +1072,7 @@ const favoriteContainers = [
     description: "把日常应用、内容工具、监控入口和网络工具分组，同时读取 Docker 健康状态、CPU、内存和三块存储。",
     reason: "服务越来越多以后，入口、状态和搜索必须在同一屏完成。",
     scope: "局域网入口",
-    connects: "Docker Socket / 29 个服务入口",
+    connects: "Docker Socket / 58 个服务入口",
     icon: <SquaresFour size={28} weight="duotone" />,
   },
   {
@@ -1183,7 +1183,7 @@ const topologyCategories: TopologyCategory[] = [
         kind: "私有接入",
         description: "远程开发、后台和管理端只在 Tailnet 内访问。",
         connection: "设备到主机的加密直连",
-        deployment: "宿主机运行 tailscaled，后台和管理端统一绑定 Tailnet 地址。",
+        deployment: "宿主机运行 tailscaled；双口 2.5G 网卡做 active-backup bonding，后台和管理端绑 Tailnet。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
@@ -1244,21 +1244,21 @@ const topologyCategories: TopologyCategory[] = [
         entryLabel: "仅 Tailnet 内可用",
       },
       {
-        id: "codex-api",
-        name: "Codex API",
-        kind: "代理接口",
-        description: "把 Codex 执行能力封装为可流式调用的兼容接口。",
-        connection: "iOS 与网页客户端",
-        deployment: "Python 服务由用户级 systemd 守护，只向本机应用开放 API。",
-        entryLabel: "仅本机应用可用",
+        id: "grok2api",
+        name: "Grok2API",
+        kind: "Grok 网关",
+        description: "把 Grok 会话转成兼容接口，给编辑器和本地工具调用。",
+        connection: "客户端到 Grok 上游与出口节点",
+        deployment: "Compose 常驻，配合降智监视和会话轮换，管理端只绑 Tailnet。",
+        entryLabel: "仅 Tailnet 内可用",
       },
       {
-        id: "agent-console",
-        name: "Agent Console",
-        kind: "任务工作台",
-        description: "在浏览器里管理项目分支、任务队列和执行记录。",
-        connection: "仓库到代理进程",
-        deployment: "Vite 工作台按需启动，只在 Tailnet 内提供配置与任务管理界面。",
+        id: "qwen38",
+        name: "Qwen 3.8 27B",
+        kind: "本地推理",
+        description: "vLLM 加载 27B 权重，Open WebUI 提供 256K 上下文对话。",
+        connection: "4090 到本机聊天与 OpenAI 兼容接口",
+        deployment: "独立 Compose 管理模型推理与聊天界面；权重保存在本机，管理入口仅在私有网络开放，不用时整套停掉。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
@@ -1271,12 +1271,12 @@ const topologyCategories: TopologyCategory[] = [
         entryLabel: "仅 Tailnet 内可用",
       },
       {
-        id: "daily-ai",
-        name: "每日 AI 巡检",
-        kind: "维护摘要",
-        description: "先保存只读巡检证据，再由模型整理风险和建议动作。",
-        connection: "系统日志到维护记录",
-        deployment: "定时任务先写 Markdown 巡检证据，再生成风险摘要，不自动修改系统。",
+        id: "agent-console",
+        name: "Agent Console",
+        kind: "任务工作台",
+        description: "在浏览器里管理项目分支、任务队列和执行记录。",
+        connection: "仓库到代理进程",
+        deployment: "Vite 工作台按需启动，只在 Tailnet 内提供配置与任务管理界面。",
         entryLabel: "仅 Tailnet 内可用",
       },
     ],
@@ -1294,27 +1294,27 @@ const topologyCategories: TopologyCategory[] = [
         id: "cpu",
         name: "Ryzen 9 9950X",
         kind: "计算",
-        description: "承担容器、编译、转码和并行代理任务。",
+        description: "16 核 32 线程，跑容器、编译、转码和并行代理。",
         connection: "主机计算核心到全部工作负载",
-        deployment: "宿主机计算核心直接承载容器、编译、转码与本地代理进程。",
+        deployment: "装在 ASUS ProArt X870E-CREATOR WIFI 上，直接承载全部主机工作负载。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
         id: "gpu",
-        name: "RTX 5060 Ti",
+        name: "RTX 4090",
         kind: "GPU",
-        description: "为本地图片生成、视频处理和推理工作流提供算力。",
-        connection: "NVIDIA 驱动到生成与媒体工作流",
-        deployment: "NVIDIA 驱动在宿主机运行，按需向 ComfyUI 等容器开放 GPU。",
+        description: "48 GB 显存，给本地推理、图片生成和媒体工作流供能。",
+        connection: "NVIDIA 驱动到 vLLM、ComfyUI 与 Immich 机器学习",
+        deployment: "宿主机驱动 595.84，按需向 vLLM、ComfyUI、Immich ML 等容器开放 GPU。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
         id: "nvme",
-        name: "3.6 TB NVMe",
+        name: "5.4 TB NVMe",
         kind: "存储",
-        description: "项目、数据库、照片和对象文件保存在本地高速存储。",
+        description: "三块 2 TB 盘分别承载系统、应用数据与扩展存储。",
         connection: "容器卷与个人数据",
-        deployment: "系统盘与独立数据盘分别承载运行环境、Compose 配置和业务数据。",
+        deployment: "990 EVO Plus 承载系统，990 PRO 承载应用数据，Kingston 用作扩展存储。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
@@ -1397,7 +1397,7 @@ const topologyCategories: TopologyCategory[] = [
     id: "containers",
     label: "容器与日常工具",
     shortLabel: "CONTAINERS",
-    description: "七十个运行容器被组织成清楚的入口、状态和备份关系。",
+    description: "119 个运行容器、49 套 Compose，按入口、状态和备份收成一组。",
     x: 50,
     y: 87,
     icon: <Stack size={43} weight="thin" />,
@@ -1694,23 +1694,6 @@ function Header({
     setMenuOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (typeof window.requestIdleCallback === "function") {
-      const preloadProjects = window.requestIdleCallback(preloadProjectsPage, { timeout: 900 });
-      const preloadGallery = window.requestIdleCallback(preloadCircularGallery, { timeout: 1800 });
-      return () => {
-        window.cancelIdleCallback(preloadProjects);
-        window.cancelIdleCallback(preloadGallery);
-      };
-    }
-    const preloadProjects = window.setTimeout(preloadProjectsPage, 450);
-    const preloadGallery = window.setTimeout(preloadCircularGallery, 900);
-    return () => {
-      window.clearTimeout(preloadProjects);
-      window.clearTimeout(preloadGallery);
-    };
-  }, []);
-
   const closeMenu = () => setMenuOpen(false);
 
   return (
@@ -1727,6 +1710,7 @@ function Header({
           <NavLink to="/projects">项目</NavLink>
           <NavLink to="/systems">服务器</NavLink>
           <NavLink to="/desk">桌搭</NavLink>
+          <NavLink to="/blog">博客</NavLink>
           <NavLink to="/about">关于</NavLink>
         </nav>
 
@@ -1841,12 +1825,8 @@ function Hero({ theme }: { theme: ThemeMode }) {
   const reduceMotion = useReducedMotion();
   const isPhone = window.matchMedia("(max-width: 767px)").matches;
   const pixelRevealRef = useRef<PixelRevealHandle>(null);
-  const portraitSource = theme === "dark"
-    ? "/assets/virtual-developer-avatar-white.webp"
-    : "/assets/virtual-developer-avatar.webp";
-  const portraitSourceSet = theme === "dark"
-    ? "/assets/virtual-developer-avatar-white-512.webp 512w, /assets/virtual-developer-avatar-white-1024.webp 1024w, /assets/virtual-developer-avatar-white-1600.webp 1600w, /assets/virtual-developer-avatar-white.webp 2048w"
-    : "/assets/virtual-developer-avatar-512.webp 512w, /assets/virtual-developer-avatar-1024.webp 1024w, /assets/virtual-developer-avatar-1600.webp 1600w, /assets/virtual-developer-avatar.webp 2048w";
+  const portraitSource = "/assets/virtual-developer-avatar-dark.webp";
+  const portraitSourceSet = "/assets/virtual-developer-avatar-dark-512.webp 512w, /assets/virtual-developer-avatar-dark-1024.webp 1024w, /assets/virtual-developer-avatar-dark-1600.webp 1600w, /assets/virtual-developer-avatar-dark.webp 2048w";
 
   return (
       <section
@@ -2186,7 +2166,10 @@ function AboutScene({
 }
 
 function FavoriteProjectsScene() {
-  const favorites = projects.filter((project) => project.id === "408-web" || project.id === "law-site");
+  const favoriteIds = ["grok-register-panel", "law-site"] as const;
+  const favorites = favoriteIds
+    .map((id) => projects.find((project) => project.id === id))
+    .filter((project): project is Project => Boolean(project));
   const reduceMotion = useReducedMotion();
 
   return (
@@ -3892,7 +3875,7 @@ function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: string 
   const nextProject = projects[(projectIndex + 1) % projects.length];
   const visual = project.preview ?? project.cardPreview;
   const hasSystemsView =
-    (project.category === "system" && project.id !== "animejs-lab") || project.id === "mineradio";
+    project.category === "system" || project.id === "mineradio";
   const dossierTabs = project.liveDemo
     ? projectDossierTabs
     : projectDossierTabs.filter((tab) => tab.id !== "live");
@@ -4794,11 +4777,27 @@ const pageMetadata: Record<string, { title: string; description: string; image: 
     description: "两套独立桌搭：学校的暖色学习开发工位，以及家里的冷色影音与硬件空间。",
     image: "/assets/desk-setup/desk-2026-current-1600.webp",
   },
+  "/blog": {
+    title: "文章与笔记 | lij768423-svg",
+    description: "关于产品、学习、自建基础设施和独立交付的文章与实践笔记。",
+    image: "/assets/project-covers/home-lab.webp",
+  },
 };
 
 function getPageMetadata(pathname: string) {
   const exact = pageMetadata[pathname];
   if (exact) return exact;
+
+  if (pathname.startsWith("/blog/")) {
+    const post = getBlogPost(pathname.slice("/blog/".length));
+    if (post) {
+      return {
+        title: `${post.title} | lij768423-svg`,
+        description: post.excerpt,
+        image: post.image,
+      };
+    }
+  }
 
   const project = projects.find((item) => item.detail === pathname || `/projects/${item.id}` === pathname);
   if (project) {
@@ -4818,15 +4817,18 @@ function getPageMetadata(pathname: string) {
 
 function PageMeta() {
   const location = useLocation();
+  const { language } = usePortfolioLanguage();
 
   useEffect(() => {
     const metadata = getPageMetadata(location.pathname);
-    document.title = metadata.title;
-    document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute("content", metadata.description);
-    document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute("content", metadata.title);
-    document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute("content", metadata.description);
+    const title = language === "en" ? translatePortfolioText(metadata.title) : metadata.title;
+    const description = language === "en" ? translatePortfolioText(metadata.description) : metadata.description;
+    document.title = title;
+    document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute("content", description);
+    document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute("content", title);
+    document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute("content", description);
     document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.setAttribute("content", metadata.image);
-  }, [location.pathname]);
+  }, [language, location.pathname]);
 
   return null;
 }
@@ -4835,7 +4837,17 @@ function ScrollToTop() {
   const location = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const frame = window.requestAnimationFrame(() => {
+      let target: HTMLElement | null = null;
+      try {
+        target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+      } catch {
+        target = null;
+      }
+      if (target) target.scrollIntoView({ behavior: "instant", block: "start" });
+      else window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [location.pathname]);
 
   return null;
@@ -4857,6 +4869,7 @@ function PortfolioRoutes({
   const isAbout = location.pathname === "/about";
   const isDesk = location.pathname === "/desk";
   const isSystems = location.pathname === "/systems";
+  const isBlog = location.pathname === "/blog" || location.pathname.startsWith("/blog/");
 
   useEffect(() => {
     document.body.classList.toggle("systems-page", location.pathname === "/systems");
@@ -4868,7 +4881,6 @@ function PortfolioRoutes({
   return (
     <>
       <PageMeta />
-      <ScrollToTop />
       <GlobalPixelTrail enabled={trailEnabled} />
       <GlobalFlowingLights key={location.pathname} deferred={isAbout} />
       <Header
@@ -4877,19 +4889,26 @@ function PortfolioRoutes({
         onThemeChange={onThemeChange}
         onTrailChange={onTrailChange}
       />
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="wait" initial={isBlog}>
         <motion.main
           key={location.pathname}
-          className={`route-main${isSystems ? " is-systems-route" : ""}${isDesk ? " is-desk-route" : ""}`}
-          initial={reduceMotion || isAbout ? false : { opacity: 0, y: isSystems ? 0 : 10 }}
+          className={`route-main${isSystems ? " is-systems-route" : ""}${isDesk ? " is-desk-route" : ""}${isBlog ? " is-blog-route" : ""}`}
+          initial={reduceMotion || isAbout
+            ? false
+            : isBlog
+              ? { opacity: 0, y: 18, scale: 0.985, filter: "blur(3px)" }
+              : { opacity: 0, y: isSystems ? 0 : 10 }}
           animate={{
             opacity: 1,
             y: 0,
+            ...(isBlog ? { scale: 1, filter: "blur(0px)" } : {}),
             transition: reduceMotion || isAbout || isDesk
               ? { duration: 0 }
               : isSystems
                 ? { duration: 0.72, ease: [0.16, 1, 0.3, 1] }
-                : { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                : isBlog
+                  ? { duration: 0.52, ease: [0.16, 1, 0.3, 1] }
+                  : { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
           }}
           exit={reduceMotion || isAbout
             ? undefined
@@ -4901,10 +4920,15 @@ function PortfolioRoutes({
                 }
               : {
                   opacity: 0,
-                  y: -8,
-                  transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                  y: isBlog ? -10 : -8,
+                  ...(isBlog ? { scale: 0.995, filter: "blur(2px)" } : {}),
+                  transition: {
+                    duration: isBlog ? 0.4 : 0.28,
+                    ease: [0.16, 1, 0.3, 1],
+                  },
                 }}
         >
+          <ScrollToTop />
           <Routes location={location.pathname}>
             <Route path="/"><HomePage theme={theme} /></Route>
             <Route path="/projects"><ProjectsPage /></Route>
@@ -4916,6 +4940,8 @@ function PortfolioRoutes({
             <Route path="/systems"><SystemsPage /></Route>
             <Route path="/about"><AboutPage /></Route>
             <Route path="/desk"><DeskArchivePage theme={theme} /></Route>
+            <Route path="/blog/:slug"><BlogArticlePage /></Route>
+            <Route path="/blog"><BlogPage /></Route>
             <Route><NotFoundPage /></Route>
           </Routes>
         </motion.main>

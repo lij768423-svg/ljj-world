@@ -78,7 +78,7 @@ test("capture multi-page desktop visual QA states", async ({ browser }, testInfo
   await captureRoute(desktop.page, "/projects/hermes-ios", ".qa/final-ios-case.png");
   await captureRoute(desktop.page, "/projects/law-site", ".qa/final-law-case.png");
   await captureRoute(desktop.page, "/projects/harmonyos", ".qa/final-harmony-case.png");
-  await captureRoute(desktop.page, "/projects/agent-console", ".qa/final-agent-console-case.png");
+  await captureRoute(desktop.page, "/projects/grok-register-panel", ".qa/final-grok-register-panel-case.png");
   await captureRoute(desktop.page, "/projects/codex-api", ".qa/final-codex-api-case.png");
   await captureRoute(desktop.page, "/systems", ".qa/final-systems.png");
 

@@ -1,0 +1,34 @@
+.service-art {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.service-art-raster {
+  pointer-events: none;
+}
+
+.service-art-missing {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+
+.server-story-service-page-image:has(.service-art) {
+  filter: contrast(1.05) drop-shadow(0 20px 24px rgb(10 12 14 / 0.13));
+}
+
+.server-mobile-service-art {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0 auto 20px;
+}
+
+@media (max-height: 640px) and (min-width: 981px) {
+  .server-story-service-page-image:has(.service-art) {
+    height: min(78vh, 560px);
+  }
+}
