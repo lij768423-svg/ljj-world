@@ -1,45 +1,166 @@
+/* Overview line art (ServerMachineParts.tsx). Every colour derives from the theme tokens. */
+
 .server-machine.original-refined .machine-detail {
   stroke: color-mix(in srgb, currentColor 40%, transparent);
   stroke-width: .8;
 }
 
-.server-machine.original-refined .machine-vent-line {
-  stroke-opacity: .65;
+.server-machine.original-refined .machine-extrude {
+  fill: color-mix(in srgb, var(--surface-raised) 84%, var(--text));
+  stroke: color-mix(in srgb, currentColor 52%, transparent);
+  stroke-width: 1;
 }
 
 .server-machine.original-refined .machine-panel {
-  fill: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  fill: color-mix(in srgb, var(--surface-raised) 97%, var(--text));
+  stroke: color-mix(in srgb, currentColor 70%, transparent);
+  stroke-width: 1.45;
+}
+
+.server-machine.original-refined .machine-inner-lip {
+  stroke: color-mix(in srgb, currentColor 18%, transparent);
+  stroke-width: .8;
+}
+
+.server-machine.original-refined .machine-front-panel {
+  fill: color-mix(in srgb, var(--surface-raised) 93%, var(--text));
+  stroke: color-mix(in srgb, currentColor 42%, transparent);
+  stroke-width: 1;
+}
+
+.server-machine.original-refined .machine-bay {
+  fill: color-mix(in srgb, var(--bg) 94%, var(--text));
+  stroke: color-mix(in srgb, currentColor 34%, transparent);
+  stroke-width: 1;
 }
 
 .server-machine.original-refined .machine-board-fill {
-  fill: color-mix(in srgb, var(--surface-raised) 96%, var(--text));
+  fill: color-mix(in srgb, var(--surface-raised) 88%, var(--accent-soft));
+  stroke: color-mix(in srgb, currentColor 78%, transparent);
+  stroke-width: 1.3;
 }
 
 .server-machine.original-refined .machine-chip {
-  fill: color-mix(in srgb, var(--surface-raised) 94%, var(--text));
+  fill: color-mix(in srgb, var(--surface-raised) 90%, var(--text));
+  stroke: color-mix(in srgb, currentColor 62%, transparent);
+  stroke-width: .9;
 }
 
-.server-machine.original-refined .machine-fan-blade {
-  fill: color-mix(in srgb, var(--surface-raised) 93%, var(--text));
+.server-machine.original-refined .machine-heatsink,
+.server-machine.original-refined .machine-shroud,
+.server-machine.original-refined .machine-bracket {
+  fill: color-mix(in srgb, var(--surface-raised) 91%, var(--text));
+  stroke: color-mix(in srgb, currentColor 66%, transparent);
+  stroke-width: 1;
+}
+
+.server-machine.original-refined .machine-shroud-hatch {
+  fill: url(#server-hatch);
+  stroke: color-mix(in srgb, currentColor 30%, transparent);
+  stroke-width: .8;
+}
+
+.server-machine.original-refined .machine-hatch-line {
+  stroke: color-mix(in srgb, currentColor 26%, transparent);
+  stroke-width: .7;
+}
+
+.server-machine.original-refined .machine-fin {
+  stroke: color-mix(in srgb, currentColor 34%, transparent);
+  stroke-width: .7;
+}
+
+.server-machine.original-refined .machine-mesh {
+  fill: url(#server-mesh);
+  stroke: color-mix(in srgb, currentColor 40%, transparent);
+  stroke-width: .9;
+}
+
+.server-machine.original-refined .machine-mesh-hole {
+  fill: color-mix(in srgb, currentColor 28%, transparent);
+  stroke: none;
+}
+
+.server-machine.original-refined .machine-grommet {
+  fill: color-mix(in srgb, var(--surface-raised) 80%, var(--text));
+  stroke: color-mix(in srgb, currentColor 46%, transparent);
+  stroke-width: .9;
+}
+
+.server-machine.original-refined .machine-power {
+  fill: var(--surface-raised);
+  stroke: color-mix(in srgb, var(--accent) 64%, currentColor);
+  stroke-width: 1.2;
+}
+
+.server-machine.original-refined .machine-status {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.server-machine.original-refined .machine-ihs {
+  fill: color-mix(in srgb, var(--surface-raised) 88%, var(--text));
+  stroke: color-mix(in srgb, currentColor 78%, transparent);
+  stroke-width: 1.1;
+}
+
+.server-machine.original-refined .machine-lever {
+  stroke: color-mix(in srgb, currentColor 72%, transparent);
+  stroke-width: 1.6;
+}
+
+.server-machine.original-refined .machine-slot {
+  fill: color-mix(in srgb, var(--surface-raised) 86%, var(--text));
+  stroke: color-mix(in srgb, currentColor 26%, transparent);
+  stroke-width: .7;
+}
+
+.server-machine.original-refined .machine-latch,
+.server-machine.original-refined .machine-label-plate {
+  fill: var(--surface-raised);
+  stroke: color-mix(in srgb, currentColor 52%, transparent);
+  stroke-width: .8;
+}
+
+.server-machine.original-refined .machine-lightbar {
+  fill: color-mix(in srgb, var(--accent) 20%, var(--surface-raised));
+  stroke: color-mix(in srgb, var(--accent) 56%, transparent);
   stroke-width: .75;
 }
 
-.server-story[data-story-exploded="false"] .original-refined .machine-rotor-disc {
-  opacity: .28;
+.server-machine.original-refined .machine-fingers,
+.server-machine.original-refined .machine-pcb-tail {
+  fill: color-mix(in srgb, #c49a3a 24%, var(--surface-raised));
+  stroke: color-mix(in srgb, #a77d22 58%, transparent);
+  stroke-width: .75;
 }
 
-.server-story[data-story-exploded="false"] .original-refined .machine-orbit {
-  opacity: .55;
+.server-machine.original-refined .machine-port {
+  fill: color-mix(in srgb, var(--surface-raised) 74%, var(--text));
+  stroke: color-mix(in srgb, currentColor 70%, transparent);
+  stroke-width: .9;
 }
 
-.server-story[data-story-exploded="false"] .original-refined .machine-axis {
-  opacity: .32;
+.server-machine.original-refined .machine-shroud-trim {
+  stroke: color-mix(in srgb, currentColor 34%, transparent);
+  stroke-width: .9;
 }
 
-.server-story[data-story-exploded="false"] .original-refined .machine-panel-flow {
-  stroke-width: 1.25;
-  opacity: .62;
-  filter: none;
+.server-machine.original-refined .machine-fan-well {
+  fill: color-mix(in srgb, var(--surface-raised) 88%, var(--text));
+  stroke: color-mix(in srgb, currentColor 30%, transparent);
+  stroke-width: .7;
+}
+
+.server-machine.original-refined .machine-fan-blade {
+  fill: color-mix(in srgb, var(--surface-raised) 96%, transparent);
+  stroke: color-mix(in srgb, currentColor 62%, transparent);
+  stroke-width: .75;
+}
+
+.server-machine.original-refined .machine-airflow {
+  stroke: color-mix(in srgb, var(--accent) 58%, transparent);
+  stroke-width: 1.2;
 }
 
 .server-machine.original-refined .machine-trace {
@@ -47,11 +168,44 @@
   stroke-opacity: .7;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .server-story.is-visual-only[data-story-exploded="false"] .original-refined .machine-panel-flow {
-    animation-duration: 12s;
-  }
+/* Backdrop: a quiet drafting frame instead of the rotating disc. */
+.server-machine.original-refined .machine-ground {
+  fill: color-mix(in srgb, var(--text) 18%, transparent);
+  stroke: none;
+}
 
+html[data-theme="dark"] .server-machine.original-refined .machine-ground {
+  fill: rgb(0 0 0 / .55);
+}
+
+.server-machine.original-refined .machine-orbit-a {
+  stroke: color-mix(in srgb, var(--line-strong) 70%, transparent);
+  stroke-width: .8;
+}
+
+.server-machine.original-refined .machine-measure {
+  stroke: color-mix(in srgb, var(--muted-strong) 46%, transparent);
+  stroke-width: .8;
+}
+
+.server-machine.original-refined .machine-register {
+  stroke: color-mix(in srgb, var(--accent) 72%, transparent);
+  stroke-width: 1.3;
+  stroke-linecap: square;
+}
+
+.server-story[data-story-exploded="false"] .original-refined .machine-orbit {
+  opacity: .5;
+}
+
+.server-story.is-visual-only[data-story-exploded="true"] .original-refined .machine-measure,
+.server-story.is-visual-only[data-story-exploded="true"] .original-refined .machine-register,
+.server-story.is-visual-only[data-story-exploded="true"] .original-refined .machine-ground {
+  opacity: 0;
+  transition: opacity 360ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
   .server-story.is-visual-only[data-story-exploded="false"] .original-refined .server-machine-part .machine-wire .machine-gpu-fan .machine-fan-rotor {
     animation-duration: 6s;
   }

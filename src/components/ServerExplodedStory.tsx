@@ -4,6 +4,7 @@ import { BlurText } from "./effects/BlurText";
 import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
+import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
 import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
 import "./ServerMachineVisual.css";
 
@@ -74,61 +75,6 @@ const serviceConnectorLayouts = [
   { segments: [[43, 62, 38, 69], [38, 69, 38, 78], [38, 78, 31, 78]], endX: 31, endY: 78 },
 ] as const;
 
-function FanGraphic({
-  x,
-  y,
-  r = 31,
-  blades = 7,
-  reverse = false,
-  className = "machine-fan",
-  skew = false,
-  framed = false,
-}: {
-  x: number;
-  y: number;
-  r?: number;
-  blades?: number;
-  reverse?: boolean;
-  className?: string;
-  skew?: boolean;
-  framed?: boolean;
-}) {
-  const inner = r * 0.32;
-  const outer = r * 0.88;
-  const blade = [
-    `M${(r * 0.04).toFixed(1)} ${(-inner).toFixed(1)}`,
-    `C ${(r * 0.3).toFixed(1)} ${(-r * 0.4).toFixed(1)} ${(r * 0.5).toFixed(1)} ${(-r * 0.7).toFixed(1)} ${(r * 0.2).toFixed(1)} ${(-outer).toFixed(1)}`,
-    `C ${(r * 0.4).toFixed(1)} ${(-r * 0.58).toFixed(1)} ${(r * 0.26).toFixed(1)} ${(-r * 0.32).toFixed(1)} ${(r * 0.1).toFixed(1)} ${(-inner * 0.52).toFixed(1)}`,
-    `C ${(r * 0.06).toFixed(1)} ${(-inner * 0.76).toFixed(1)} ${(r * 0.04).toFixed(1)} ${(-inner).toFixed(1)} ${(r * 0.04).toFixed(1)} ${(-inner).toFixed(1)}Z`,
-  ].join("");
-  const corner = r + 3;
-  return (
-    <g className={`${className}${reverse ? " is-reverse" : ""}`} transform={skew ? `translate(${x} ${y}) skewX(-8) scale(1 .52)` : `translate(${x} ${y})`}>
-      {framed ? (
-        <rect className="machine-fan-bezel" x={-corner} y={-corner} width={corner * 2} height={corner * 2} rx="3" />
-      ) : (
-        <circle className="machine-fan-bezel" r={r} />
-      )}
-      <circle className="machine-detail" r={r * 0.92} />
-      <g className="machine-fan-rotor">
-        {Array.from({ length: blades }, (_, bladeIndex) => (
-          <path key={bladeIndex} className="machine-fan-blade" transform={`rotate(${(bladeIndex * 360) / blades})`} d={blade} />
-        ))}
-        <circle className="machine-fan-hub" r={inner} />
-        <circle className="machine-detail" r={inner * 0.42} />
-      </g>
-      {framed ? (
-        <>
-          <circle className="machine-screw" cx={-corner + 3.5} cy={-corner + 3.5} r="1.6" />
-          <circle className="machine-screw" cx={corner - 3.5} cy={-corner + 3.5} r="1.6" />
-          <circle className="machine-screw" cx={-corner + 3.5} cy={corner - 3.5} r="1.6" />
-          <circle className="machine-screw" cx={corner - 3.5} cy={corner - 3.5} r="1.6" />
-        </>
-      ) : null}
-    </g>
-  );
-}
-
 function MachineDrawing({
   activeCategoryId,
   isExploded,
@@ -162,125 +108,24 @@ function MachineDrawing({
   return (
     <motion.div className="server-machine-camera" animate={cameraFrame} transition={movementTransition}>
       <svg className="server-machine original-refined" viewBox="0 0 1000 640" role="img" aria-label="home-serve 主机分层爆炸结构图">
-        <defs>
-          <pattern id="server-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" className="machine-grid-line" />
-          </pattern>
-          <filter id="server-line-shadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="8" stdDeviation="10" floodOpacity="0.08" />
-          </filter>
-          <pattern id="server-vent" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <path d="M0 0V8" className="machine-vent-line" />
-          </pattern>
-        </defs>
-
-        <g className="machine-load-group machine-load-backdrop">
-          <rect className="machine-grid-surface" x="62" y="34" width="876" height="572" fill="url(#server-grid)" opacity="0.55" />
-          <circle className="machine-orbit machine-orbit-a" cx="500" cy="320" r="262" />
-          <circle className="machine-orbit machine-orbit-b" cx="500" cy="320" r="212" />
-          <path className="machine-axis" d="M98 320H902M500 62V578" />
-          <g className="machine-rotor-disc" aria-hidden="true">
-            <circle className="machine-rotor-ring machine-rotor-ring-outer" cx="500" cy="320" r="292" />
-            <circle className="machine-rotor-ring machine-rotor-ring-mid" cx="500" cy="320" r="274" />
-            <circle className="machine-rotor-ring machine-rotor-ring-inner" cx="500" cy="320" r="228" />
-            {Array.from({ length: 12 }, (_, tickIndex) => (
-              <path
-                key={tickIndex}
-                className="machine-rotor-tick"
-                d="M500 28V52"
-                transform={`rotate(${tickIndex * 30} 500 320)`}
-              />
-            ))}
-          </g>
-        </g>
+        <MachineDefinitions />
+        <MachineBackdrop />
 
         <motion.g className="server-machine-part server-machine-shell" animate={{ x: exploded * -210, rotate: exploded * -5 }} transition={movementTransition}>
           <g className="machine-load-group machine-load-shell">
-            <path className="machine-panel" d="M286 128H680L752 190V500L680 554H286L232 500V190Z" filter="url(#server-line-shadow)" />
-            <path className="machine-inner-lip" d="M302 146H666L734 204V486L666 538H302L250 486V204Z" />
-            <path className="machine-panel-flow" d="M278 116H688L766 182V508L688 566H278L218 508V182Z" />
-            <path d="M286 128L350 190H752M286 554L350 500H752M350 190V500" />
-            <path className="machine-detail" d="M248 204H338V486H248M262 216V474M290 216V474M318 216V474M722 206V486M698 206V486" />
-            <rect className="machine-vent" x="254" y="222" width="78" height="168" fill="url(#server-vent)" />
-            <path className="machine-detail" d="M262 236H324M262 258H324M262 280H324M262 302H324M262 324H324M262 346H324M262 368H324" />
-            <g className="machine-front-io">
-              <rect className="machine-chip" x="258" y="188" width="68" height="26" rx="2" />
-              <rect className="machine-detail" x="266" y="196" width="14" height="10" rx="1" />
-              <rect className="machine-detail" x="284" y="196" width="14" height="10" rx="1" />
-              <circle className="machine-screw" cx="312" cy="201" r="3.2" />
-              <circle cx="322" cy="201" r="2.2" />
-            </g>
-            <g className="machine-psu">
-              <path className="machine-component-fill" d="M250 398H334V476H250Z" />
-              <path className="machine-detail" d="M258 408H326M258 418H326M258 428H326M258 438H326M258 448H326" />
-              <rect className="machine-chip" x="270" y="452" width="28" height="14" rx="1" />
-              <circle className="machine-screw" cx="260" cy="406" r="2.4" />
-              <circle className="machine-screw" cx="324" cy="406" r="2.4" />
-              <circle className="machine-screw" cx="260" cy="468" r="2.4" />
-              <circle className="machine-screw" cx="324" cy="468" r="2.4" />
-            </g>
-            <path className="machine-detail" d="M360 136H606M372 136V150H594V136" />
-            <path className="machine-detail" d="M368 200H384V216H368ZM716 200H732V216H716ZM368 468H384V484H368ZM716 468H732V484H716Z" />
-            <circle className="machine-screw" cx="368" cy="208" r="4" />
-            <circle className="machine-screw" cx="730" cy="208" r="4" />
-            <circle className="machine-screw" cx="368" cy="482" r="4" />
-            <circle className="machine-screw" cx="730" cy="482" r="4" />
-            <text x="252" y="522">LIAN LI B4 / HOME-SERVE</text>
+            <ChassisArt />
           </g>
         </motion.g>
 
         <motion.g className="server-machine-part server-machine-board" animate={{ x: exploded * -24 }} transition={movementTransition}>
           <g className="machine-load-group machine-load-board">
-            <path className="machine-board-fill" d="M360 198H670L704 228V445L676 470H360Z" />
-            <path d="M360 198H670L704 228V445L676 470H360ZM374 214H660L687 238V434L665 452H374Z" />
-            <path className="machine-heatsink" d="M382 224H448V262H382Z" />
-            <path className="machine-detail" d="M390 230H440M390 236H440M390 242H440M390 248H440M390 254H440" />
-            <path className="machine-chip" d="M382 272H424V304H382Z" />
-            <path className="machine-detail" d="M388 278H418M388 286H418M388 294H418" />
-            <path className="machine-heatsink" d="M488 348H548V376H488Z" />
-            <path className="machine-detail" d="M494 354H542M494 360H542M494 366H542" />
-            <path className="machine-pcie" d="M400 356H656V368H400Z" />
-            <path className="machine-detail" d="M408 359H420V365H408ZM428 359H440V365H428ZM448 359H460V365H448ZM468 359H480V365H468ZM488 359H500V365H488ZM508 359H520V365H508ZM528 359H540V365H528ZM548 359H560V365H548ZM568 359H580V365H568ZM588 359H600V365H588ZM608 359H620V365H608ZM628 359H640V365H628Z" />
-            <path className="machine-chip" d="M382 412H438V442H382Z" />
-            <path className="machine-detail" d="M390 418H430M390 426H430M390 434H430" />
-            <circle className="machine-chip" cx="456" cy="428" r="10" />
-            <circle className="machine-detail" cx="456" cy="428" r="4" />
-            <path className="machine-detail" d="M360 248H378V268H360ZM360 272H378V304H360Z" />
-            <path className="machine-detail" d="M582 260H674V268H582ZM582 388H674V396H582Z" />
-            <path className="machine-trace machine-trace-a" d="M448 242H476V226H584V250H628M424 288H452V320H470M438 428H476V408H538M608 338H670V362H684M400 394H456V372H634M518 226V250M552 226V250" />
-            <path className="machine-trace machine-trace-b" d="M452 292V338H418V382M666 326V346H622M576 432H658V414H682M548 376V408" />
-            <path className="machine-scan-line" d="M366 206H688" />
-            <g className="machine-board-nodes" aria-hidden="true">
-              <circle cx="470" cy="319" r="2.6" />
-              <circle cx="536" cy="407" r="2.6" />
-              <circle cx="621" cy="345" r="2.6" />
-              <circle cx="583" cy="249" r="2.6" />
-              <circle cx="518" cy="376" r="2.2" />
-            </g>
-            <circle className="machine-screw" cx="378" cy="216" r="5" />
-            <circle className="machine-screw" cx="663" cy="216" r="5" />
-            <circle className="machine-screw" cx="378" cy="448" r="5" />
-            <circle className="machine-screw" cx="663" cy="448" r="5" />
-            <text x="368" y="489">ATX / X870E / LINUX</text>
+            <BoardArt />
           </g>
         </motion.g>
 
         <motion.g className={`server-machine-part server-machine-cpu${activeCategoryId === "hardware" ? " is-active" : ""}`} animate={{ y: exploded * -118 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
-            <rect className="machine-component-fill" x="466" y="266" width="100" height="100" rx="3" />
-            <rect x="476" y="276" width="80" height="80" rx="2" />
-            <rect className="machine-chip" x="488" y="288" width="56" height="56" rx="2" />
-            <rect className="machine-detail" x="500" y="300" width="32" height="32" />
-            <path className="machine-detail" d="M476 288H466M476 300H466M476 312H466M476 324H466M476 336H466M476 348H466M556 288H566M556 300H566M556 312H566M556 324H566M556 336H566M556 348H566" />
-            <path className="machine-detail" d="M488 276V266M500 276V266M512 276V266M524 276V266M536 276V266M548 276V266M488 356V366M500 356V366M512 356V366M524 356V366M536 356V366M548 356V366" />
-            <path d="M558 278H578V352H558" />
-            <circle className="machine-screw" cx="480" cy="280" r="2.4" />
-            <circle className="machine-screw" cx="552" cy="280" r="2.4" />
-            <circle className="machine-screw" cx="480" cy="352" r="2.4" />
-            <circle className="machine-screw" cx="552" cy="352" r="2.4" />
-            <circle className="machine-screw" cx="572" cy="288" r="3" />
-            <text x="516" y="314" textAnchor="middle">RYZEN 9</text>
-            <text x="516" y="330" textAnchor="middle">9950X</text>
+            <ProcessorArt />
           </g>
           <g className="machine-real-layer">
             <image className="machine-real-image" href={serverPartImages["cpu-line"]} x="353" y="132" width="360" height="360" preserveAspectRatio="xMidYMid meet" />
@@ -289,34 +134,13 @@ function MachineDrawing({
 
         <motion.g className={`server-machine-part server-machine-ram${activeCategoryId === "hardware" ? " is-active" : ""}`} animate={{ x: exploded * 112, y: exploded * -60 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
-            {[586, 608, 630, 652].map((x) => (
-              <g key={x}>
-                <rect className="machine-component-fill" x={x} y="268" width="14" height="112" rx="1" />
-                <path className="machine-heatsink" d={`M${x + 1.5} 274H${x + 12.5}V372H${x + 1.5}Z`} />
-                <path className="machine-detail" d={`M${x + 3} 282H${x + 11}M${x + 3} 296H${x + 11}M${x + 3} 310H${x + 11}M${x + 3} 324H${x + 11}M${x + 3} 338H${x + 11}M${x + 3} 352H${x + 11}M${x + 3} 366H${x + 11}`} />
-                <path className="machine-detail" d={`M${x + 4} 268V262M${x + 10} 268V262M${x + 4} 380V386M${x + 10} 380V386`} />
-              </g>
-            ))}
-            <path className="machine-detail" d="M582 260H670M582 388H670" />
-            <text x="626" y="402" textAnchor="middle">4 x DDR5 / 59 GiB</text>
+            <MemoryArt />
           </g>
         </motion.g>
 
         <motion.g className={`server-machine-part server-machine-nic${activeCategoryId === "network" ? " is-active" : ""}`} animate={{ x: exploded * -155, y: exploded * 76 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
-            <path className="machine-component-fill" d="M374 298H458L474 314V350H374Z" />
-            <rect className="machine-chip" x="386" y="308" width="28" height="24" rx="1" />
-            <path className="machine-detail" d="M390 314H410M390 320H410M390 326H410" />
-            <rect className="machine-chip" x="424" y="308" width="26" height="28" rx="1" />
-            <rect className="machine-detail" x="429" y="314" width="7" height="16" rx="1" />
-            <rect className="machine-detail" x="438" y="314" width="7" height="16" rx="1" />
-            <circle cx="432.5" cy="312" r="1.2" />
-            <circle cx="441.5" cy="312" r="1.2" />
-            <path className="machine-pcie" d="M458 316H484V342H458Z" />
-            <path className="machine-detail" d="M388 342H454M396 342V350M408 342V350M420 342V350M432 342V350M444 342V350" />
-            <path className="machine-flow" d="M392 326H334C304 326 296 328 266 328H220" />
-            <circle cx="220" cy="328" r="6" /><circle cx="266" cy="328" r="3" />
-            <text x="426" y="368" textAnchor="middle">2.5 GbE / I226-V</text>
+            <NetworkArt />
           </g>
           <g className="machine-real-layer">
             <image className="machine-real-image" href={serverPartImages["nic-line"]} x="295" y="252" width="330" height="330" preserveAspectRatio="xMidYMid meet" />
@@ -325,18 +149,7 @@ function MachineDrawing({
 
         <motion.g className={`server-machine-part server-machine-gpu${activeCategoryId === "agent" ? " is-active" : ""}`} animate={{ x: exploded * 178, y: exploded * 84 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
-            <path className="machine-component-fill" d="M400 362H658L678 378V432L660 448H400Z" />
-            <path d="M414 374H644L663 387V420L648 435H414Z" />
-            <path className="machine-heatsink" d="M508 380H550V430H508Z" />
-            <path className="machine-detail" d="M512 386H546M512 392H546M512 398H546M512 404H546M512 410H546M512 416H546M512 422H546" />
-            <FanGraphic x={474} y={405} r={30} blades={9} className="machine-gpu-fan" />
-            <FanGraphic x={584} y={405} r={30} blades={9} reverse className="machine-gpu-fan" />
-            <path className="machine-detail" d="M416 380H438M416 388H438M622 380H646M622 388H646M622 422H646M622 430H646" />
-            <path className="machine-pcie" d="M432 448V458H598V448" />
-            <path d="M678 384H698V426H678" />
-            <path className="machine-chip" d="M682 392H694V410H682Z" />
-            <path className="machine-flow" d="M698 405H730C758 405 764 370 792 370H838" />
-            <text x="534" y="474" textAnchor="middle">RTX 4090 / LOCAL AI</text>
+            <GraphicsArt />
           </g>
           <g className="machine-real-layer">
             <image className="machine-real-image" href={serverPartImages["gpu-line"]} x="343" y="265" width="400" height="300" preserveAspectRatio="xMidYMid meet" />
@@ -345,16 +158,7 @@ function MachineDrawing({
 
         <motion.g className={`server-machine-part server-machine-storage${activeCategoryId === "data" ? " is-active" : ""}`} animate={{ x: exploded * 218, y: exploded * -112 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
-            <path className="machine-component-fill" d="M552 218H676L690 232V260L676 274H552Z" />
-            <path className="machine-heatsink" d="M560 224H672V268H560Z" />
-            <rect className="machine-chip" x="566" y="230" width="22" height="22" rx="1" />
-            <rect className="machine-chip" x="592" y="230" width="22" height="22" rx="1" />
-            <rect className="machine-chip" x="618" y="230" width="22" height="22" rx="1" />
-            <rect className="machine-chip" x="644" y="230" width="16" height="22" rx="1" />
-            <path className="machine-detail" d="M568 254H584M594 254H610M620 254H636" />
-            <circle className="machine-screw" cx="677" cy="246" r="4" />
-            <path className="machine-flow" d="M690 246H734C762 246 768 210 796 210H842" />
-            <text x="621" y="295" textAnchor="middle">5.4 TB NVMe ARRAY</text>
+            <StorageArt />
           </g>
           <g className="machine-real-layer">
             <image className="machine-real-image" href={serverPartImages["nvme-line"]} x="431" y="110" width="420" height="300" preserveAspectRatio="xMidYMid meet" />
@@ -363,14 +167,7 @@ function MachineDrawing({
 
         <motion.g className={`server-machine-part server-machine-fans${activeCategoryId === "containers" ? " is-active" : ""}`} animate={{ y: exploded * 146 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
-            <path className="machine-fan-deck-side" d="M380 508L400 526H658L678 504V518L660 538H399L380 520Z" />
-            <path className="machine-component-fill machine-fan-deck" d="M392 484H650L678 504L658 526H400L380 508Z" />
-            <path className="machine-detail" d="M404 496H646M412 512H638M420 522H630" />
-            <FanGraphic x={438} y={506} r={28} blades={7} skew framed />
-            <FanGraphic x={528} y={506} r={28} blades={7} reverse skew framed />
-            <FanGraphic x={618} y={506} r={28} blades={7} skew framed />
-            <path className="machine-detail" d="M394 490H412M388 516H406M644 490H662M648 520H666" />
-            <text x="528" y="558" textAnchor="middle">AIRFLOW / 119 CONTAINERS</text>
+            <FanTrayArt />
           </g>
           <g className="machine-real-layer">
             <image className="machine-real-image" href={serverPartImages["container-line"]} x="315" y="353" width="420" height="260" preserveAspectRatio="xMidYMid meet" />
