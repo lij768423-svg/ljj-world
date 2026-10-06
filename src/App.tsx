@@ -1,54 +1,57 @@
-import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
-import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
 import { Books } from "@phosphor-icons/react/Books";
 import { Browser } from "@phosphor-icons/react/Browser";
 import { ChatCircleDots } from "@phosphor-icons/react/ChatCircleDots";
-import { CloudArrowUp } from "@phosphor-icons/react/CloudArrowUp";
 import { Code } from "@phosphor-icons/react/Code";
 import { Cpu } from "@phosphor-icons/react/Cpu";
-import { Database } from "@phosphor-icons/react/Database";
 import { DeviceMobile } from "@phosphor-icons/react/DeviceMobile";
 import { GithubLogo } from "@phosphor-icons/react/GithubLogo";
 import { GlobeHemisphereWest } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { HardDrives } from "@phosphor-icons/react/HardDrives";
-import { LockKey } from "@phosphor-icons/react/LockKey";
 import { Moon } from "@phosphor-icons/react/Moon";
 import { MouseSimple } from "@phosphor-icons/react/MouseSimple";
-import { OpenAiLogo } from "@phosphor-icons/react/OpenAiLogo";
 import { Robot } from "@phosphor-icons/react/Robot";
 import { ShareNetwork } from "@phosphor-icons/react/ShareNetwork";
 import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
-import { Stack } from "@phosphor-icons/react/Stack";
 import { Sun } from "@phosphor-icons/react/Sun";
 import { Translate } from "@phosphor-icons/react/Translate";
 import { X } from "@phosphor-icons/react/X";
-import { animate, AnimatePresence, motion, useIsPresent, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
+import { animate, AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Link, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation, useParams } from "wouter";
+import { Link, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation } from "wouter";
 import { BlurText } from "./components/effects/BlurText";
 import { DecryptedText } from "./components/effects/DecryptedText";
 import { GlobalFlowingLights } from "./components/effects/GlobalFlowingLights";
 import { GlobalPixelTrail } from "./components/effects/GlobalPixelTrail";
-
 import { Magnetic } from "./components/effects/Magnetic";
-
 import { SceneLineOrnaments } from "./components/effects/SceneLineOrnaments";
-import { BlogArticlePage, BlogPage } from "./components/BlogPages";
-import { MobileServerStory } from "./components/MobileServerStory";
 import { InteractivePortrait } from "./components/InteractivePortrait";
-import type { CircularGalleryClick, CircularGalleryItem } from "./components/CircularGallery";
+import type { CircularGalleryItem } from "./components/CircularGallery";
 import type { FlowingMenuItemData } from "./components/FlowingMenu";
 import { PortfolioLanguageProvider, translatePortfolioText, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
 import { blogPosts, getBlogPost } from "./blog";
 import { optimizedCovers } from "./assets/optimizedCovers";
 
 const loadProjectHelix = () => import("./components/ProjectHelix").then((module) => ({ default: module.ProjectHelix }));
-const ProjectHelix = lazy(loadProjectHelix);
-const ServerExplodedStory = lazy(() => import("./components/ServerExplodedStory").then((module) => ({ default: module.ServerExplodedStory })));
+export const ProjectHelix = lazy(loadProjectHelix);
 const FlowingMenu = lazy(() => import("./components/FlowingMenu").then((module) => ({ default: module.FlowingMenu })));
 const loadCircularGallery = () => import("./components/CircularGallery");
+const loadProjectPages = () => import("./pages/ProjectPages");
+const loadSystemsPage = () => import("./pages/SystemsPage");
+const loadAboutPage = () => import("./pages/AboutPage");
+const loadDeskArchivePage = () => import("./pages/DeskArchivePage");
+const loadBlogPages = () => import("./components/BlogPages");
+const ProjectsPage = lazy(() => loadProjectPages().then((module) => ({ default: module.ProjectsPage })));
+const FlagshipCaseStudyPage = lazy(() => loadProjectPages().then((module) => ({ default: module.FlagshipCaseStudyPage })));
+const ProjectDossierPage = lazy(() => loadProjectPages().then((module) => ({ default: module.ProjectDossierPage })));
+const SystemsPage = lazy(() => loadSystemsPage().then((module) => ({ default: module.SystemsPage })));
+const AboutPage = lazy(() => loadAboutPage().then((module) => ({ default: module.AboutPage })));
+const DeskArchivePage = lazy(() => loadDeskArchivePage().then((module) => ({ default: module.DeskArchivePage })));
+const BlogPage = lazy(() => loadBlogPages().then((module) => ({ default: module.BlogPage })));
+const BlogArticlePage = lazy(() => loadBlogPages().then((module) => ({ default: module.BlogArticlePage })));
+const routeChunkLoaders = [loadProjectPages, loadSystemsPage, loadAboutPage, loadDeskArchivePage, loadBlogPages];
+const prefetchRoute = (load: () => Promise<unknown>) => { void load().catch(() => undefined); };
 const deskGalleryPreloads = new Map<string, HTMLImageElement>();
 const projectCardPreloads = new Map<string, HTMLImageElement>();
 const blogImagePreloads = new Map<string, HTMLImageElement>();
@@ -70,11 +73,13 @@ function preloadProjectCardImages() {
 }
 
 const preloadProjectsPage = () => {
+  prefetchRoute(loadProjectPages);
   void loadProjectHelix();
   preloadProjectCardImages();
 };
 
 function preloadBlogImages() {
+  prefetchRoute(loadBlogPages);
   if (typeof Image === "undefined") return;
   blogPosts.slice(0, 1).forEach((post) => {
     if (blogImagePreloads.has(post.image)) return;
@@ -101,10 +106,11 @@ function preloadDeskGalleryImages() {
 }
 
 const preloadCircularGallery = () => {
+  prefetchRoute(loadDeskArchivePage);
   void loadCircularGallery().then((module) => module.prewarmCircularGallery());
   preloadDeskGalleryImages();
 };
-const CircularGallery = lazy(loadCircularGallery);
+export const CircularGallery = lazy(loadCircularGallery);
 
 const flowingMenuImages = [
   "/assets/flowing-menu/home.webp",
@@ -125,7 +131,7 @@ const flowingMenuItems: FlowingMenuItemData[] = [
 ];
 
 type Category = "product" | "ai" | "system";
-type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark";
 
 function useLocation() {
   const [pathname] = useWouterLocation();
@@ -142,7 +148,11 @@ function NavLink({ to, end = false, children }: { to: string; end?: boolean; chi
       ? preloadCircularGallery
       : to === "/blog"
         ? preloadBlogImages
-        : undefined;
+        : to === "/about"
+          ? () => prefetchRoute(loadAboutPage)
+          : to === "/systems"
+            ? () => prefetchRoute(loadSystemsPage)
+            : undefined;
   const cancelWarmup = () => {
     if (warmTimeout.current !== null) clearTimeout(warmTimeout.current);
     warmTimeout.current = null;
@@ -172,7 +182,7 @@ function NavLink({ to, end = false, children }: { to: string; end?: boolean; chi
   );
 }
 
-type ProjectPreview = {
+export type ProjectPreview = {
   image: string;
   alt: string;
   width: number;
@@ -193,7 +203,7 @@ type ProjectStory = {
   }>;
 };
 
-type Project = {
+export type Project = {
   id: string;
   title: string;
   description: string;
@@ -212,40 +222,6 @@ type Project = {
   liveDemo?: { url: string; label: string };
 };
 
-type GalleryShot = {
-  id: string;
-  label: string;
-  title: string;
-  description: string;
-  image: string;
-  alt: string;
-  width: number;
-  height: number;
-  srcSet?: string;
-  sizes?: string;
-  fit?: "cover" | "contain";
-  position?: string;
-};
-
-type FlagshipCaseStudy = {
-  projectId: "408-web" | "law-site";
-  statement: string;
-  overview: string;
-  heroShot: GalleryShot;
-  tourShots: GalleryShot[];
-  facts: Array<{ label: string; value: string }>;
-  flowTitle: string;
-  flow: Array<{ title: string; description: string }>;
-  decisionsTitle: string;
-  decisionsIntro: string;
-  decisions: Array<{ title: string; description: string; note: string }>;
-  resultTitle: string;
-  resultBody: string;
-  results: Array<{ value: string; label: string; detail: string }>;
-  resultNote?: string;
-  nextProjectId: "408-web" | "law-site";
-};
-
 function projectCardPreview(id: string, title: string): ProjectPreview {
   const optimized = optimizedCovers[id as keyof typeof optimizedCovers];
   return {
@@ -257,7 +233,7 @@ function projectCardPreview(id: string, title: string): ProjectPreview {
   };
 }
 
-const projects: Project[] = [
+export const projects: Project[] = [
   {
     id: "408-web",
     title: "408 刷题库",
@@ -628,655 +604,11 @@ const projects: Project[] = [
   },
 ];
 
-const reviewFlowShot: GalleryShot = {
-  id: "review-flow",
-  label: "刷题复盘闭环",
-  title: "从作答到复习与知识沉淀",
-  description: "用一张流程图说明选题、作答、判分、错题回炉、AI 讲题与本地保存如何连续发生。",
-  image: "/assets/408-review-flow.webp",
-  alt: "408 刷题库从选题、作答到错题复盘与 AI 讲题的完整流程图",
-  width: 1400,
-  height: 788,
-  fit: "contain",
-  position: "center",
-};
-
-const galleryShots: GalleryShot[] = [
-  {
-    id: "dashboard",
-    label: "学习仪表盘",
-    title: "先知道今天该复习什么",
-    description: "把 14 天学习节奏、待复习章节和四科掌握度放在同一张仪表盘上。",
-    image: "/assets/408-dashboard.webp",
-    alt: "408 刷题库学习仪表盘真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/408-dashboard-800.webp 800w, /assets/408-dashboard-1600.webp 1600w, /assets/408-dashboard.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) calc(100vw - 72px), 60vw",
-    position: "center top",
-  },
-  {
-    id: "quiz",
-    label: "真实答题",
-    title: "题库、导航与学习记录共处一屏",
-    description: "顺序、随机、今日复习、错题与收藏都从同一套题库导航进入。",
-    image: "/assets/408-quiz.webp",
-    alt: "408 刷题库桌面答题真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/408-quiz-800.webp 800w, /assets/408-quiz-1600.webp 1600w, /assets/408-quiz.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) calc(100vw - 72px), 60vw",
-  },
-  {
-    id: "feedback",
-    label: "错题反馈",
-    title: "答错后立刻进入复盘路径",
-    description: "答案、题库解析与 AI 分析入口在提交后同时出现，错题自动进入复习计划。",
-    image: "/assets/408-feedback.webp",
-    alt: "408 刷题库错题反馈真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/408-feedback-800.webp 800w, /assets/408-feedback-1600.webp 1600w, /assets/408-feedback.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) calc(100vw - 72px), 60vw",
-  },
-  {
-    id: "ai",
-    label: "AI 讲题",
-    title: "让解释落在具体题目上下文里",
-    description: "AI 面板保留题号、章节和作答上下文，回答可以继续追问或保存进知识库。",
-    image: "/assets/408-ai.webp",
-    alt: "408 刷题库 AI 讲题真实界面",
-    width: 1440,
-    height: 1000,
-    srcSet: "/assets/408-ai-800.webp 800w, /assets/408-ai.webp 1440w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) calc(100vw - 72px), 60vw",
-    fit: "contain",
-    position: "center top",
-  },
-  {
-    id: "search",
-    label: "全库搜索",
-    title: "从 2378 道题里直接定位知识点",
-    description: "题干、选项和解析都可检索，并按真题、模拟题、课后题与年份继续筛选。",
-    image: "/assets/408-search.webp",
-    alt: "408 刷题库全库搜索真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/408-search-800.webp 800w, /assets/408-search-1600.webp 1600w, /assets/408-search.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) calc(100vw - 72px), 60vw",
-  },
-  {
-    id: "wiki",
-    label: "个人知识库",
-    title: "把一次解释沉淀成可继续编辑的笔记",
-    description: "题目与概念笔记写入 Markdown 知识库，可搜索、按科目浏览，也能继续向 AI 追问。",
-    image: "/assets/408-wiki.webp",
-    alt: "408 刷题库个人知识库真实界面",
-    width: 1440,
-    height: 1000,
-    srcSet: "/assets/408-wiki-800.webp 800w, /assets/408-wiki.webp 1440w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) calc(100vw - 72px), 60vw",
-    fit: "contain",
-    position: "center top",
-  },
-];
-
-const lawGalleryShots: GalleryShot[] = [
-  {
-    id: "home",
-    label: "机构门户",
-    title: "让团队、内容与咨询从同一入口开始",
-    description: "首页集中呈现团队、公告、专业内容、案例与咨询入口，先建立机构可信度。",
-    image: "/assets/law-home.webp",
-    alt: "根旺律所数字站首页真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/law-home-800.webp 800w, /assets/law-home-1600.webp 1600w, /assets/law-home.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) 54vw, 44vw",
-    position: "left top",
-  },
-  {
-    id: "services",
-    label: "业务领域",
-    title: "把服务范围组织成可检索的判断入口",
-    description: "13 项法律服务按刑事、民事与综合事务分组，并说明适用情形与沟通重点。",
-    image: "/assets/law-services.webp",
-    alt: "根旺律所业务领域与服务检索真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/law-services-800.webp 800w, /assets/law-services-1600.webp 1600w, /assets/law-services.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) 54vw, 44vw",
-    position: "left top",
-  },
-  {
-    id: "cases",
-    label: "脱敏案例",
-    title: "用真实工作记录解释专业能力",
-    description: "案例按争议专题组织，保留审查重点与工作方法，同时隐藏当事人敏感信息。",
-    image: "/assets/law-cases.webp",
-    alt: "根旺律所脱敏案例与工作记录真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/law-cases-800.webp 800w, /assets/law-cases-1600.webp 1600w, /assets/law-cases.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) 54vw, 44vw",
-    position: "left top",
-  },
-  {
-    id: "insights",
-    label: "文章资料库",
-    title: "让长期内容可以搜索、分类和继续阅读",
-    description: "案例分享、专业文章、法律问答和律所动态统一进入内容资料库。",
-    image: "/assets/law-insights.webp",
-    alt: "根旺律所专业文章资料库真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/law-insights-800.webp 800w, /assets/law-insights-1600.webp 1600w, /assets/law-insights.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) 54vw, 44vw",
-    position: "left top",
-  },
-  {
-    id: "article",
-    label: "文章阅读",
-    title: "长文、目录与脱敏证据在一屏内协同",
-    description: "阅读器提供正文目录、同栏文章和前后篇导航，并展示经过脱敏的案件材料。",
-    image: "/assets/law-article.webp",
-    alt: "根旺律所专业文章阅读器真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/law-article-800.webp 800w, /assets/law-article-1600.webp 1600w, /assets/law-article.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) 54vw, 44vw",
-    position: "left top",
-  },
-  {
-    id: "consultation",
-    label: "在线咨询",
-    title: "先澄清问题，再进入人工服务",
-    description: "智能助手收集阶段、措施与诉求，持续提醒隐私边界，并保留转人工入口。",
-    image: "/assets/law-consultation.webp",
-    alt: "根旺律所访客在线咨询真实界面",
-    width: 3200,
-    height: 2000,
-    srcSet: "/assets/law-consultation-800.webp 800w, /assets/law-consultation-1600.webp 1600w, /assets/law-consultation.webp 3200w",
-    sizes: "(max-width: 680px) calc(100vw - 32px), (max-width: 980px) 54vw, 44vw",
-    position: "left top",
-  },
-];
-
-const flagshipCaseStudies: Record<FlagshipCaseStudy["projectId"], FlagshipCaseStudy> = {
-  "408-web": {
-    projectId: "408-web",
-    statement: "题库不是终点。答错以后，产品能不能把人带回正确的复习节奏，才决定一次刷题有没有价值。",
-    overview: "我把自己备考时最容易断开的几个动作重新接在一起：先判断薄弱章节，再完成作答和即时反馈，随后由复习计划安排下一次出现，最后把真正没想明白的内容交给 AI 和个人知识库继续处理。",
-    heroShot: reviewFlowShot,
-    tourShots: galleryShots.slice(1),
-    facts: [
-      { label: "题库规模", value: "2,378 题" },
-      { label: "科目覆盖", value: "408 四科" },
-      { label: "核心策略", value: "本地优先" },
-      { label: "运行形态", value: "静态 / 完整后端" },
-    ],
-    flowTitle: "一次作答，怎样变成下一次有效复习",
-    flow: [
-      { title: "建立样本", description: "从 20 题随机诊断或任意章节开始，先获得真实作答记录。" },
-      { title: "完成作答", description: "顺序、随机、错题、收藏与今日复习共享同一套答题界面。" },
-      { title: "看见错因", description: "正确答案、个人选择、题库解析与 AI 分析入口同时出现。" },
-      { title: "安排重现", description: "错题进入计划，答对后按 1、3、7、14、30、60 天延长间隔。" },
-      { title: "留下知识", description: "需要长期保留的题目或概念被写入可搜索的 Markdown 知识库。" },
-    ],
-    decisionsTitle: "先保证学习闭环，再决定是否连接服务器",
-    decisionsIntro: "基础刷题不应该被账号、网络或 AI 可用性绑住。完整后端带来同步和流式讲题，但核心学习路径在纯静态部署下仍然成立。",
-    decisions: [
-      {
-        title: "本地模式先跑通核心价值",
-        description: "题库、搜索、错题、收藏、仪表盘和复习计划全部可以留在当前浏览器，打开静态站就能开始。",
-        note: "没有后端时自动进入 LOCAL 模式",
-      },
-      {
-        title: "把错题做成调度状态",
-        description: "系统记录连续正确次数和下一次到期时间。连续答对后离开普通错题列表，但长期复习计划仍然保留。",
-        note: "复习间隔由真实作答结果推进",
-      },
-      {
-        title: "AI 是可选层，不是前置条件",
-        description: "本地模式可复制完整题目上下文到外部 AI；完整后端才启用同源 SSE、错因分析和知识库保存。",
-        note: "不配置 AI 也不影响刷题和解析",
-      },
-      {
-        title: "学习记录始终可以带走",
-        description: "本地记录支持 JSON 导入导出。登录后的完整模式再增加跨设备同步，同时保留浏览器缓存作为恢复路径。",
-        note: "数据迁移能力属于基础功能",
-      },
-    ],
-    resultTitle: "最终交付的不是一张题库页面，而是一套能持续运行的学习流程。",
-    resultBody: "项目目前可以直接静态部署，也为认证、进度同步、AI 与知识库提供了完整接口契约。测试覆盖刷题、复习、搜索、数据迁移与完整后端的关键路径。",
-    results: [
-      { value: "6 级", label: "间隔复习", detail: "从 1 天逐步延长到 60 天" },
-      { value: "20 题", label: "首次诊断", detail: "先建立一组可用学习样本" },
-      { value: "2 种", label: "运行模式", detail: "静态本地模式与完整后端模式" },
-      { value: "开源", label: "交付状态", detail: "源码、部署说明与接口契约公开" },
-    ],
-    nextProjectId: "law-site",
-  },
-  "law-site": {
-    projectId: "law-site",
-    statement: "律所网站不只是机构简介。公开内容、初步咨询、隐私边界和后台维护必须在同一套规则下运转。",
-    overview: "这个项目从真实资料整理开始，最终形成公开官网、Payload CMS、咨询流程和原生微信小程序。页面负责建立信任与解释服务，后台负责来源、审核和发布，咨询链路只收集初步判断真正需要的信息。",
-    heroShot: lawGalleryShots[0],
-    tourShots: lawGalleryShots.slice(1),
-    facts: [
-      { label: "交付形态", value: "官网 + CMS" },
-      { label: "公开路由", value: "14 条" },
-      { label: "生产状态", value: "在线运行" },
-      { label: "扩展终端", value: "原生小程序" },
-    ],
-    flowTitle: "访客看到的是网站，背后运行的是一套内容与咨询秩序",
-    flow: [
-      { title: "建立信任", description: "机构资料、律师团队和公开信息先回答访客最基本的真实性问题。" },
-      { title: "找到方向", description: "业务领域按服务阶段组织，让访客先判断自己的问题应该从哪里开始。" },
-      { title: "理解方法", description: "脱敏案例与专业文章解释工作重点，不承诺结果，也不暴露当事人信息。" },
-      { title: "初步咨询", description: "助手只收集阶段、措施与诉求，持续提醒隐私边界并保留转人工入口。" },
-      { title: "后台维护", description: "结构化内容、来源、授权和发布状态进入同一套 CMS 工作流。" },
-    ],
-    decisionsTitle: "可信度来自内容治理，不来自更响亮的宣传语",
-    decisionsIntro: "这是一个受监管行业的真实交付。设计、内容模型、访问权限和部署方式都围绕同一件事展开：哪些内容可以公开，哪些数据只能被授权人员看见。",
-    decisions: [
-      {
-        title: "公开事实必须能回到来源",
-        description: "律师履历、荣誉、案例陈述与数字都关联结构化来源。脱敏、发布授权和当前修订版本共同决定内容能否上线。",
-        note: "CMS 把来源与审批变成内容字段",
-      },
-      {
-        title: "咨询只收集初步判断所需信息",
-        description: "公开入口不收身份证号、完整姓名、案号、证据原件或精确羁押地点，咨询记录按权限保存并进入定期清理。",
-        note: "隐私边界直接写进产品流程",
-      },
-      {
-        title: "公开站与管理面保持明确边界",
-        description: "后台入口不在前台展示，公开 GraphQL 保持关闭，咨询记录通过 Payload 权限与手机号二次显示机制保护。",
-        note: "可发现性和可访问性被分别设计",
-      },
-      {
-        title: "一套内容继续服务原生小程序",
-        description: "五个底部入口、业务与律师详情、文章案例、律所介绍和咨询对话均使用原生页面，并接入官网专用接口。",
-        note: "随包内容与离线分流提供兜底",
-      },
-    ],
-    resultTitle: "网站已经上线，但可持续交付才是这个项目真正完成的部分。",
-    resultBody: "公开内容、在线咨询、CMS 维护、生产部署和原生小程序拥有清晰边界。上线验收覆盖公开路由、核心流程、性能与内容发布规则。",
-    results: [
-      { value: "14 条", label: "公开路由", detail: "2026-07-16 验收均返回 HTTP 200" },
-      { value: "1.34 s", label: "首页 LCP", detail: "同次公网抽样结果" },
-      { value: "91 项", label: "Playwright", detail: "交付记录中的通过数量" },
-      { value: "3 端", label: "内容交付", detail: "公开站、CMS 与原生小程序" },
-    ],
-    resultNote: "验收数字来自 2026-07-16 的项目交接记录，后续部署会继续重新验证。",
-    nextProjectId: "408-web",
-  },
-};
-
-const serverFacts = [
-  { label: "主机", value: "home-serve" },
-  { label: "运行容器", value: "119" },
-  { label: "内存", value: "59 GiB" },
-  { label: "NVMe 存储", value: "5.4 TB" },
-] as const;
-
-type TopologyCategoryId = "network" | "hardware" | "agent" | "data" | "containers";
-
-type TopologyService = {
-  id: string;
-  name: string;
-  kind: string;
-  description: string;
-  connection: string;
-  deployment: string;
-  entryLabel: string;
-  entryUrl?: string;
-};
-
-type TopologyCategory = {
-  id: TopologyCategoryId;
-  label: string;
-  shortLabel: string;
-  description: string;
-  x: number;
-  y: number;
-  icon: ReactNode;
-  services: TopologyService[];
-};
-
-const topologyCategories: TopologyCategory[] = [
-  {
-    id: "network",
-    label: "网络与入口",
-    shortLabel: "NETWORK",
-    description: "把公开入口、私有接入、反向代理和端到端检查拆成不同边界。",
-    x: 19,
-    y: 25,
-    icon: <GlobeHemisphereWest size={43} weight="thin" />,
-    services: [
-      {
-        id: "tailscale",
-        name: "Tailscale",
-        kind: "私有接入",
-        description: "远程开发、后台和管理端只在 Tailnet 内访问。",
-        connection: "设备到主机的加密直连",
-        deployment: "宿主机运行 tailscaled；双口 2.5G 网卡做 active-backup bonding，后台和管理端绑 Tailnet。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "cloudflare",
-        name: "Cloudflare Tunnel",
-        kind: "公开入口",
-        description: "只把需要公开的项目域名送入公网，不直接暴露家庭网络端口。",
-        connection: "公开域名到指定内网服务",
-        deployment: "cloudflared 容器只建立出站隧道，公开域名按服务单独放行。",
-        entryLabel: "查看公开项目",
-        entryUrl: "https://quiz.hermesjj.com",
-      },
-      {
-        id: "caddy",
-        name: "Caddy",
-        kind: "服务路由",
-        description: "为代理面板注入后端地址，并把浏览器请求转发到内部服务。",
-        connection: "9097 到 MetaCubeXD 与 Mihomo API",
-        deployment: "management Compose 中运行独立 Caddy 容器，Caddyfile 只读挂载。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "uptime-kuma",
-        name: "Uptime Kuma",
-        kind: "可用性",
-        description: "从用户视角持续检查网页和接口，而不只判断容器是否运行。",
-        connection: "服务响应到状态记录",
-        deployment: "Docker Compose 运行，持续探测关键网页与接口的真实响应。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "network-probe",
-        name: "延迟探针",
-        kind: "链路诊断",
-        description: "并行测量节点延迟，并区分直连、DERP 与无响应状态。",
-        connection: "Tailnet 多节点探测",
-        deployment: "tailscale-latency 容器并行探测节点，结果在浏览器中实时刷新。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-    ],
-  },
-  {
-    id: "agent",
-    label: "Agent 与 AI",
-    shortLabel: "AGENT",
-    description: "模型网关、代理任务和生成工作流共享同一套服务器能力。",
-    x: 81,
-    y: 25,
-    icon: <OpenAiLogo size={43} weight="thin" />,
-    services: [
-      {
-        id: "sub2api",
-        name: "Sub2API",
-        kind: "模型网关",
-        description: "集中管理上游模型、兼容接口与调用配额。",
-        connection: "客户端到多模型上游",
-        deployment: "Docker Compose 连接 PostgreSQL、Redis 与兼容代理，管理端单独绑定 Tailnet。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "grok2api",
-        name: "Grok2API",
-        kind: "Grok 网关",
-        description: "把 Grok 会话转成兼容接口，给编辑器和本地工具调用。",
-        connection: "客户端到 Grok 上游与出口节点",
-        deployment: "Compose 常驻，配合降智监视和会话轮换，管理端只绑 Tailnet。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "qwen38",
-        name: "Qwen 3.8 27B",
-        kind: "本地推理",
-        description: "vLLM 加载 27B 权重，Open WebUI 提供 256K 上下文对话。",
-        connection: "4090 到本机聊天与 OpenAI 兼容接口",
-        deployment: "独立 Compose 管理模型推理与聊天界面；权重保存在本机，管理入口仅在私有网络开放，不用时整套停掉。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "comfyui",
-        name: "ComfyUI",
-        kind: "图像工作流",
-        description: "本地编排图片生成和处理节点，生成结果回到自己的存储。",
-        connection: "GPU 到生成结果与本地存储",
-        deployment: "Docker Compose 直连 NVIDIA GPU，工作流与模型保存在独立数据卷。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "agent-console",
-        name: "Agent Console",
-        kind: "任务工作台",
-        description: "在浏览器里管理项目分支、任务队列和执行记录。",
-        connection: "仓库到代理进程",
-        deployment: "Vite 工作台按需启动，只在 Tailnet 内提供配置与任务管理界面。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-    ],
-  },
-  {
-    id: "hardware",
-    label: "硬件与算力",
-    shortLabel: "HARDWARE",
-    description: "计算、显存、存储和传感器共同构成可长期维护的本地底座。",
-    x: 19,
-    y: 70,
-    icon: <HardDrives size={43} weight="thin" />,
-    services: [
-      {
-        id: "cpu",
-        name: "Ryzen 9 9950X",
-        kind: "计算",
-        description: "16 核 32 线程，跑容器、编译、转码和并行代理。",
-        connection: "主机计算核心到全部工作负载",
-        deployment: "装在 ASUS ProArt X870E-CREATOR WIFI 上，直接承载全部主机工作负载。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "gpu",
-        name: "RTX 4090",
-        kind: "GPU",
-        description: "48 GB 显存，给本地推理、图片生成和媒体工作流供能。",
-        connection: "NVIDIA 驱动到 vLLM、ComfyUI 与 Immich 机器学习",
-        deployment: "宿主机驱动 595.84，按需向 vLLM、ComfyUI、Immich ML 等容器开放 GPU。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "nvme",
-        name: "5.4 TB NVMe",
-        kind: "存储",
-        description: "三块 2 TB 盘分别承载系统、应用数据与扩展存储。",
-        connection: "容器卷与个人数据",
-        deployment: "990 EVO Plus 承载系统，990 PRO 承载应用数据，Kingston 用作扩展存储。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "beszel",
-        name: "Beszel / Netdata",
-        kind: "主机指标",
-        description: "从轻量概览进入完整指标，观察资源变化和异常趋势。",
-        connection: "传感器到两级监控面板",
-        deployment: "Beszel Agent 提供轻量概览，Netdata 通过 host 网络采集深度指标。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "hw-control",
-        name: "硬件控制",
-        kind: "温度与风扇",
-        description: "统一查看 hwmon 读数、风扇策略和安全阈值。",
-        connection: "传感器到人工接管",
-        deployment: "用户级 systemd 守护 Python 控制台，绑定 Tailnet 8770。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-    ],
-  },
-  {
-    id: "data",
-    label: "个人数据",
-    shortLabel: "DATA",
-    description: "照片、文档、文件和网页快照保留在自己能备份与迁移的存储中。",
-    x: 81,
-    y: 70,
-    icon: <Database size={43} weight="thin" />,
-    services: [
-      {
-        id: "immich",
-        name: "Immich",
-        kind: "照片与视频",
-        description: "手机原图自动回到自己的时间线和本地存储。",
-        connection: "手机到相册主库与机器学习服务",
-        deployment: "Compose 由应用、PostgreSQL、Redis 与 CUDA 机器学习容器组成，照片落在本地库。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "paperless",
-        name: "Paperless-ngx",
-        kind: "文档归档",
-        description: "扫描件和 PDF 经过 OCR 后成为可搜索档案。",
-        connection: "文件到 OCR 与全文索引",
-        deployment: "Compose 中应用连接 PostgreSQL 与 Redis，OCR 结果和原文件写入独立数据卷。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "minio",
-        name: "MinIO",
-        kind: "对象存储",
-        description: "为项目截图、生成图片和应用文件提供统一对象接口。",
-        connection: "应用到 S3 兼容存储",
-        deployment: "MinIO 容器分别提供 S3 API 与管理控制台，对象写入独立数据卷。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "syncthing",
-        name: "Syncthing",
-        kind: "设备同步",
-        description: "连接 Mac、手机与服务器目录，保留真实文件结构。",
-        connection: "设备间点对点同步",
-        deployment: "Compose 分离 Web 管理界面与同步端口，文件保存在独立数据卷。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "linkwarden",
-        name: "Linkwarden",
-        kind: "网页收藏",
-        description: "保存链接和网页快照，避免重要资料随原站消失。",
-        connection: "浏览器到网页快照与全文索引",
-        deployment: "Compose 中应用连接 PostgreSQL 与 Meilisearch，网页快照保存在本地数据卷。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-    ],
-  },
-  {
-    id: "containers",
-    label: "容器与日常工具",
-    shortLabel: "CONTAINERS",
-    description: "119 个运行容器、49 套 Compose，按入口、状态和备份收成一组。",
-    x: 50,
-    y: 87,
-    icon: <Stack size={43} weight="thin" />,
-    services: [
-      {
-        id: "homepage",
-        name: "Homepage",
-        kind: "统一入口",
-        description: "把常用服务、健康状态和主机资源放在同一屏。",
-        connection: "人到全部服务与 Docker 状态",
-        deployment: "固定镜像的 Compose 服务读取配置与 Docker 状态，绑定 Tailnet 3001。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "vaultwarden",
-        name: "Vaultwarden",
-        kind: "密码管理",
-        description: "电脑与手机共用自己的 Bitwarden 兼容密码库。",
-        connection: "设备到加密凭据与备份",
-        deployment: "Docker 容器只监听本机回环地址，通过 Cloudflare Tunnel 提供受保护入口。",
-        entryLabel: "打开密码库",
-        entryUrl: "https://vault.hermesjj.com",
-      },
-      {
-        id: "memos",
-        name: "Memos",
-        kind: "轻量记录",
-        description: "快速保存灵感、命令和生活片段，再决定是否长期归档。",
-        connection: "浏览器到本地数据卷与备份",
-        deployment: "Docker Compose 使用本地数据卷，服务只绑定 Tailnet 5230。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "stirling",
-        name: "Stirling PDF",
-        kind: "本地工具",
-        description: "合并、拆分、压缩和转换文件时不上传第三方网站。",
-        connection: "文档到本地处理",
-        deployment: "Docker Compose 在本机处理 PDF，Web UI 只绑定 Tailnet 8082。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-      {
-        id: "docker",
-        name: "Docker",
-        kind: "运行底座",
-        description: "应用、数据库与依赖隔离运行，并按统一方式检查和备份。",
-        connection: "Compose 项目到容器、网络与数据卷",
-        deployment: "Compose 项目统一归档，Portainer 通过 Docker Socket 查看容器和数据卷。",
-        entryLabel: "仅 Tailnet 内可用",
-      },
-    ],
-  },
-];
-
-function trackPointerGlow(event: ReactPointerEvent<HTMLElement>) {
-  if (event.pointerType === "touch") return;
-  const bounds = event.currentTarget.getBoundingClientRect();
-  event.currentTarget.style.setProperty("--spotlight-x", `${event.clientX - bounds.left}px`);
-  event.currentTarget.style.setProperty("--spotlight-y", `${event.clientY - bounds.top}px`);
-}
-
-function resetPointerGlow(event: ReactPointerEvent<HTMLElement>) {
-  event.currentTarget.style.removeProperty("--spotlight-x");
-  event.currentTarget.style.removeProperty("--spotlight-y");
-}
-
-function ExternalLink({ href, children, className = "" }: { href: string; children: ReactNode; className?: string }) {
+export function ExternalLink({ href, children, className = "" }: { href: string; children: ReactNode; className?: string }) {
   return (
     <a className={className} href={href} target="_blank" rel="noreferrer">
       {children}
     </a>
-  );
-}
-
-function ProjectLinks({ project, includeDetail = true }: { project: Project; includeDetail?: boolean }) {
-  return (
-    <div className="row-links">
-      {includeDetail && project.detail ? (
-        <Link to={project.detail} className="icon-link">
-          <ArrowRight size={18} weight="bold" />
-          <span className="sr-only">阅读 {project.title} 案例</span>
-        </Link>
-      ) : null}
-      {project.site ? (
-        <ExternalLink href={project.site} className="icon-link">
-          <GlobeHemisphereWest size={18} weight="bold" />
-          <span className="sr-only">打开 {project.title}</span>
-        </ExternalLink>
-      ) : null}
-      {project.repo ? (
-        <ExternalLink href={project.repo} className="icon-link">
-          <GithubLogo size={18} weight="fill" />
-          <span className="sr-only">查看 {project.title} 源码</span>
-        </ExternalLink>
-      ) : null}
-      {(!includeDetail || !project.detail) && !project.site && !project.repo ? (
-        <span className="private-icon" role="img" title="非公开项目" aria-label={`${project.title} 为非公开项目`}>
-          <LockKey size={18} weight="bold" />
-        </span>
-      ) : null}
-    </div>
   );
 }
 
@@ -2026,7 +1358,7 @@ function HomePage({ theme }: { theme: ThemeMode }) {
   );
 }
 
-function usePhoneLayout() {
+export function usePhoneLayout() {
   const [isPhone, setIsPhone] = useState(() => window.matchMedia("(max-width: 767px)").matches);
 
   useEffect(() => {
@@ -2040,757 +1372,7 @@ function usePhoneLayout() {
   return isPhone;
 }
 
-function ProjectsPage() {
-  const isPhone = usePhoneLayout();
-  const helixProjects = projects.map((project) => ({
-    ...project,
-    preview: project.cardPreview,
-    href: project.detail ?? `/projects/${project.id}`,
-  }));
-
-  return (
-    <section id="projects" className="project-index has-stage-title project-dna-page" aria-labelledby="project-dna-title">
-      <div className="project-dna-shell section-shell">
-        <header className="project-dna-heading">
-          <h1 id="project-dna-title">项目索引</h1>
-          <p>{projects.length} 个持续生长的项目</p>
-        </header>
-        {isPhone ? (
-          <MobileProjectGrid projects={helixProjects} />
-        ) : (
-          <Suspense fallback={null}>
-            <ProjectHelix projects={helixProjects} />
-          </Suspense>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function MobileProjectGrid({ projects: mobileProjects }: { projects: Array<Project & { href: string; preview: ProjectPreview }> }) {
-  return (
-    <div className={`index-items project-cloud project-helix project-cloud-count-${mobileProjects.length}`} data-reduced-motion="true">
-      <div className="project-helix-nodes" role="list">
-        {mobileProjects.map((project) => (
-          <article className="index-item helix-node" data-project-id={project.id} role="listitem" key={project.id}>
-            <Link className="project-card-link" to={project.href}>
-              <div className="project-card-kinetic">
-                <div className="project-card-float">
-                  <div className={`project-card-surface helix-poster-card project-card-${project.category}`}>
-                    <div className="project-card-media">
-                      <img
-                        className={project.preview.fit === "contain" ? "is-contain" : ""}
-                        src={project.preview.image}
-                        srcSet={project.preview.srcSet}
-                        sizes={project.preview.sizes ?? "(max-width: 680px) calc(100vw - 32px), 320px"}
-                        alt=""
-                        width={project.preview.width}
-                        height={project.preview.height}
-                        loading="eager"
-                        decoding="async"
-                        style={{ objectPosition: project.preview.position }}
-                      />
-                    </div>
-                    <div className="helix-poster-caption">
-                      <span>{project.kind}</span>
-                      <div>
-                        <h2>{project.title}</h2>
-                        <ArrowUpRight size={16} weight="bold" aria-hidden="true" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-type ProjectDossierTab = "overview" | "build" | "result" | "live";
-
-const projectDossierTabs: Array<{ id: ProjectDossierTab; label: string }> = [
-  { id: "overview", label: "概览" },
-  { id: "build", label: "实现" },
-  { id: "result", label: "成果" },
-  { id: "live", label: "在线体验" },
-];
-
-function projectHref(project: Project) {
-  return project.detail ?? `/projects/${project.id}`;
-}
-
-const flagshipScenes = [
-  { id: "overview", label: "概览" },
-  { id: "flow", label: "闭环" },
-  { id: "interface", label: "界面" },
-  { id: "delivery", label: "交付" },
-] as const;
-
-type FlagshipSceneId = (typeof flagshipScenes)[number]["id"];
-
-function FlagshipSceneRail({
-  activeScene,
-  onSelect,
-}: {
-  activeScene: FlagshipSceneId;
-  onSelect: (scene: FlagshipSceneId) => void;
-}) {
-  return (
-    <nav className="flagship-scene-rail" aria-label="项目案例章节">
-      {flagshipScenes.map((scene) => (
-        <button
-          key={scene.id}
-          type="button"
-          className={activeScene === scene.id ? "is-active" : ""}
-          aria-current={activeScene === scene.id ? "page" : undefined}
-          onClick={() => onSelect(scene.id)}
-        >
-          <span aria-hidden="true" />
-          <strong>{scene.label}</strong>
-        </button>
-      ))}
-    </nav>
-  );
-}
-
-function FlagshipProductTour({
-  study,
-  activeShotIndex,
-  onSelectShot,
-}: {
-  study: FlagshipCaseStudy;
-  activeShotIndex: number;
-  onSelectShot: (shotIndex: number) => void;
-}) {
-  const [previewShotIndex, setPreviewShotIndex] = useState<number | null>(null);
-  const reduceMotion = useReducedMotion();
-  const displayedShotIndex = previewShotIndex ?? activeShotIndex;
-  const activeShot = study.tourShots[displayedShotIndex] ?? study.tourShots[0];
-
-  useEffect(() => {
-    setPreviewShotIndex(null);
-  }, [activeShotIndex]);
-
-  useEffect(() => {
-    study.tourShots.forEach((shot) => {
-      const image = new Image();
-      if (shot.srcSet) image.srcset = shot.srcSet;
-      image.sizes = "(max-width: 1080px) calc(100vw - 40px), min(66vw, 1040px)";
-      image.src = shot.image;
-    });
-  }, [study.tourShots]);
-
-  return (
-    <div
-      className="flagship-tour-layout"
-      style={{ "--flagship-tour-count": study.tourShots.length } as CSSProperties}
-    >
-      <figure className="flagship-tour-visual">
-        <div className="flagship-tour-screen">
-          <AnimatePresence initial={false}>
-            <motion.img
-              key={activeShot.id}
-              className={activeShot.fit === "contain" ? "is-contain" : ""}
-              src={activeShot.image}
-              srcSet={activeShot.srcSet}
-              sizes="(max-width: 1080px) calc(100vw - 40px), min(66vw, 1040px)"
-              alt={activeShot.alt}
-              width={activeShot.width}
-              height={activeShot.height}
-              style={{ objectPosition: activeShot.position }}
-              initial={reduceMotion ? false : { opacity: 0, scale: 1.018, filter: "blur(7px)" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-              exit={reduceMotion ? undefined : { opacity: 0, scale: 0.988, filter: "blur(5px)" }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-              loading="lazy"
-              decoding="async"
-            />
-          </AnimatePresence>
-        </div>
-        <figcaption aria-live="polite">
-          <span>{activeShot.label}</span>
-          <strong>{activeShot.title}</strong>
-        </figcaption>
-      </figure>
-
-      <div className="flagship-tour-steps" role="list" aria-label="真实界面列表">
-        {study.tourShots.map((shot, shotIndex) => (
-          <motion.button
-            key={shot.id}
-            type="button"
-            role="listitem"
-            className={displayedShotIndex === shotIndex ? "is-active" : ""}
-            aria-pressed={activeShotIndex === shotIndex}
-            data-tour-shot-index={shotIndex}
-            onClick={() => {
-              setPreviewShotIndex(null);
-              onSelectShot(shotIndex);
-            }}
-            onFocus={() => setPreviewShotIndex(shotIndex)}
-            onBlur={() => setPreviewShotIndex(null)}
-            onPointerEnter={() => setPreviewShotIndex(shotIndex)}
-            onPointerLeave={() => setPreviewShotIndex(null)}
-          >
-            <span>{shot.label}</span>
-            <strong>{shot.title}</strong>
-            <p>{shot.description}</p>
-          </motion.button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FlagshipCaseStudyPage({ projectId }: { projectId: FlagshipCaseStudy["projectId"] }) {
-  const storyRef = useRef<HTMLDivElement>(null);
-  const [activeScene, setActiveScene] = useState<FlagshipSceneId>("overview");
-  const [activeShotIndex, setActiveShotIndex] = useState(0);
-  const project = projects.find((item) => item.id === projectId);
-  const study = flagshipCaseStudies[projectId];
-  const nextProject = projects.find((item) => item.id === study.nextProjectId);
-  const nextStudy = flagshipCaseStudies[study.nextProjectId];
-  const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({ container: storyRef });
-
-  useMotionValueEvent(scrollYProgress, "change", () => {
-    const story = storyRef.current;
-    if (!story) return;
-    const viewportHeight = story.clientHeight;
-    if (viewportHeight <= 0) return;
-
-    const interfaceStart = 2;
-    const deliveryStart = interfaceStart + study.tourShots.length;
-    const storyPosition = story.scrollTop / viewportHeight;
-    const nextScene: FlagshipSceneId = storyPosition < 0.5
-      ? "overview"
-      : storyPosition < 1.5
-        ? "flow"
-        : storyPosition < deliveryStart - 0.5
-          ? "interface"
-          : "delivery";
-    const nextShotIndex = Math.min(
-      study.tourShots.length - 1,
-      Math.max(0, Math.round(storyPosition - interfaceStart)),
-    );
-
-    setActiveScene((current) => current === nextScene ? current : nextScene);
-    setActiveShotIndex((current) => current === nextShotIndex ? current : nextShotIndex);
-  });
-
-  if (!project || !nextProject) return <NotFoundPage />;
-
-  function selectScene(scene: FlagshipSceneId) {
-    const story = storyRef.current;
-    if (!story) return;
-    const scenePosition: Record<FlagshipSceneId, number> = {
-      overview: 0,
-      flow: 1,
-      interface: 2,
-      delivery: 2 + study.tourShots.length,
-    };
-    setActiveScene(scene);
-    if (scene === "interface") setActiveShotIndex(0);
-    story.scrollTo({
-      top: story.clientHeight * scenePosition[scene],
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
-  }
-
-  function selectTourShot(shotIndex: number) {
-    const story = storyRef.current;
-    if (!story) return;
-    const nextShotIndex = Math.min(study.tourShots.length - 1, Math.max(0, shotIndex));
-    setActiveScene("interface");
-    setActiveShotIndex(nextShotIndex);
-    story.scrollTo({
-      top: story.clientHeight * (2 + nextShotIndex),
-      behavior: "auto",
-    });
-  }
-
-  return (
-    <article
-      className="flagship-case-page"
-      data-flagship-project={project.id}
-      aria-labelledby="flagship-case-title"
-    >
-      <motion.div
-        className="flagship-reading-progress"
-        style={{ scaleX: scrollYProgress }}
-        aria-hidden="true"
-      />
-
-      <div ref={storyRef} className="flagship-story">
-        <section className="flagship-scene flagship-overview flagship-hero" data-flagship-scene="overview">
-          <div className="flagship-case-shell flagship-overview-shell">
-            <header className="flagship-topline">
-              <Link className="flagship-back" to="/projects">
-                <ArrowLeft size={16} weight="bold" aria-hidden="true" /> 项目索引
-              </Link>
-              <p>{project.kind} / {project.status} / {project.year}</p>
-            </header>
-
-            <div className="flagship-hero-layout">
-              <motion.div
-                className="flagship-hero-copy"
-                initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.52, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <h1 id="flagship-case-title">{project.title}</h1>
-                <p className="flagship-hero-summary">{project.description}</p>
-                <div className="flagship-hero-actions">
-                  {project.site ? (
-                    <ExternalLink className="flagship-action is-primary" href={project.site}>
-                      在线版本 <ArrowUpRight size={16} weight="bold" aria-hidden="true" />
-                    </ExternalLink>
-                  ) : null}
-                  {project.repo ? (
-                    <ExternalLink className="flagship-action is-secondary" href={project.repo}>
-                      公开源码 <GithubLogo size={16} weight="fill" aria-hidden="true" />
-                    </ExternalLink>
-                  ) : null}
-                </div>
-              </motion.div>
-
-              <motion.figure
-                className="flagship-hero-figure"
-                initial={reduceMotion ? false : { opacity: 0, clipPath: "inset(0 100% 0 0)" }}
-                animate={{ opacity: 1, clipPath: "inset(0 0% 0 0)" }}
-                transition={{ duration: 0.72, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <img
-                  className={study.heroShot.fit === "contain" ? "is-contain" : ""}
-                  src={study.heroShot.image}
-                  srcSet={study.heroShot.srcSet}
-                  sizes="(max-width: 1080px) calc(100vw - 40px), min(62vw, 960px)"
-                  alt={study.heroShot.alt}
-                  width={study.heroShot.width}
-                  height={study.heroShot.height}
-                  style={{ objectPosition: study.heroShot.position }}
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
-                />
-                <figcaption>
-                  <span>{study.heroShot.label}</span>
-                  <strong>{study.heroShot.title}</strong>
-                </figcaption>
-              </motion.figure>
-            </div>
-
-            <dl className="flagship-facts">
-              {study.facts.map((fact) => (
-                <div key={fact.label}>
-                  <dt>{fact.label}</dt>
-                  <dd>{fact.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        <section className="flagship-scene flagship-flow-scene" data-flagship-scene="flow" aria-labelledby="flagship-flow-title">
-          <div className="flagship-case-shell flagship-flow-shell">
-            <header className="flagship-section-heading">
-              <h2 id="flagship-flow-title">{study.flowTitle}</h2>
-            </header>
-
-            <div className="flagship-problem-grid">
-              <div className="flagship-statement">
-                <strong>{study.statement}</strong>
-                <p>{study.overview}</p>
-              </div>
-              <div className="flagship-flow-track">
-                {study.flow.map((item, index) => (
-                  <motion.div
-                    key={item.title}
-                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.45 }}
-                    transition={{ duration: 0.35, delay: reduceMotion ? 0 : index * 0.045, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                    {index < study.flow.length - 1 ? <ArrowRight size={16} weight="bold" aria-hidden="true" /> : null}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="flagship-scene flagship-interface-scene"
-          data-flagship-scene="interface"
-          aria-labelledby="flagship-tour-title"
-          style={{
-            "--flagship-tour-height": `${study.tourShots.length * 100}%`,
-            "--flagship-tour-pin-height": `${100 / study.tourShots.length}%`,
-          } as CSSProperties}
-        >
-          <div className="flagship-interface-pin">
-            <div className="flagship-case-shell flagship-interface-shell">
-              <header className="flagship-section-heading">
-                <h2 id="flagship-tour-title">真实界面与完整使用路径</h2>
-              </header>
-              <FlagshipProductTour
-                study={study}
-                activeShotIndex={activeShotIndex}
-                onSelectShot={selectTourShot}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="flagship-scene flagship-delivery-scene" data-flagship-scene="delivery" aria-labelledby="flagship-decisions-title">
-          <div className="flagship-case-shell flagship-delivery-shell">
-            <header className="flagship-section-heading flagship-delivery-heading">
-              <h2 id="flagship-decisions-title">{study.decisionsTitle}</h2>
-              <p>{study.decisionsIntro}</p>
-            </header>
-
-            <div className="flagship-delivery-layout">
-              <div className="flagship-decision-grid">
-                {study.decisions.map((decision, index) => (
-                  <motion.article
-                    key={decision.title}
-                    initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.35 }}
-                    transition={{ duration: 0.38, delay: reduceMotion ? 0 : index * 0.045, ease: [0.16, 1, 0.3, 1] }}
-                  >
-                    <h3>{decision.title}</h3>
-                    <p>{decision.description}</p>
-                    <span>{decision.note}</span>
-                  </motion.article>
-                ))}
-              </div>
-
-              <aside className="flagship-result" aria-labelledby="flagship-result-title">
-                <div className="flagship-result-intro">
-                  <h2 id="flagship-result-title">{study.resultTitle}</h2>
-                  <p>{study.resultBody}</p>
-                </div>
-                <div className="flagship-result-grid">
-                  {study.results.map((result) => (
-                    <div key={`${result.value}-${result.label}`}>
-                      <strong>{result.value}</strong>
-                      <span>{result.label}</span>
-                      <p>{result.detail}</p>
-                    </div>
-                  ))}
-                </div>
-                {study.resultNote ? <p className="flagship-result-note">{study.resultNote}</p> : null}
-                <div className="flagship-result-actions">
-                  {project.site ? (
-                    <ExternalLink className="flagship-action is-primary" href={project.site}>
-                      在线版本 <GlobeHemisphereWest size={16} weight="bold" aria-hidden="true" />
-                    </ExternalLink>
-                  ) : null}
-                  {project.repo ? (
-                    <ExternalLink className="flagship-action is-secondary" href={project.repo}>
-                      公开源码 <GithubLogo size={16} weight="fill" aria-hidden="true" />
-                    </ExternalLink>
-                  ) : null}
-                </div>
-                <Link className="flagship-next" to={projectHref(nextProject)}>
-                  <span>下一个主推项目</span>
-                  <strong>{nextProject.title}</strong>
-                  <figure>
-                    <img
-                      src={nextStudy.heroShot.image}
-                      srcSet={nextStudy.heroShot.srcSet}
-                      sizes="300px"
-                      alt=""
-                      width={nextStudy.heroShot.width}
-                      height={nextStudy.heroShot.height}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <ArrowRight size={22} weight="bold" aria-hidden="true" />
-                  </figure>
-                </Link>
-              </aside>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <FlagshipSceneRail activeScene={activeScene} onSelect={selectScene} />
-    </article>
-  );
-}
-
-function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: string }) {
-  const params = useParams();
-  const project = projects.find((item) => item.id === (fixedProjectId ?? params.projectId));
-  const [activeTab, setActiveTab] = useState<ProjectDossierTab>("overview");
-  const reduceMotion = useReducedMotion();
-
-  if (!project) return <NotFoundPage />;
-
-  const projectIndex = projects.indexOf(project);
-  const previousProject = projects[(projectIndex - 1 + projects.length) % projects.length];
-  const nextProject = projects[(projectIndex + 1) % projects.length];
-  const visual = project.preview ?? project.cardPreview;
-  const hasSystemsView =
-    project.category === "system" || project.id === "mineradio";
-  const dossierTabs = project.liveDemo
-    ? projectDossierTabs
-    : projectDossierTabs.filter((tab) => tab.id !== "live");
-
-  function moveTab(direction: -1 | 1) {
-    const currentIndex = dossierTabs.findIndex((tab) => tab.id === activeTab);
-    const nextIndex = (currentIndex + direction + dossierTabs.length) % dossierTabs.length;
-    const nextTab = dossierTabs[nextIndex];
-    setActiveTab(nextTab.id);
-    window.requestAnimationFrame(() => document.getElementById(`project-tab-${nextTab.id}`)?.focus());
-  }
-
-  return (
-    <section
-      className="project-dossier-page"
-      data-project-dossier={project.id}
-      data-project-category={project.category}
-      aria-labelledby="project-dossier-title"
-    >
-      <div className="project-dossier section-shell">
-        <aside className="project-dossier-info">
-          <Link className="project-dossier-back" to="/projects">
-            <ArrowLeft size={17} weight="bold" /> 项目索引
-          </Link>
-
-          <motion.header
-            className="project-dossier-heading"
-            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.58, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <p>{project.kind}</p>
-            <h1 id="project-dossier-title">{project.title}</h1>
-            <p className="project-dossier-summary">{project.description}</p>
-          </motion.header>
-
-          <div className="project-dossier-meta">
-            <dl>
-              <div><dt>状态</dt><dd>{project.status}</dd></div>
-              <div><dt>年份</dt><dd>{project.year}</dd></div>
-            </dl>
-            <div className="project-dossier-tags" aria-label={`${project.title} 技术栈`}>
-              {project.tags.map((tag) => <span key={tag}>{tag}</span>)}
-            </div>
-            <ProjectLinks project={project} includeDetail={false} />
-          </div>
-        </aside>
-
-        <motion.figure
-          className="project-dossier-figure"
-          initial={reduceMotion ? false : { opacity: 0, clipPath: "inset(0 100% 0 0)" }}
-          animate={{ opacity: 1, clipPath: "inset(0 0% 0 0)" }}
-          transition={{ duration: 0.72, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <div
-            className="project-dossier-media"
-            data-visual-source={project.preview ? "interface" : "cover"}
-            onPointerMove={trackPointerGlow}
-            onPointerLeave={resetPointerGlow}
-          >
-            <img
-              className={visual.fit === "contain" ? "is-contain" : ""}
-              src={visual.image}
-              srcSet={visual.srcSet}
-              sizes={visual.sizes ?? "(max-width: 1080px) calc(100vw - 72px), min(46vw, 690px)"}
-              alt={visual.alt}
-              width={visual.width}
-              height={visual.height}
-              style={{ objectPosition: visual.position }}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-            />
-          </div>
-          <figcaption>
-            <span>{project.preview ? "真实界面" : "项目概念封面"}</span>
-            <nav aria-label="相邻项目">
-              <Link to={projectHref(previousProject)} title={`上一个项目：${previousProject.title}`}>
-                <ArrowLeft size={17} weight="bold" />
-                <span className="sr-only">上一个项目：{previousProject.title}</span>
-              </Link>
-              <Link to={projectHref(nextProject)} title={`下一个项目：${nextProject.title}`}>
-                <ArrowRight size={17} weight="bold" />
-                <span className="sr-only">下一个项目：{nextProject.title}</span>
-              </Link>
-            </nav>
-          </figcaption>
-        </motion.figure>
-
-        <section className="project-dossier-story" aria-label={`${project.title} 项目说明`}>
-          <div
-            className="project-dossier-tabs"
-            role="tablist"
-            aria-label="项目说明视图"
-            onKeyDown={(event) => {
-              if (event.key === "ArrowLeft") {
-                event.preventDefault();
-                moveTab(-1);
-              }
-              if (event.key === "ArrowRight") {
-                event.preventDefault();
-                moveTab(1);
-              }
-            }}
-          >
-            {dossierTabs.map((tab) => (
-              <button
-                key={tab.id}
-                id={`project-tab-${tab.id}`}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`project-panel-${tab.id}`}
-                tabIndex={activeTab === tab.id ? 0 : -1}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="project-dossier-panel-frame">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.article
-                key={activeTab}
-                id={`project-panel-${activeTab}`}
-                className={`project-dossier-panel is-${activeTab}`}
-                role="tabpanel"
-                aria-labelledby={`project-tab-${activeTab}`}
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {activeTab === "overview" ? (
-                  <div className="project-dossier-overview">
-                    <section>
-                      <span>要解决的问题</span>
-                      <p>{project.story.problem}</p>
-                    </section>
-                    <section>
-                      <span>采取的方法</span>
-                      <p>{project.story.approach}</p>
-                    </section>
-                    <section>
-                      <span>形成的结果</span>
-                      <p>{project.story.outcome}</p>
-                    </section>
-                  </div>
-                ) : null}
-
-                {activeTab === "build" ? (
-                  <div className="project-dossier-build">
-                    <p>{project.story.approach}</p>
-                    <ol>
-                      {project.story.highlights.map((highlight) => (
-                        <li key={highlight.title}>
-                          <strong>{highlight.title}</strong>
-                          <p>{highlight.description}</p>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ) : null}
-
-                {activeTab === "result" ? (
-                  <div className="project-dossier-result">
-                    <p>{project.story.outcome}</p>
-                    <dl>
-                      <div><dt>交付形态</dt><dd>{project.kind}</dd></div>
-                      <div><dt>当前状态</dt><dd>{project.status}</dd></div>
-                      <div><dt>技术构成</dt><dd>{project.tags.join(" / ")}</dd></div>
-                    </dl>
-                    <div className="project-dossier-result-links">
-                      {project.site ? (
-                        <ExternalLink href={project.site}>打开在线版本 <ArrowUpRight size={16} weight="bold" /></ExternalLink>
-                      ) : null}
-                      {project.repo ? (
-                        <ExternalLink href={project.repo}>查看公开源码 <ArrowUpRight size={16} weight="bold" /></ExternalLink>
-                      ) : null}
-                      {hasSystemsView ? (
-                        <Link to="/systems">查看服务器结构 <ArrowRight size={16} weight="bold" /></Link>
-                      ) : null}
-                      {!project.site && !project.repo && !hasSystemsView ? (
-                        <span><LockKey size={16} weight="bold" /> 仅展示已公开的实现信息</span>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
-
-                {activeTab === "live" && project.liveDemo ? (
-                  <div className="project-dossier-live">
-                    <div className="project-dossier-live-frame">
-                      <iframe
-                        src={project.liveDemo.url}
-                        title={`${project.title} 在线体验`}
-                        loading="lazy"
-                      />
-                    </div>
-                    <p className="project-dossier-live-note">
-                      {project.liveDemo.label}。
-                    </p>
-                  </div>
-                ) : null}
-              </motion.article>
-            </AnimatePresence>
-          </div>
-        </section>
-      </div>
-    </section>
-  );
-}
-
-function ServerTopology() {
-  const [isPhone, setIsPhone] = useState(() => window.matchMedia("(max-width: 767px)").matches);
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsPhone(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  if (isPhone) return <MobileServerStory categories={topologyCategories} facts={serverFacts} />;
-  return (
-      <Suspense fallback={<div className="server-three-loading" aria-label="正在加载服务器结构图" />}>
-        <ServerExplodedStory categories={topologyCategories} facts={serverFacts} visualOnly />
-      </Suspense>
-  );
-}
-
-function SystemsPage() {
-  return <ServerTopology />;
-}
-
-function AboutBlurText({ text, delay = 0 }: { text: string; delay?: number }) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) return <span>{text}</span>;
-
-  const revealDelay = Math.min(0.66, 0.05 + delay * 0.22);
-  return (
-    <span
-      className="about-blur-text"
-      style={{ "--about-reveal-delay": `${revealDelay}s` } as CSSProperties}
-    >
-      {text}
-    </span>
-  );
-}
-
-const deskScenes = {
+export const deskScenes = {
   school: {
     label: "学校",
     tone: "暖色 / 学习开发",
@@ -2930,452 +1512,17 @@ const deskScenes = {
   },
 } as const;
 
-const homeGalleryItems: CircularGalleryItem[] = deskScenes.home.desks.map((desk) => ({
+export const homeGalleryItems: CircularGalleryItem[] = deskScenes.home.desks.map((desk) => ({
   image: `${desk.image}-1024.webp`,
   text: desk.title,
 }));
 
-const schoolGalleryItems: CircularGalleryItem[] = deskScenes.school.desks.map((desk) => ({
+export const schoolGalleryItems: CircularGalleryItem[] = deskScenes.school.desks.map((desk) => ({
   image: `${desk.image}-1024.webp`,
   text: desk.title,
 }));
 
-function DeskGalleryFallback({ label }: { label: string }) {
-  return (
-    <div className="desk-gallery-loading" role="status">
-      <span className="sr-only">{label}</span>
-    </div>
-  );
-}
-
-type DeskGroup = keyof typeof deskScenes;
-type DeskSelection = CircularGalleryClick & { group: DeskGroup };
-
-function DeskLightbox({
-  selection,
-  onChange,
-  onClose,
-}: {
-  selection: DeskSelection;
-  onChange: (index: number) => void;
-  onClose: () => void;
-}) {
-  const reduceMotion = useReducedMotion();
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const desks = selection.group === "home" ? deskScenes.home.desks : deskScenes.school.desks;
-  const desk = desks[selection.index];
-  const locationLabel = selection.group === "home" ? "HOME" : "DORM";
-  const lightboxOrigin = {
-    x: selection.clientX - window.innerWidth / 2,
-    y: selection.clientY - window.innerHeight / 2,
-  };
-
-  const move = useCallback((delta: number) => {
-    onChange((selection.index + delta + desks.length) % desks.length);
-  }, [desks.length, onChange, selection.index]);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowLeft") move(-1);
-      if (event.key === "ArrowRight") move(1);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [move, onClose]);
-
-  useEffect(() => {
-    const previous = desks[(selection.index - 1 + desks.length) % desks.length];
-    const next = desks[(selection.index + 1) % desks.length];
-    [previous, next].forEach((item) => {
-      const image = new Image();
-      image.src = `${item.image}-1600.webp`;
-    });
-  }, [desks, selection.index]);
-
-  return createPortal(
-    <motion.div
-      className="desk-lightbox"
-      data-trail-occluder
-      data-desk-lightbox-backdrop
-      data-desk-group={selection.group}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="desk-lightbox-title"
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={reduceMotion ? undefined : { opacity: 0 }}
-      transition={reduceMotion ? { duration: 0 } : { duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <button ref={closeRef} className="desk-lightbox-close" type="button" onClick={onClose} title="关闭大图" aria-label="关闭大图">
-        <X size={22} weight="bold" aria-hidden="true" />
-      </button>
-
-      <button className="desk-lightbox-arrow is-previous" type="button" onClick={() => move(-1)} title="上一张" aria-label="上一张">
-        <ArrowLeft size={25} weight="bold" aria-hidden="true" />
-      </button>
-
-      <div
-        className="desk-lightbox-stage"
-        aria-live="polite"
-        onPointerDown={(event) => {
-          const target = event.target instanceof Element ? event.target : null;
-          if (!target?.closest("img, figcaption, button")) onClose();
-        }}
-      >
-        <motion.div
-          className="desk-lightbox-zoom-shell"
-          data-origin-x={Math.round(selection.clientX)}
-          data-origin-y={Math.round(selection.clientY)}
-          initial={reduceMotion ? false : { opacity: 0, scale: 0.34, x: lightboxOrigin.x, y: lightboxOrigin.y }}
-          animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-          exit={reduceMotion ? undefined : { opacity: 0, scale: 0.34, x: lightboxOrigin.x, y: lightboxOrigin.y }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.figure
-              key={desk.id}
-              initial={reduceMotion ? false : { opacity: 0, scale: 0.965, x: 18 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={reduceMotion ? undefined : { opacity: 0, scale: 0.985, x: -18 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <img
-                src={`${desk.image}-1600.webp`}
-                alt={desk.alt}
-                width={desk.width}
-                height={desk.height}
-              />
-              <figcaption>
-                <div className="desk-lightbox-copy">
-                  <h2 id="desk-lightbox-title">{desk.title}</h2>
-                  <p>{desk.description}</p>
-                  <div className="desk-lightbox-meta" aria-label="照片信息">
-                    <span>{desk.period}</span>
-                    <span>{locationLabel}</span>
-                    <span>{desk.device}</span>
-                  </div>
-                </div>
-                <span className="desk-lightbox-count" aria-label={`第 ${selection.index + 1} 张，共 ${desks.length} 张`}>
-                  {String(selection.index + 1).padStart(2, "0")} / {String(desks.length).padStart(2, "0")}
-                </span>
-              </figcaption>
-            </motion.figure>
-          </AnimatePresence>
-        </motion.div>
-      </div>
-
-      <button className="desk-lightbox-arrow is-next" type="button" onClick={() => move(1)} title="下一张" aria-label="下一张">
-        <ArrowRight size={25} weight="bold" aria-hidden="true" />
-      </button>
-    </motion.div>,
-    document.body,
-  );
-}
-
-function DeskArchivePage({ theme }: { theme: ThemeMode }) {
-  const isPresent = useIsPresent();
-  const entryTheme = useRef(theme);
-  const previousTheme = useRef(theme);
-  const [visualTheme, setVisualTheme] = useState<ThemeMode>("dark");
-  const currentVisualTheme = previousTheme.current === theme ? visualTheme : theme;
-  const [selection, setSelection] = useState<DeskSelection | null>(null);
-  const [schoolMounted, setSchoolMounted] = useState(theme === "dark");
-  const [galleryReady, setGalleryReady] = useState({ home: false, school: false });
-  const galleriesReady = galleryReady.home && galleryReady.school;
-  const openHome = useCallback((selection: CircularGalleryClick) => setSelection({ group: "home", ...selection }), []);
-  const openSchool = useCallback((selection: CircularGalleryClick) => setSelection({ group: "school", ...selection }), []);
-  const markHomeReady = useCallback(() => {
-    setGalleryReady((current) => current.home ? current : { ...current, home: true });
-  }, []);
-  const markSchoolReady = useCallback(() => {
-    setGalleryReady((current) => current.school ? current : { ...current, school: true });
-  }, []);
-  const closeLightbox = useCallback(() => setSelection(null), []);
-  const changeLightboxImage = useCallback((index: number) => {
-    setSelection((current) => current ? { ...current, index } : current);
-  }, []);
-
-  useLayoutEffect(() => {
-    document.documentElement.classList.add("desk-route-root");
-    document.body.classList.add("desk-route");
-    return () => {
-      document.documentElement.classList.remove("desk-route-root");
-      document.body.classList.remove("desk-route");
-      document.body.classList.remove("desk-chrome-dark");
-    };
-  }, []);
-
-  useEffect(() => {
-    if (previousTheme.current === theme) return;
-    previousTheme.current = theme;
-    setVisualTheme(theme);
-  }, [theme]);
-
-  useLayoutEffect(() => {
-    if (theme === "dark") {
-      document.body.classList.remove("desk-chrome-dark");
-      return;
-    }
-    if (!isPresent && currentVisualTheme === "light") {
-      document.body.classList.remove("desk-chrome-dark");
-      return;
-    }
-    document.body.classList.add("desk-chrome-dark");
-    if (isPresent && currentVisualTheme === "dark") return;
-    const delay = isPresent ? 600 : 860;
-    const restoreChrome = window.setTimeout(() => {
-      document.body.classList.remove("desk-chrome-dark");
-    }, delay);
-    return () => window.clearTimeout(restoreChrome);
-  }, [currentVisualTheme, isPresent, theme]);
-
-  useEffect(() => {
-    if (!isPresent) setSelection(null);
-  }, [isPresent]);
-
-  useEffect(() => {
-    if (entryTheme.current === "dark") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setSchoolMounted(true);
-      return;
-    }
-    const mountSchool = window.setTimeout(() => setSchoolMounted(true), 180);
-    return () => window.clearTimeout(mountSchool);
-  }, []);
-
-  return (
-    <div
-      className="desk-page"
-      data-entry-theme={entryTheme.current}
-      data-visual-theme={isPresent ? currentVisualTheme : theme}
-      data-intro-ready={galleriesReady ? "true" : "false"}
-      data-present={isPresent ? "true" : "false"}
-    >
-      <div className="desk-theme-wipe" aria-hidden="true">
-        <span className="is-upper" />
-        <span className="is-lower" />
-      </div>
-      <SceneLineOrnaments variant="desk" />
-      <section className="desk-gallery-layout" aria-labelledby="page-title">
-        <div className="desk-gallery-scene desk-gallery-scene-home">
-          <div className="desk-gallery-scene-label" aria-hidden="true">
-            <strong>HOME</strong>
-          </div>
-          <Suspense fallback={<DeskGalleryFallback label="正在加载家里桌搭" />}>
-            <CircularGallery
-              items={homeGalleryItems}
-              bend={-5.8}
-              borderRadius={0.095}
-              textColor="#f2f1eb"
-              scrollSpeed={1.75}
-              scrollEase={0.072}
-              showTitles={false}
-              entryDirection="left"
-              introLead={entryTheme.current === "dark" ? 0 : 180}
-              startIntro={galleriesReady}
-              exiting={!isPresent}
-              onReady={markHomeReady}
-              onItemClick={openHome}
-              ariaLabel="家里桌搭曲线画廊，可拖动、使用左右方向键浏览或点击图片打开大图"
-            />
-          </Suspense>
-        </div>
-
-        <h1 id="page-title" className="desk-gallery-title" aria-label="我的桌搭">
-          <span>DESK</span>
-          <i />
-          <span>SETUP</span>
-          <span className="sr-only">我的桌搭</span>
-        </h1>
-
-        <div className="desk-gallery-scene desk-gallery-scene-school">
-          <div className="desk-gallery-scene-label" aria-hidden="true">
-            <strong>DORM</strong>
-          </div>
-          {schoolMounted ? (
-            <Suspense fallback={<DeskGalleryFallback label="正在加载寝室桌搭" />}>
-              <CircularGallery
-                items={schoolGalleryItems}
-                bend={5.8}
-                borderRadius={0.095}
-                textColor="#f2f1eb"
-                scrollSpeed={1.75}
-                scrollEase={0.072}
-                showTitles={false}
-                entryDirection="right"
-                introLead={entryTheme.current === "dark" ? 0 : 180}
-                startIntro={galleriesReady}
-                exiting={!isPresent}
-                onReady={markSchoolReady}
-                onItemClick={openSchool}
-                ariaLabel="寝室桌搭曲线画廊，可拖动、使用左右方向键浏览或点击图片打开大图"
-              />
-            </Suspense>
-          ) : (
-            <DeskGalleryFallback label="正在加载寝室桌搭" />
-          )}
-        </div>
-      </section>
-      <AnimatePresence>
-        {selection ? (
-          <DeskLightbox selection={selection} onChange={changeLightboxImage} onClose={closeLightbox} />
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function AboutPage() {
-  const reduceMotion = useReducedMotion();
-  const [portraitReady, setPortraitReady] = useState(false);
-  const reveal = reduceMotion ? false : { opacity: 0 };
-
-  return (
-    <div className="about-page">
-      <section className="about-console section-shell" aria-labelledby="page-title">
-        <div className="about-console-field" aria-hidden="true">
-          <span className="about-field-track about-field-track-top" />
-          <span className="about-field-track about-field-track-bottom" />
-          <span className="about-field-pulse about-field-pulse-top" />
-          <span className="about-field-pulse about-field-pulse-bottom" />
-          <div className="about-console-topline">
-            <span className="about-topline-index">01 / ABOUT</span>
-            <span className="about-topline-rule" />
-            <span className="about-topline-copy">PERSONAL OPERATING SYSTEM</span>
-            <span className="about-topline-status"><i /> ONLINE / 2026</span>
-          </div>
-        </div>
-
-        <motion.div
-          className="about-console-intro"
-          initial={reveal}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <p className="about-console-kicker"><AboutBlurText text="考研中的个人开发者" delay={0.08} /></p>
-          <h1 id="page-title"><AboutBlurText text="关于我" delay={0.16} /></h1>
-          <p className="about-console-lead"><AboutBlurText text="一边准备研究生考试，一边把真实需求做成能长期运行的产品。" delay={0.32} /></p>
-          <p className="about-console-summary"><AboutBlurText text="我从具体问题开始，自己完成界面、开发、部署和维护。比起短暂演示，我更在意产品能否真正被使用，并在几个月后依然稳定。" delay={0.64} /></p>
-
-          <div className="about-console-story">
-            <strong><AboutBlurText text="备考是现在的主线，做产品是长期习惯。" delay={1.02} /></strong>
-            <p><AboutBlurText text="把学习中遇到的低效流程做成工具，也借这些项目持续训练产品判断、工程实现和维护能力。" delay={1.2} /></p>
-          </div>
-
-          <ul className="about-console-interests" aria-label="个人兴趣">
-            <li>
-              <Link className="about-desk-link" to="/desk">
-                <AboutBlurText text="数码桌搭" delay={1.54} />
-              </Link>
-            </li>
-            <li><AboutBlurText text="健身" delay={1.65} /></li>
-            <li><AboutBlurText text="穿搭" delay={1.74} /></li>
-            <li><AboutBlurText text="硬件 DIY" delay={1.83} /></li>
-          </ul>
-
-          <div className="about-column-trace about-column-trace-intro" aria-hidden="true">
-            <span className="about-trace-line about-trace-line-a" />
-            <span className="about-trace-line about-trace-line-b" />
-            <span className="about-trace-line about-trace-line-c" />
-            <span className="about-trace-pulse" />
-            <span className="about-trace-node about-trace-node-a" />
-            <span className="about-trace-node about-trace-node-b" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="about-console-visual"
-          initial={reduceMotion ? false : { opacity: 0, scale: 1.018 }}
-          animate={portraitReady || reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 1.018 }}
-          transition={{ duration: reduceMotion ? 0 : 0.68, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <figure className="about-console-portrait">
-            <img
-              src="/assets/about-avatar-three-quarter.webp"
-              srcSet="/assets/about-avatar-three-quarter-768.webp 768w, /assets/about-avatar-three-quarter.webp 1024w"
-              sizes="(max-width: 1360px) 34vw, 500px"
-              alt="ljj 三分之四侧面的虚拟开发者形象"
-              width={1024}
-              height={1024}
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-              onLoad={() => setPortraitReady(true)}
-            />
-          </figure>
-          <div className="about-console-signal" aria-hidden="true">
-            <span className="about-signal-rail about-signal-rail-top" />
-            <span className="about-signal-rail about-signal-rail-middle" />
-            <span className="about-signal-rail about-signal-rail-bottom" />
-            <span className="about-signal-pulse about-signal-pulse-a" />
-            <span className="about-signal-pulse about-signal-pulse-b" />
-            <span className="about-signal-kink about-signal-kink-left" />
-            <span className="about-signal-kink about-signal-kink-right" />
-            <span className="about-signal-node about-signal-node-left" />
-            <span className="about-signal-node about-signal-node-center" />
-            <span className="about-signal-node about-signal-node-right" />
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="about-console-detail"
-          initial={reveal}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.56, delay: reduceMotion ? 0 : 0.04, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <section className="about-console-method" aria-labelledby="about-method-title">
-            <div className="about-console-heading">
-              <h2 id="about-method-title"><AboutBlurText text="我怎样把事情做完" delay={0.18} /></h2>
-              <span><AboutBlurText text="从问题到运行状态" delay={0.42} /></span>
-            </div>
-            <ol>
-              <li><Books size={22} weight="duotone" aria-hidden="true" /><div><strong><AboutBlurText text="先看完整流程" delay={0.58} /></strong><p><AboutBlurText text="找到第一步之后真正会卡住的环节。" delay={0.72} /></p></div></li>
-              <li><Code size={22} weight="duotone" aria-hidden="true" /><div><strong><AboutBlurText text="用真实界面验证" delay={0.9} /></strong><p><AboutBlurText text="跨 Web 与原生端实现，再用测试校正。" delay={1.04} /></p></div></li>
-              <li><CloudArrowUp size={22} weight="duotone" aria-hidden="true" /><div><strong><AboutBlurText text="把上线算进设计" delay={1.22} /></strong><p><AboutBlurText text="域名、权限、监控和备份都属于产品。" delay={1.36} /></p></div></li>
-            </ol>
-          </section>
-
-          <section className="about-console-capabilities" aria-labelledby="about-capabilities-title">
-            <div className="about-console-heading">
-              <h2 id="about-capabilities-title"><AboutBlurText text="我能做的部分" delay={1.62} /></h2>
-              <span><AboutBlurText text="清楚、可靠、可维护" delay={1.84} /></span>
-            </div>
-            <div className="about-console-capability-grid">
-              <div><Browser size={20} weight="duotone" aria-hidden="true" /><span><AboutBlurText text="产品界面" delay={2.02} /></span><strong><AboutBlurText text="Web / SwiftUI / ArkTS" delay={2.14} /></strong></div>
-              <div><Robot size={20} weight="duotone" aria-hidden="true" /><span><AboutBlurText text="AI 接入" delay={2.24} /></span><strong><AboutBlurText text="SSE / API / 工作流" delay={2.34} /></strong></div>
-              <div><Database size={20} weight="duotone" aria-hidden="true" /><span><AboutBlurText text="服务系统" delay={2.44} /></span><strong><AboutBlurText text="Python / FastAPI" delay={2.54} /></strong></div>
-              <div><HardDrives size={20} weight="duotone" aria-hidden="true" /><span><AboutBlurText text="运行维护" delay={2.64} /></span><strong><AboutBlurText text="Docker / Tailscale" delay={2.74} /></strong></div>
-            </div>
-          </section>
-
-          <div className="about-column-trace about-column-trace-detail" aria-hidden="true">
-            <span className="about-trace-line about-trace-line-a" />
-            <span className="about-trace-line about-trace-line-b" />
-            <span className="about-trace-line about-trace-line-c" />
-            <span className="about-trace-pulse" />
-            <span className="about-trace-node about-trace-node-a" />
-            <span className="about-trace-node about-trace-node-b" />
-          </div>
-        </motion.div>
-      </section>
-    </div>
-  );
-}
-
-function NotFoundPage() {
+export function NotFoundPage() {
   return (
     <section className="page-lead not-found section-shell" aria-labelledby="page-title">
       <h1 id="page-title">这个页面不存在。</h1>
@@ -3584,22 +1731,24 @@ function PortfolioRoutes({
                   },
                 }}
         >
-          <ScrollToTop />
-          <Routes location={location.pathname}>
-            <Route path="/"><HomePage theme={theme} /></Route>
-            <Route path="/projects"><ProjectsPage /></Route>
-            <Route path="/projects/408"><FlagshipCaseStudyPage projectId="408-web" /></Route>
-            <Route path="/projects/hermes-ios"><ProjectDossierPage projectId="ioschat" /></Route>
-            <Route path="/projects/law-site"><FlagshipCaseStudyPage projectId="law-site" /></Route>
-            <Route path="/projects/harmonyos"><ProjectDossierPage projectId="408-harmony" /></Route>
-            <Route path="/projects/:projectId"><ProjectDossierPage /></Route>
-            <Route path="/systems"><SystemsPage /></Route>
-            <Route path="/about"><AboutPage /></Route>
-            <Route path="/desk"><DeskArchivePage theme={theme} /></Route>
-            <Route path="/blog/:slug"><BlogArticlePage /></Route>
-            <Route path="/blog"><BlogPage /></Route>
-            <Route><NotFoundPage /></Route>
-          </Routes>
+          <Suspense fallback={null}>
+            <ScrollToTop />
+            <Routes location={location.pathname}>
+              <Route path="/"><HomePage theme={theme} /></Route>
+              <Route path="/projects"><ProjectsPage /></Route>
+              <Route path="/projects/408"><FlagshipCaseStudyPage projectId="408-web" /></Route>
+              <Route path="/projects/hermes-ios"><ProjectDossierPage projectId="ioschat" /></Route>
+              <Route path="/projects/law-site"><FlagshipCaseStudyPage projectId="law-site" /></Route>
+              <Route path="/projects/harmonyos"><ProjectDossierPage projectId="408-harmony" /></Route>
+              <Route path="/projects/:projectId"><ProjectDossierPage /></Route>
+              <Route path="/systems"><SystemsPage /></Route>
+              <Route path="/about"><AboutPage /></Route>
+              <Route path="/desk"><DeskArchivePage theme={theme} /></Route>
+              <Route path="/blog/:slug"><BlogArticlePage /></Route>
+              <Route path="/blog"><BlogPage /></Route>
+              <Route><NotFoundPage /></Route>
+            </Routes>
+          </Suspense>
         </motion.main>
       </AnimatePresence>
     </>
@@ -3622,6 +1771,27 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem("portfolio-pointer-trail", trailEnabled ? "on" : "off");
   }, [trailEnabled]);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (connection?.saveData || /^(slow-2g|2g)$/.test(connection?.effectiveType ?? "")) return;
+    const hasIdleCallback = "requestIdleCallback" in window;
+    let idleId: number | undefined;
+    const prefetch = () => routeChunkLoaders.forEach(prefetchRoute);
+    const schedule = () => {
+      idleId = hasIdleCallback
+        ? window.requestIdleCallback(prefetch, { timeout: 5000 })
+        : window.setTimeout(prefetch, 2000);
+    };
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+    return () => {
+      window.removeEventListener("load", schedule);
+      if (idleId === undefined) return;
+      if (hasIdleCallback) window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+    };
+  }, []);
 
   function toggleTheme() {
     setTheme((current) => current === "light" ? "dark" : "light");
