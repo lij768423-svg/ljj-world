@@ -210,3 +210,18 @@ html[data-theme="dark"] .server-machine.original-refined .machine-ground {
     animation-duration: 6s;
   }
 }
+
+.server-story-service-connectors .server-story-connector-anchor line {
+  stroke-linecap: round;
+  filter: none;
+}
+
+.server-story-service-connectors .server-story-connector-anchor .server-story-connector-anchor-ring {
+  stroke: var(--accent);
+  stroke-width: 8;
+}
+
+.server-story-service-connectors .server-story-connector-anchor .server-story-connector-anchor-core {
+  stroke: var(--bg);
+  stroke-width: 4.5;
+}

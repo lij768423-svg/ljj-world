@@ -1,11 +1,12 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useMemo, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { BlurText } from "./effects/BlurText";
 import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
 import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
+import { fitConnector, loadArtworkMask, measureArtworkBox, type ConnectorLayout } from "../lib/connectorFit";
 import "./ServerMachineVisual.css";
 
 type ServerCategoryId = "network" | "hardware" | "agent" | "data" | "containers";
@@ -67,13 +68,13 @@ const categoryVisuals: Record<ServerCategoryId, { src: string; alt: string }> = 
   containers: { src: serverPartImages["container-line"], alt: "服务器容器运行核心线稿" },
 };
 
-const serviceConnectorLayouts = [
+const serviceConnectorLayouts: readonly ConnectorLayout[] = [
   { segments: [[43, 38, 38, 31], [38, 31, 38, 22], [38, 22, 31, 22]], endX: 31, endY: 22 },
   { segments: [[57, 38, 62, 31], [62, 31, 62, 22], [62, 22, 69, 22]], endX: 69, endY: 22 },
   { segments: [[63, 50, 72, 50], [72, 50, 77, 50], [77, 50, 82, 50]], endX: 82, endY: 50 },
   { segments: [[57, 62, 62, 69], [62, 69, 62, 78], [62, 78, 69, 78]], endX: 69, endY: 78 },
   { segments: [[43, 62, 38, 69], [38, 69, 38, 78], [38, 78, 31, 78]], endX: 31, endY: 78 },
-] as const;
+];
 
 function MachineDrawing({
   activeCategoryId,
@@ -286,6 +287,45 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
   const openedService = activeCategory.services.find((service) => service.id === openedServiceId) ?? null;
   const activeVisual = categoryVisuals[activeCategory.id];
   const returningToOverview = hasFocusedModule && !isExploded;
+  const connectorFrameRef = useRef<SVGSVGElement>(null);
+  const focusImageRef = useRef<HTMLImageElement>(null);
+  const [fittedConnectors, setFittedConnectors] = useState<{ src: string; layouts: readonly ConnectorLayout[] } | null>(null);
+  const showsFocusVisual = visualOnly && isExploded && !openedService;
+  const connectorLayouts = fittedConnectors?.src === activeVisual.src ? fittedConnectors.layouts : null;
+
+  useEffect(() => {
+    const prefetch = () => Object.values(categoryVisuals).forEach((visual) => void loadArtworkMask(visual.src));
+    const timer = window.setTimeout(prefetch, 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!showsFocusVisual) return;
+    const frame = connectorFrameRef.current;
+    const image = focusImageRef.current;
+    if (!frame || !image) return;
+    let cancelled = false;
+    const src = activeVisual.src;
+    const fit = async () => {
+      const mask = await loadArtworkMask(src);
+      if (cancelled) return;
+      if (!mask) {
+        setFittedConnectors({ src, layouts: serviceConnectorLayouts });
+        return;
+      }
+      const box = measureArtworkBox(image, frame);
+      if (box) setFittedConnectors({ src, layouts: serviceConnectorLayouts.map((layout) => fitConnector(layout, mask, box)) });
+    };
+    void fit();
+    image.addEventListener("load", fit);
+    const observer = new ResizeObserver(() => void fit());
+    observer.observe(frame);
+    return () => {
+      cancelled = true;
+      image.removeEventListener("load", fit);
+      observer.disconnect();
+    };
+  }, [activeVisual.src, showsFocusVisual]);
 
   const selectCategory = (category: ServerCategory) => {
     setHasFocusedModule(true);
@@ -428,17 +468,17 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.58, delay: 0, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <img src={activeVisual.src} alt={activeVisual.alt} />
+                  <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
                 </motion.div>
 
-                <svg className="server-story-service-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  {activeCategory.services.map((service, index) => {
-                    const connector = serviceConnectorLayouts[index];
+                <svg ref={connectorFrameRef} className="server-story-service-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  {connectorLayouts && activeCategory.services.map((service, index) => {
+                    const connector = connectorLayouts[index];
                     return (
                       <g key={service.id}>
                         {connector.segments.map(([x1, y1, x2, y2], segmentIndex) => (
                           <motion.line
-                            key={`${x1}-${y1}-${x2}-${y2}`}
+                            key={segmentIndex}
                             x1={x1}
                             y1={y1}
                             initial={reduceMotion ? false : { x2: x1, y2: y1, opacity: 0 }}
@@ -448,6 +488,18 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                               : { duration: 0.16, delay: 0.12 + segmentIndex * 0.12, ease: [0.4, 0, 0.2, 1] }}
                           />
                         ))}
+                        {connector.anchor ? (
+                          // Zero-length round-capped strokes stay circular under preserveAspectRatio="none".
+                          <motion.g
+                            className="server-story-connector-anchor"
+                            initial={reduceMotion ? false : { opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={reduceMotion ? { duration: 0 } : { duration: 0.2, delay: 0.1 }}
+                          >
+                            <line className="server-story-connector-anchor-ring" x1={connector.anchor[0]} y1={connector.anchor[1]} x2={connector.anchor[0]} y2={connector.anchor[1]} />
+                            <line className="server-story-connector-anchor-core" x1={connector.anchor[0]} y1={connector.anchor[1]} x2={connector.anchor[0]} y2={connector.anchor[1]} />
+                          </motion.g>
+                        ) : null}
                         <motion.circle
                           cx={connector.endX}
                           cy={connector.endY}
