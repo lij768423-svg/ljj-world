@@ -6,7 +6,7 @@ import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
 import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
-import { fitConnector, loadArtworkMask, measureArtworkBox, type ConnectorLayout } from "../lib/connectorFit";
+import { loadArtworkMask, measureArtworkBox, placeConnector, type CardSlide, type ConnectorLayout } from "../lib/connectorFit";
 import "./ServerMachineVisual.css";
 
 type ServerCategoryId = "network" | "hardware" | "agent" | "data" | "containers";
@@ -75,6 +75,7 @@ const serviceConnectorLayouts: readonly ConnectorLayout[] = [
   { segments: [[57, 62, 62, 69], [62, 69, 62, 78], [62, 78, 69, 78]], endX: 69, endY: 78 },
   { segments: [[43, 62, 38, 69], [38, 69, 38, 78], [38, 78, 31, 78]], endX: 31, endY: 78 },
 ];
+const serviceCardSlides: readonly CardSlide[] = ["up", "up", "right", "down", "down"];
 
 function MachineDrawing({
   activeCategoryId,
@@ -314,7 +315,19 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
         return;
       }
       const box = measureArtworkBox(image, frame);
-      if (box) setFittedConnectors({ src, layouts: serviceConnectorLayouts.map((layout) => fitConnector(layout, mask, box)) });
+      const stage = frame.getBoundingClientRect();
+      const cards = [...(frame.parentElement?.querySelectorAll<HTMLElement>(".server-story-module-list > li") ?? [])];
+      if (!box || !stage.width || !stage.height || !cards.length) return;
+      const placement = {
+        cardWidth: (Math.max(...cards.map((card) => card.offsetWidth)) / stage.width) * 100,
+        cardHeight: (Math.max(...cards.map((card) => card.offsetHeight)) / stage.height) * 100,
+        pixelWidth: stage.width,
+        pixelHeight: stage.height,
+      };
+      setFittedConnectors({
+        src,
+        layouts: serviceConnectorLayouts.map((layout, index) => placeConnector(layout, serviceCardSlides[index], mask, box, placement)),
+      });
     };
     void fit();
     image.addEventListener("load", fit);
@@ -520,6 +533,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                   {activeCategory.services.map((service, index) => (
                     <motion.li
                       key={service.id}
+                      style={connectorLayouts ? { left: `${connectorLayouts[index].endX}%`, top: `${connectorLayouts[index].endY}%` } : undefined}
                       initial={reduceMotion ? false : { opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={reduceMotion

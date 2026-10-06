@@ -131,3 +131,61 @@ export function measureArtworkBox(image: HTMLImageElement, frame: Element): Artw
     height: (height / stage.height) * 100,
   };
 }
+
+/** Which way a service card may slide to make room for its connector. */
+export type CardSlide = "up" | "down" | "right";
+/** Card size in the connector SVG's 0–100 space, plus the stage's pixel size. */
+export type PlacementFrame = { cardWidth: number; cardHeight: number; pixelWidth: number; pixelHeight: number };
+
+/** Visible length a connector should keep (px); cards slide outwards until they reach it. */
+const MIN_CONNECTOR_LENGTH = 88;
+const SLIDE_STEP = 1;
+const EDGE_MARGIN = 1.5;
+
+function slideCard(layout: ConnectorLayout, slide: CardSlide, offset: number): ConnectorLayout {
+  const segments = layout.segments.map((segment) => [...segment] as [number, number, number, number]);
+  const last = segments[segments.length - 1];
+  if (slide === "right") {
+    last[2] += offset;
+    return { segments, endX: layout.endX + offset, endY: layout.endY };
+  }
+  const dy = slide === "up" ? -offset : offset;
+  // The card-side horizontal leg moves with the card; the vertical leg before it stretches.
+  last[1] += dy;
+  last[3] += dy;
+  if (segments.length > 1) segments[segments.length - 2][3] += dy;
+  return { segments, endX: layout.endX, endY: layout.endY + dy };
+}
+
+function pixelLength(layout: ConnectorLayout, frame: PlacementFrame) {
+  return layout.segments.reduce((total, [x1, y1, x2, y2]) => total + Math.hypot(
+    ((x2 - x1) / 100) * frame.pixelWidth,
+    ((y2 - y1) / 100) * frame.pixelHeight,
+  ), 0);
+}
+
+function withinStage(layout: ConnectorLayout, slide: CardSlide, frame: PlacementFrame) {
+  if (slide === "right") return layout.endX + frame.cardWidth <= 100 - EDGE_MARGIN;
+  const half = frame.cardHeight / 2 + EDGE_MARGIN;
+  return layout.endY >= half && layout.endY <= 100 - half;
+}
+
+/**
+ * Fit a connector to the artwork and, if the artwork leaves it too short to read, slide its
+ * card outwards (staying on stage) until the connector is long enough again.
+ */
+export function placeConnector(layout: ConnectorLayout, slide: CardSlide, mask: ArtworkMask, box: ArtworkBox, frame: PlacementFrame) {
+  let best = fitConnector(layout, mask, box);
+  let bestLength = pixelLength(best, frame);
+  for (let offset = SLIDE_STEP; bestLength < MIN_CONNECTOR_LENGTH; offset += SLIDE_STEP) {
+    const moved = slideCard(layout, slide, offset);
+    if (!withinStage(moved, slide, frame)) break;
+    const fitted = fitConnector(moved, mask, box);
+    const length = pixelLength(fitted, frame);
+    if (length > bestLength) {
+      best = fitted;
+      bestLength = length;
+    }
+  }
+  return best;
+}

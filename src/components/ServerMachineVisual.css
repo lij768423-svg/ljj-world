@@ -225,3 +225,18 @@ html[data-theme="dark"] .server-machine.original-refined .machine-ground {
   stroke: var(--bg);
   stroke-width: 4.5;
 }
+
+/* Keep service names whole: when a name and its tag do not fit on one line, the tag moves
+   below instead of the name being split mid-word ("Vaultwarde / n"). */
+.server-story-module-copy > span {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.server-story-module-list strong {
+  overflow-wrap: break-word;
+}
+
+.server-story-module-list em {
+  margin-left: auto;
+}
