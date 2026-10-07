@@ -244,8 +244,21 @@ html[data-theme="dark"] .server-machine.original-refined .machine-ground {
 /* Focus loops (ServerFocusVideo.tsx): the clip shares the poster's grid cell and sizing, starts on
    the poster's exact frame, and fades in once its transparency is confirmed. */
 .server-story-focus-visual > img,
-.server-story-focus-visual > .server-story-focus-video {
+.server-story-focus-visual > .server-story-focus-video,
+.server-story-focus-visual > .server-story-focus-overlay {
   grid-area: 1 / 1;
+}
+
+/* Fan modules spin the drawing's own blades live (ServerFocusOverlay.tsx). */
+.server-story-focus-visual > .server-story-focus-overlay {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.server-story-focus-overlay-cover {
+  fill: var(--bg);
 }
 
 .server-story-focus-visual > .server-story-focus-video {

@@ -5,6 +5,7 @@ import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
 import { ServerFocusVideo } from "./ServerFocusVideo";
+import { FocusOverlay } from "./ServerFocusOverlay";
 import { serverFocusMedia } from "../assets/serverFocus";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
 import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
@@ -62,9 +63,9 @@ const standardCameraFrames: Record<ServerCategoryId, { x: number; y: number; sca
   containers: { x: 0, y: 0, scale: 1.02 },
 };
 
-const categoryVisuals: Record<ServerCategoryId, { src: string; video: string; alt: string }> = Object.fromEntries(
+const categoryVisuals: Record<ServerCategoryId, { src: string; video?: string; alt: string }> = Object.fromEntries(
   Object.entries(serverFocusMedia).map(([id, media]) => [id, { src: media.poster, video: media.video, alt: media.alt }]),
-) as Record<ServerCategoryId, { src: string; video: string; alt: string }>;
+) as Record<ServerCategoryId, { src: string; video?: string; alt: string }>;
 
 const serviceConnectorLayouts: readonly ConnectorLayout[] = [
   { segments: [[43, 38, 38, 31], [38, 31, 38, 22], [38, 22, 31, 22]], endX: 31, endY: 22 },
@@ -482,7 +483,14 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.58, delay: 0, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <ServerFocusVideo poster={activeVisual.src} video={activeVisual.video} alt={activeVisual.alt} imageRef={focusImageRef} />
+                  {activeVisual.video ? (
+                    <ServerFocusVideo poster={activeVisual.src} video={activeVisual.video} alt={activeVisual.alt} imageRef={focusImageRef} />
+                  ) : (
+                    <>
+                      <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
+                      {reduceMotion ? null : <FocusOverlay categoryId={activeCategory.id} src={activeVisual.src} />}
+                    </>
+                  )}
                 </motion.div>
 
                 <svg ref={connectorFrameRef} className="server-story-service-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
