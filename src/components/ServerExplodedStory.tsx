@@ -96,6 +96,8 @@ function MachineDrawing({
     ? (visualOnly ? visualCameraFrames : standardCameraFrames)[activeCategoryId]
     : { x: 0, y: 0, scale: visualOnly ? 1.08 : 0.82 };
   const exploded = isExploded ? 1 : 0;
+  // Only a focused module is highlighted; the overview starts and returns neutral.
+  const activePart = isExploded ? activeCategoryId : null;
   const movementTransition = reduceMotion
     ? { duration: 0 }
     : returningToOverview
@@ -125,7 +127,7 @@ function MachineDrawing({
           </g>
         </motion.g>
 
-        <motion.g className={`server-machine-part server-machine-cpu${activeCategoryId === "hardware" ? " is-active" : ""}`} animate={{ y: exploded * -118 }} transition={movementTransition}>
+        <motion.g className={`server-machine-part server-machine-cpu${activePart === "hardware" ? " is-active" : ""}`} animate={{ y: exploded * -118 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
             <ProcessorArt />
           </g>
@@ -134,13 +136,13 @@ function MachineDrawing({
           </g>
         </motion.g>
 
-        <motion.g className={`server-machine-part server-machine-ram${activeCategoryId === "hardware" ? " is-active" : ""}`} animate={{ x: exploded * 112, y: exploded * -60 }} transition={movementTransition}>
+        <motion.g className={`server-machine-part server-machine-ram${activePart === "hardware" ? " is-active" : ""}`} animate={{ x: exploded * 112, y: exploded * -60 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
             <MemoryArt />
           </g>
         </motion.g>
 
-        <motion.g className={`server-machine-part server-machine-nic${activeCategoryId === "network" ? " is-active" : ""}`} animate={{ x: exploded * -155, y: exploded * 76 }} transition={movementTransition}>
+        <motion.g className={`server-machine-part server-machine-nic${activePart === "network" ? " is-active" : ""}`} animate={{ x: exploded * -155, y: exploded * 76 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
             <NetworkArt />
           </g>
@@ -149,7 +151,7 @@ function MachineDrawing({
           </g>
         </motion.g>
 
-        <motion.g className={`server-machine-part server-machine-gpu${activeCategoryId === "agent" ? " is-active" : ""}`} animate={{ x: exploded * 178, y: exploded * 84 }} transition={movementTransition}>
+        <motion.g className={`server-machine-part server-machine-gpu${activePart === "agent" ? " is-active" : ""}`} animate={{ x: exploded * 178, y: exploded * 84 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
             <GraphicsArt />
           </g>
@@ -158,7 +160,7 @@ function MachineDrawing({
           </g>
         </motion.g>
 
-        <motion.g className={`server-machine-part server-machine-storage${activeCategoryId === "data" ? " is-active" : ""}`} animate={{ x: exploded * 218, y: exploded * -112 }} transition={movementTransition}>
+        <motion.g className={`server-machine-part server-machine-storage${activePart === "data" ? " is-active" : ""}`} animate={{ x: exploded * 218, y: exploded * -112 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
             <StorageArt />
           </g>
@@ -167,7 +169,7 @@ function MachineDrawing({
           </g>
         </motion.g>
 
-        <motion.g className={`server-machine-part server-machine-fans${activeCategoryId === "containers" ? " is-active" : ""}`} animate={{ y: exploded * 146 }} transition={movementTransition}>
+        <motion.g className={`server-machine-part server-machine-fans${activePart === "containers" ? " is-active" : ""}`} animate={{ y: exploded * 146 }} transition={movementTransition}>
           <g className="machine-wire machine-load-group machine-load-component">
             <FanTrayArt />
           </g>

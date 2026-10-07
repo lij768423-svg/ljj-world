@@ -4105,14 +4105,14 @@ html[data-language-transitioning="true"] .server-story-module-list small {
 }
 
 .server-machine-part.is-active,
-.server-story[data-story-stage="containers"] .server-machine-fans {
+.server-story[data-story-exploded="true"][data-story-stage="containers"] .server-machine-fans {
   color: var(--text);
   opacity: 1;
   filter: drop-shadow(0 9px 18px color-mix(in srgb, var(--accent) 12%, transparent));
 }
 
 .server-machine-part.is-active .machine-component-fill,
-.server-story[data-story-stage="containers"] .server-machine-fans .machine-fan-deck {
+.server-story[data-story-exploded="true"][data-story-stage="containers"] .server-machine-fans .machine-fan-deck {
   fill: color-mix(in srgb, var(--accent-soft) 62%, var(--surface-raised));
   stroke: var(--accent);
 }
