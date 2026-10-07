@@ -33,8 +33,8 @@ python3 deploy/prune-releases.py --root /srv/portfolio --keep 3
 python3 deploy/prune-releases.py --root /srv/portfolio --keep 3 --apply
 ```
 
-   It keeps the newest releases and packages, the `current` target and every
-   rollback target recorded in a kept package, and never touches `shared/`.
+   It keeps the newest releases and packages, the `current` target and the
+   rollback target recorded for it, and never touches `shared/`.
    Releases only accumulate on deploy, so pruning at the end of each deploy keeps
    the release root bounded without a separate timer.
 

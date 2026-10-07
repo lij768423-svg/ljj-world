@@ -33,6 +33,15 @@ class PruneReleasesTest(unittest.TestCase):
             self.assertEqual(result["deleteReleases"], [IDS[1], IDS[2]])
             self.assertEqual(result["deleteDeployments"], [IDS[1], IDS[2]])
 
+    def test_older_packages_rollback_targets_do_not_pin_releases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            chain = {IDS[index]: IDS[index - 1] for index in range(1, len(IDS))}
+            root = make_root(directory, current=IDS[-1], previous_targets=chain)
+            result = module.plan(root, keep=3)
+            self.assertEqual(result["keptReleases"], IDS[-3:])
+            self.assertEqual(result["deleteReleases"], IDS[:2])
+            self.assertEqual(result["deleteDeployments"], IDS[:2])
+
     def test_never_deletes_current_after_a_rollback(self):
         with tempfile.TemporaryDirectory() as directory:
             root = make_root(directory, current=IDS[1])

@@ -1,7 +1,8 @@
 """Remove old releases and deployment packages from the release root.
 
-Keeps the newest --keep releases/packages, the release `current` points at, and every
-rollback target recorded in a kept package's previous-target.txt. Never touches shared/
+Keeps the newest --keep releases/packages, the release `current` points at, and the
+rollback target recorded for the current release (its package's previous-target.txt).
+Never touches shared/
 (retained immutable assets must outlive the releases that introduced them).
 
 Dry run by default; pass --apply to delete.
@@ -37,10 +38,11 @@ def plan(root, keep):
 
     kept_deployments = set(deployments[-keep:])
     protected = set(releases[-keep:]) | {current_id}
-    for deployment in kept_deployments:
-        previous = root / "deployments" / deployment / "previous-target.txt"
-        if previous.is_file():
-            protected.add(Path(previous.read_text().strip()).name)
+    # Only the live release's rollback target matters; older packages' targets would keep
+    # one extra release forever.
+    previous = root / "deployments" / current_id / "previous-target.txt"
+    if previous.is_file():
+        protected.add(Path(previous.read_text().strip()).name)
 
     return {
         "current": current_id,
