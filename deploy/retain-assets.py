@@ -7,7 +7,7 @@ import shutil
 import tempfile
 
 
-HASHED_ASSET = re.compile(r"(?:.+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2?)|.+-[a-f0-9]{12}\.(?:webp|png|svg|avif))$")
+HASHED_ASSET = re.compile(r"(?:.+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2?)|.+-[a-f0-9]{12}\.(?:webp|png|svg|avif|webm|mp4))$")
 
 
 def retain_assets(release, shared):

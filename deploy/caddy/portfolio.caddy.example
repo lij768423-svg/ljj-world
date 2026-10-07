@@ -10,9 +10,15 @@ portfolio.example.com {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
+		# Site scripts are external files, so script-src needs no unsafe-inline. The per-request
+		# nonce exists for Cloudflare: it copies a header nonce onto the scripts it injects
+		# (JavaScript detections / challenge platform). Inline styles stay allowed because the
+		# animation runtime inserts style rules. Add an origin to frame-src before embedding an
+		# external project.liveDemo.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'nonce-{http.request.uuid}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
 	}
 
-	@immutable path_regexp immutable ^/assets/(.+-[A-Za-z0-9_-]{8}\.(js|css|woff2?)|.+-[a-f0-9]{12}\.(webp|png|svg|avif))$
+	@immutable path_regexp immutable ^/assets/(.+-[A-Za-z0-9_-]{8}\.(js|css|woff2?)|.+-[a-f0-9]{12}\.(webp|png|svg|avif|webm|mp4))$
 	handle /assets/* {
 		root * /srv/portfolio/current
 		@currentAsset file
