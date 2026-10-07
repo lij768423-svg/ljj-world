@@ -4,7 +4,7 @@ import { BlurText } from "./effects/BlurText";
 import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
-import { FocusArtDefinitions, focusArtwork, silhouetteMaskSrc } from "./ServerFocusArt";
+import { FocusOverlay } from "./ServerFocusOverlay";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
 import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
 import { loadArtworkMask, measureArtworkBox, placeConnector, type CardSlide, type ConnectorLayout } from "../lib/connectorFit";
@@ -293,20 +293,13 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
   const returningToOverview = hasFocusedModule && !isExploded;
   const connectorFrameRef = useRef<SVGSVGElement>(null);
   const focusImageRef = useRef<HTMLImageElement>(null);
-  const focusVisualRef = useRef<HTMLDivElement>(null);
-  const activeArt = focusArtwork[activeCategory.id];
-  const FocusArt = activeArt?.Art;
-  // Connectors avoid the artwork: an SVG illustration's silhouette, or a raster image's alpha.
-  const maskSrc = useMemo(() => (activeArt ? silhouetteMaskSrc(activeArt) : activeVisual.src), [activeArt, activeVisual.src]);
+  const maskSrc = activeVisual.src;
   const [fittedConnectors, setFittedConnectors] = useState<{ src: string; layouts: readonly ConnectorLayout[] } | null>(null);
   const showsFocusVisual = visualOnly && isExploded && !openedService;
   const connectorLayouts = fittedConnectors?.src === maskSrc ? fittedConnectors.layouts : null;
 
   useEffect(() => {
-    const prefetch = () => (Object.keys(categoryVisuals) as ServerCategoryId[]).forEach((id) => {
-      const art = focusArtwork[id];
-      void loadArtworkMask(art ? silhouetteMaskSrc(art) : categoryVisuals[id].src);
-    });
+    const prefetch = () => Object.values(categoryVisuals).forEach((visual) => void loadArtworkMask(visual.src));
     const timer = window.setTimeout(prefetch, 1200);
     return () => window.clearTimeout(timer);
   }, []);
@@ -314,9 +307,8 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
   useEffect(() => {
     if (!showsFocusVisual) return;
     const frame = connectorFrameRef.current;
-    const visual = focusVisualRef.current;
     const image = focusImageRef.current;
-    if (!frame || !visual || (!activeArt && !image)) return;
+    if (!frame || !image) return;
     let cancelled = false;
     const src = maskSrc;
     const fit = async () => {
@@ -326,9 +318,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
         setFittedConnectors({ src, layouts: serviceConnectorLayouts });
         return;
       }
-      const box = activeArt
-        ? measureArtworkBox(visual, activeArt.viewBox[2], activeArt.viewBox[3], frame)
-        : image && measureArtworkBox(image, image.naturalWidth, image.naturalHeight, frame);
+      const box = measureArtworkBox(image, image.naturalWidth, image.naturalHeight, frame);
       const stage = frame.getBoundingClientRect();
       const cards = [...(frame.parentElement?.querySelectorAll<HTMLElement>(".server-story-module-list > li") ?? [])];
       if (!box || !stage.width || !stage.height || !cards.length) return;
@@ -344,15 +334,15 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
       });
     };
     void fit();
-    image?.addEventListener("load", fit);
+    image.addEventListener("load", fit);
     const observer = new ResizeObserver(() => void fit());
     observer.observe(frame);
     return () => {
       cancelled = true;
-      image?.removeEventListener("load", fit);
+      image.removeEventListener("load", fit);
       observer.disconnect();
     };
-  }, [activeArt, maskSrc, showsFocusVisual]);
+  }, [maskSrc, showsFocusVisual]);
 
   const selectCategory = (category: ServerCategory) => {
     setHasFocusedModule(true);
@@ -490,20 +480,13 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                 </motion.header>
 
                 <motion.div
-                  ref={focusVisualRef}
                   className="server-story-focus-visual"
                   initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.58, delay: 0, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  {activeArt && FocusArt ? (
-                    <svg className="server-machine original-refined server-focus-art" viewBox={activeArt.viewBox.join(" ")} role="img" aria-label={activeVisual.alt}>
-                      <FocusArtDefinitions />
-                      <FocusArt />
-                    </svg>
-                  ) : (
-                    <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
-                  )}
+                  <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
+                  {reduceMotion ? null : <FocusOverlay categoryId={activeCategory.id} src={activeVisual.src} />}
                 </motion.div>
 
                 <svg ref={connectorFrameRef} className="server-story-service-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

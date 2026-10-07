@@ -76,5 +76,5 @@ test("image failure has a keyboard retry and does not break return", async ({ pa
   await page.getByRole("button", { name: "重试加载图片" }).press("Enter");
   await expect(artwork).toHaveAttribute("data-image-state", "ready");
   await page.locator(".server-story-service-back").click();
-  await expect(page.locator(".server-story-focus-visual").locator(":scope > img, :scope > svg")).toBeVisible();
+  await expect(page.locator(".server-story-focus-visual img")).toBeVisible();
 });

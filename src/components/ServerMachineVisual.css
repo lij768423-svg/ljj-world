@@ -241,181 +241,20 @@ html[data-theme="dark"] .server-machine.original-refined .machine-ground {
   margin-left: auto;
 }
 
-/* Focus-view SVG illustrations (ServerFocusArt.tsx). */
-.server-story-focus-visual .server-focus-art {
+/* Motion over the raster focus drawings (ServerFocusOverlay.tsx). Image and overlay share one
+   grid cell and the same sizing rules, so the overlay's 1024 px space lands on the image. */
+.server-story-focus-visual > img,
+.server-story-focus-visual > .server-story-focus-overlay {
+  grid-area: 1 / 1;
+}
+
+.server-story-focus-visual > .server-story-focus-overlay {
   width: 100%;
   height: 100%;
-  overflow: visible;
-  color: color-mix(in srgb, var(--text) 84%, var(--muted));
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.server-story.is-visual-only .server-machine.server-focus-art text {
-  display: block;
-}
-
-.server-machine.original-refined.server-focus-art .focus-shade {
-  fill: color-mix(in srgb, var(--surface-raised) 74%, var(--text));
-}
-
-.server-machine.original-refined.server-focus-art .focus-ihs-base {
-  fill: color-mix(in srgb, var(--surface-raised) 90%, var(--text));
-  stroke: none;
-}
-
-.server-focus-art .focus-etch {
-  fill: color-mix(in srgb, currentColor 52%, transparent);
-  font-family: var(--mono);
-  font-size: 6.5px;
-  font-weight: 700;
-  letter-spacing: .06em;
-}
-
-.server-focus-art .focus-etch-strong {
-  fill: color-mix(in srgb, currentColor 80%, transparent);
-  font-size: 11px;
-}
-
-.server-focus-art .focus-silk {
-  fill: color-mix(in srgb, currentColor 40%, transparent);
-  font-family: var(--mono);
-  font-size: 7px;
-  letter-spacing: .08em;
-}
-
-.server-focus-art .focus-bus path {
-  stroke: color-mix(in srgb, currentColor 34%, transparent);
-  stroke-width: .8;
-}
-
-.server-focus-art .focus-bus-pulse path {
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-dasharray: 3 19;
-  stroke-linecap: round;
-}
-
-.server-focus-art .focus-lightbar {
-  fill: color-mix(in srgb, var(--accent) 34%, var(--surface-raised));
-  stroke: color-mix(in srgb, var(--accent) 62%, transparent);
-  stroke-width: .7;
-}
-
-.server-focus-art .focus-led {
-  fill: var(--accent);
-  stroke: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .server-focus-art .focus-bus-pulse path {
-    animation: focus-bus-flow 1.3s linear infinite;
-  }
-
-  .server-focus-art .focus-bus-pulse path:nth-child(even) {
-    animation-direction: reverse;
-    animation-duration: 1.6s;
-  }
-
-  .server-focus-art .focus-lightbar {
-    animation: focus-lightbar 2.6s ease-in-out infinite alternate;
-  }
-
-  .server-focus-art .focus-led {
-    animation: focus-led 1.9s steps(1, end) infinite;
-  }
-}
-
-@keyframes focus-bus-flow {
-  to { stroke-dashoffset: -22; }
-}
-
-@keyframes focus-lightbar {
-  from { opacity: .45; }
-  to { opacity: 1; }
-}
-
-@keyframes focus-led {
-  0%, 62% { opacity: 1; }
-  63%, 100% { opacity: .25; }
-}
-
-.server-focus-art .focus-etch-face {
-  font-size: 8px;
-}
-
-.server-focus-art .focus-rotor {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.server-focus-art .focus-port-led {
-  fill: var(--accent);
-  stroke: none;
-}
-
-.server-focus-art .focus-port-led:not(.is-activity) {
-  fill: color-mix(in srgb, currentColor 62%, transparent);
-}
-
-/* Cells keep a fixed colour and only animate fill-opacity: interpolating color-mix()
-   with currentColor inside keyframes crashed Chromium's renderer. */
-.server-focus-art .focus-nand-cell {
-  fill: color-mix(in srgb, var(--accent) 64%, var(--surface-raised));
-  fill-opacity: .1;
-  stroke: color-mix(in srgb, currentColor 30%, transparent);
-  stroke-width: .5;
-}
-
-.server-focus-art .focus-air-chevron {
-  fill: none;
-  stroke: color-mix(in srgb, var(--accent) 72%, transparent);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: .75;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .server-focus-art .focus-rotor {
-    animation: focus-spin 2.4s linear infinite;
-  }
-
-  .server-focus-art .focus-rotor.is-reverse {
-    animation-direction: reverse;
-  }
-
-  .server-focus-art .focus-port-led {
-    animation: focus-led 1.5s steps(1, end) infinite;
-  }
-
-  .server-focus-art .focus-port-led.is-activity {
-    animation: focus-activity .46s steps(1, end) infinite;
-  }
-
-  .server-focus-art .focus-nand-cell {
-    animation: focus-nand 2.64s ease-in-out infinite;
-  }
-
-  .server-focus-art .focus-air-chevron {
-    animation: focus-air 1.4s ease-in infinite;
-  }
-}
-
-@keyframes focus-spin {
-  to { rotate: 360deg; }
-}
-
-@keyframes focus-activity {
-  0%, 45% { opacity: 1; }
-  46%, 100% { opacity: .2; }
-}
-
-@keyframes focus-nand {
-  0%, 18%, 100% { fill-opacity: .1; }
-  8% { fill-opacity: .9; }
-}
-
-@keyframes focus-air {
-  0% { translate: 0 6px; opacity: 0; }
-  30% { opacity: .9; }
-  100% { translate: 0 -28px; opacity: 0; }
+.server-story-focus-overlay-cover {
+  fill: var(--bg);
 }
