@@ -22,7 +22,7 @@ const ALPHA_THRESHOLD = 40;
 /** Clearance around the artwork, as a share of the mask (≈ 12px at the desktop size). */
 const CLEARANCE = 0.018;
 /** How far past its original inner point a connector may extend to reach the artwork. */
-const MAX_EXTENSION = 9;
+const MAX_EXTENSION = 28;
 const STEP = 0.2;
 
 const masks = new Map<string, Promise<ArtworkMask | null>>();
