@@ -931,17 +931,20 @@ test("server story uses click-only focus and blank-space reset", async ({ page }
 
   await story.getByRole("button", { name: "聚焦 GPU 与 AI 模块" }).click();
   await expect(story).toHaveAttribute("data-story-stage", "agent");
-  const firstConnector = story.locator(".server-story-service-connectors line").first();
+  const connectors = story.locator(".server-story-service-connectors > g");
   const firstServiceNode = story.locator(".server-story-module-list > li").first();
-  await expect(firstConnector).toBeVisible();
-  const connectorX = Number.parseFloat(await firstConnector.getAttribute("x2") ?? "0");
-  expect(connectorX).toBeGreaterThanOrEqual(37.5);
-  expect(connectorX).toBeLessThanOrEqual(43);
   expect(await firstServiceNode.evaluate((node) => Number.parseFloat(getComputedStyle(node).opacity))).toBeLessThan(0.5);
+  // Connectors are fitted to the illustration's outline, so their exact geometry depends on the
+  // module and viewport; every service still gets a drawn connector ending in an anchor.
+  await expect(connectors).toHaveCount(5);
+  await expect(story.locator(".server-story-connector-anchor")).toHaveCount(5);
   await expect.poll(
-    () => firstConnector.getAttribute("x2").then((value) => Number.parseFloat(value ?? "0")),
+    () => connectors.first().evaluate((group) => [...group.querySelectorAll(":scope > line")].reduce((length, line) => length + Math.hypot(
+      Number(line.getAttribute("x2")) - Number(line.getAttribute("x1")),
+      Number(line.getAttribute("y2")) - Number(line.getAttribute("y1")),
+    ), 0)),
     { timeout: 2500 },
-  ).toBeCloseTo(38, 1);
+  ).toBeGreaterThan(4);
   await expect.poll(
     () => firstServiceNode.evaluate((node) => Number.parseFloat(getComputedStyle(node).opacity)),
     { timeout: 2500 },
