@@ -240,3 +240,100 @@ html[data-theme="dark"] .server-machine.original-refined .machine-ground {
 .server-story-module-list em {
   margin-left: auto;
 }
+
+/* Focus-view SVG illustrations (ServerFocusArt.tsx). */
+.server-story-focus-visual .server-focus-art {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: color-mix(in srgb, var(--text) 84%, var(--muted));
+}
+
+.server-story.is-visual-only .server-machine.server-focus-art text {
+  display: block;
+}
+
+.server-machine.original-refined.server-focus-art .focus-shade {
+  fill: color-mix(in srgb, var(--surface-raised) 74%, var(--text));
+}
+
+.server-machine.original-refined.server-focus-art .focus-ihs-base {
+  fill: color-mix(in srgb, var(--surface-raised) 90%, var(--text));
+  stroke: none;
+}
+
+.server-focus-art .focus-etch {
+  fill: color-mix(in srgb, currentColor 52%, transparent);
+  font-family: var(--mono);
+  font-size: 6.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.server-focus-art .focus-etch-strong {
+  fill: color-mix(in srgb, currentColor 80%, transparent);
+  font-size: 11px;
+}
+
+.server-focus-art .focus-silk {
+  fill: color-mix(in srgb, currentColor 40%, transparent);
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: .08em;
+}
+
+.server-focus-art .focus-bus path {
+  stroke: color-mix(in srgb, currentColor 34%, transparent);
+  stroke-width: .8;
+}
+
+.server-focus-art .focus-bus-pulse path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 3 19;
+  stroke-linecap: round;
+}
+
+.server-focus-art .focus-lightbar {
+  fill: color-mix(in srgb, var(--accent) 34%, var(--surface-raised));
+  stroke: color-mix(in srgb, var(--accent) 62%, transparent);
+  stroke-width: .7;
+}
+
+.server-focus-art .focus-led {
+  fill: var(--accent);
+  stroke: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .server-focus-art .focus-bus-pulse path {
+    animation: focus-bus-flow 1.3s linear infinite;
+  }
+
+  .server-focus-art .focus-bus-pulse path:nth-child(even) {
+    animation-direction: reverse;
+    animation-duration: 1.6s;
+  }
+
+  .server-focus-art .focus-lightbar {
+    animation: focus-lightbar 2.6s ease-in-out infinite alternate;
+  }
+
+  .server-focus-art .focus-led {
+    animation: focus-led 1.9s steps(1, end) infinite;
+  }
+}
+
+@keyframes focus-bus-flow {
+  to { stroke-dashoffset: -22; }
+}
+
+@keyframes focus-lightbar {
+  from { opacity: .45; }
+  to { opacity: 1; }
+}
+
+@keyframes focus-led {
+  0%, 62% { opacity: 1; }
+  63%, 100% { opacity: .25; }
+}

@@ -69,7 +69,8 @@ for (const theme of ["light", "dark"] as const) {
         }
         if (!mobile) {
           await page.locator(".server-story-service-back").click();
-          await expect(page.locator(".server-story-focus-visual img")).toBeVisible();
+          // Modules show either a raster drawing or an inline SVG illustration.
+          await expect(page.locator(".server-story-focus-visual").locator(":scope > img, :scope > svg")).toBeVisible();
         }
       }
       if (!mobile) {

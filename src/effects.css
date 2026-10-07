@@ -268,6 +268,22 @@ body.desk-route .global-pixel-trail {
   will-change: transform, filter, opacity;
 }
 
+.blur-text.is-wrapping {
+  display: inline;
+}
+
+.blur-text-word {
+  display: inline-block;
+  white-space: nowrap;
+  perspective: 700px;
+}
+
+.blur-text-word > span {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  will-change: transform, filter, opacity;
+}
+
 .blur-text.has-language-crossfade {
   will-change: opacity, filter;
 }

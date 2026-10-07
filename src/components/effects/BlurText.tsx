@@ -11,6 +11,8 @@ type BlurTextProps = {
   className?: string;
   delay?: number;
   crossFadeTransition?: boolean;
+  /** Wrap at spaces (never inside a word) instead of keeping the text on one line. */
+  wrapWords?: boolean;
 };
 
 /** Lightweight Motion adaptation of React Bits BlurText for short display lines. */
@@ -19,6 +21,7 @@ export function BlurText({
   className = "",
   delay = 0,
   crossFadeTransition = false,
+  wrapWords = false,
 }: BlurTextProps) {
   const { language } = usePortfolioLanguage();
   const resolvedText = language === "en" ? translatePortfolioText(text) : text;
@@ -66,6 +69,43 @@ export function BlurText({
     ? 1 - transitionProgress * 2
     : (transitionProgress - 0.5) * 2;
 
+  const renderCharacter = (character: string, index: number) => (
+    <motion.span
+      key={index}
+      aria-hidden="true"
+      initial={mountedRef.current ? false : { opacity: 0, y: 30, filter: "blur(12px)", rotateX: -34 }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)", rotateX: 0 }}
+      transition={{
+        duration: 0.62,
+        delay: delay + index * 0.038,
+        ease: [0.16, 1, 0.3, 1],
+      }}
+    >
+      {character === " " ? "\u00a0" : character}
+    </motion.span>
+  );
+
+  if (wrapWords) {
+    // Words stay intact as inline-blocks; the plain spaces between them are where lines break.
+    let offset = 0;
+    return (
+      <span className={`blur-text is-wrapping ${className}`.trim()}>
+        <span className="sr-only">{resolvedText}</span>
+        {displayText.split(/(\s+)/).map((part, partIndex) => {
+          const start = offset;
+          offset += Array.from(part).length;
+          if (!part) return null;
+          if (/^\s+$/.test(part)) return " ";
+          return (
+            <span key={partIndex} className="blur-text-word" aria-hidden="true">
+              {Array.from(part).map((character, index) => renderCharacter(character, start + index))}
+            </span>
+          );
+        })}
+      </span>
+    );
+  }
+
   return (
     <span
       className={`blur-text${crossFadeTransition ? " has-language-crossfade" : ""} ${className}`.trim()}
@@ -75,21 +115,7 @@ export function BlurText({
       } : undefined}
     >
       <span className="sr-only">{resolvedText}</span>
-      {Array.from(displayText).map((character, index) => (
-        <motion.span
-          key={index}
-          aria-hidden="true"
-          initial={mountedRef.current ? false : { opacity: 0, y: 30, filter: "blur(12px)", rotateX: -34 }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)", rotateX: 0 }}
-          transition={{
-            duration: 0.62,
-            delay: delay + index * 0.038,
-            ease: [0.16, 1, 0.3, 1],
-          }}
-        >
-          {character === " " ? "\u00a0" : character}
-        </motion.span>
-      ))}
+      {Array.from(displayText).map(renderCharacter)}
     </span>
   );
 }

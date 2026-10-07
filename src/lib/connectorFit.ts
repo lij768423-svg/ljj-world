@@ -113,15 +113,18 @@ export function fitConnector(layout: ConnectorLayout, mask: ArtworkMask, box: Ar
   return layout;
 }
 
-/** The drawn area of an `object-fit: contain` image, ignoring transforms that are still animating. */
-export function measureArtworkBox(image: HTMLImageElement, frame: Element): ArtworkBox | null {
-  if (!image.naturalWidth || !image.naturalHeight) return null;
+/**
+ * The drawn area of artwork contained in `element` (an `object-fit: contain` image, or a
+ * box holding a `meet` SVG), ignoring transforms that are still animating.
+ */
+export function measureArtworkBox(element: HTMLElement, naturalWidth: number, naturalHeight: number, frame: Element): ArtworkBox | null {
+  if (!naturalWidth || !naturalHeight) return null;
   const stage = frame.getBoundingClientRect();
   if (!stage.width || !stage.height) return null;
-  const rect = image.getBoundingClientRect();
-  const scale = Math.min(image.offsetWidth / image.naturalWidth, image.offsetHeight / image.naturalHeight);
-  const width = image.naturalWidth * scale;
-  const height = image.naturalHeight * scale;
+  const rect = element.getBoundingClientRect();
+  const scale = Math.min(element.offsetWidth / naturalWidth, element.offsetHeight / naturalHeight);
+  const width = naturalWidth * scale;
+  const height = naturalHeight * scale;
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
   return {
