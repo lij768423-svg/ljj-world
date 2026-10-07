@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { getBlogPost } from "../src/blog";
 
 const QA_DIR = process.env.MOBILE_QA_DIR
   ?? path.join(process.cwd(), "test-results", "mobile-qa");
@@ -17,7 +18,7 @@ const PUBLIC_ROUTES = [
   { path: "/about", heading: "关于我", shot: "about" },
   { path: "/desk", heading: "我的桌搭", shot: "desk" },
   { path: "/blog", heading: "文章与笔记", shot: "blog" },
-  { path: "/blog/grok-register-panel", heading: "把批量注册做成可运维产品：Grok Register Panel", shot: "blog-article" },
+  { path: "/blog/grok-register-panel", heading: getBlogPost("grok-register-panel")!.title, shot: "blog-article" },
 ] as const;
 
 test.beforeEach(async ({ page }, testInfo) => {

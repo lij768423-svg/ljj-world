@@ -1,4 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { blogPosts } from "../src/blog";
+
+/** The first post cover's responsive candidates, smallest first. */
+const coverCandidates = (blogPosts[0].srcSet ?? "").split(",")
+  .map((entry) => entry.trim().split(/\s+/))
+  .map(([url, width]) => ({ url, width: Number.parseInt(width, 10) }))
+  .sort((first, second) => first.width - second.width);
 
 test("blog cold entry loads only its responsive current cover", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Explicit mobile viewport and network coverage.");
@@ -8,7 +15,7 @@ test("blog cold entry loads only its responsive current cover", async ({ page },
   await page.goto("/blog", { waitUntil: "networkidle" });
   await page.waitForTimeout(1800);
   expect(images.filter(image => image.startsWith("/assets/"))).toEqual([
-    expect.stringMatching(/\/grok-register-panel-480-[a-f0-9]+\.webp$/),
+    coverCandidates[0].url,
   ]);
   const current = page.locator(".blog-console-portrait figure.is-active img");
   await expect(current).toHaveJSProperty("complete", true);
@@ -35,7 +42,7 @@ test("desktop portrait cover uses a sufficiently detailed crop", async ({ page }
   await page.goto("/blog", { waitUntil: "networkidle" });
   const image = page.locator(".blog-console-portrait figure.is-active img");
   await expect(image).toHaveJSProperty("complete", true);
-  expect(await image.evaluate((element: HTMLImageElement) => element.currentSrc)).toMatch(/grok-register-panel-1584-[a-f0-9]+\.webp$/);
+  expect(await image.evaluate((element: HTMLImageElement) => element.currentSrc)).toMatch(new RegExp(`${coverCandidates.at(-1)!.url}$`));
 });
 
 test("save-data suppresses speculative navigation preloads", async ({ page }, testInfo) => {

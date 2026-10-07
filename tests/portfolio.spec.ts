@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, readFile, stat } from "node:fs/promises";
+import { blogPosts } from "../src/blog";
 
 const routes = [
   { path: "/", heading: "你好，我是 ljj", title: "lij768423-svg | 独立开发者" },
@@ -351,7 +352,7 @@ test("blog index previews articles and opens a readable article route", async ({
   await expect(page.locator(".blog-console")).toBeVisible();
 
   const posts = page.locator(".blog-index-list a");
-  await expect(posts).toHaveCount(5);
+  await expect(posts).toHaveCount(blogPosts.length);
   const previewImages = page.locator(".blog-console-portrait img");
   await expect(previewImages).toHaveCount(1);
   await expect.poll(() => previewImages.evaluateAll((images) => images.every((image) => (
@@ -360,13 +361,13 @@ test("blog index previews articles and opens a readable article route", async ({
 
   await posts.nth(2).hover();
   await expect(posts.nth(2)).toHaveClass(/is-active/);
-  await expect(page.locator(".blog-console-story strong")).toHaveText("考研、开发与 AI，如何共享同一套工作流");
-  await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("alt", "408 学习产品概念封面");
+  await expect(page.locator(".blog-console-story strong")).toHaveText(blogPosts[2].title);
+  await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("alt", blogPosts[2].imageAlt);
 
   await posts.nth(1).click();
-  await expect(page).toHaveURL(/\/blog\/home-server-as-a-product$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("我为什么把个人服务器当成长期产品");
-  await expect(page.locator(".blog-article-copy section")).toHaveCount(3);
+  await expect(page).toHaveURL(new RegExp(`/blog/${blogPosts[1].slug}$`));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(blogPosts[1].title);
+  await expect(page.locator(".blog-article-copy section")).toHaveCount(blogPosts[1].sections.length);
   await expect(page.getByRole("link", { name: "全部文章" })).toHaveAttribute("href", "/blog");
 });
 
@@ -921,7 +922,8 @@ test("server story uses click-only focus and blank-space reset", async ({ page }
   await expect(story.locator(".machine-real-image")).toHaveCount(5);
   const gpuFan = story.locator(".machine-gpu-fan .machine-fan-rotor").first();
   await expect(gpuFan).toHaveCSS("animation-name", "server-fan-spin");
-  await expect(gpuFan).toHaveCSS("animation-duration", "3.4s");
+  // The visual-only overview slows the GPU fans (ServerMachineVisual.css).
+  await expect(gpuFan).toHaveCSS("animation-duration", "6s");
   const fanRotationBefore = await gpuFan.evaluate((node) => getComputedStyle(node).rotate);
   await page.waitForTimeout(160);
   const fanRotationAfter = await gpuFan.evaluate((node) => getComputedStyle(node).rotate);

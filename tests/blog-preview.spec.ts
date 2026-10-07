@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { blogPosts } from "../src/blog";
 
 async function openBlog(page: Page) {
   await page.goto("/blog", { waitUntil: "networkidle" });
@@ -107,7 +108,7 @@ test("rapid reversals keep a solid base and settle on the latest requested artic
   expect(Math.min(...frames.map((frame) => frame.coverage))).toBeGreaterThanOrEqual(0.995);
   expect(frames.every((frame) => frame.opacities.filter((opacity) => opacity > 0.001).length <= 2)).toBe(true);
   await expect(posts.first()).toHaveClass(/is-active/);
-  await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("src", /grok-register-panel-\d+-[a-f0-9]+\.webp$/);
+  await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("src", blogPosts[0].image);
   expect(frames.at(-1)!.opacities.filter((opacity) => opacity > 0.001)).toEqual([1]);
 });
 
@@ -127,7 +128,7 @@ test("a delayed cover keeps the current preview visible and cannot overwrite a n
     await posts.nth(1).focus();
     await page.waitForTimeout(450);
     await expect(posts.first()).toHaveClass(/is-active/);
-    await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("src", /grok-register-panel-\d+-[a-f0-9]+\.webp$/);
+    await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("src", blogPosts[0].image);
     await posts.nth(2).focus();
     await expect(posts.nth(2)).toHaveClass(/is-active/);
     releaseImage();
