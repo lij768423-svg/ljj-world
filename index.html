@@ -37,9 +37,20 @@
         ]
       }
     </script>
+    <style>
+      .boot-loader { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px; background: #f3f4f1; color: #171815; font: 700 22px/1 "Manrope Variable", "Manrope", system-ui, sans-serif; letter-spacing: -0.01em; opacity: 0; animation: boot-in 0.4s 0.25s ease forwards; }
+      .boot-loader-mark i { display: inline-block; width: 7px; height: 7px; margin-left: 3px; background: #b93b28; animation: boot-blink 1.1s steps(1) infinite; }
+      .boot-loader-bar { position: relative; width: 132px; height: 2px; overflow: hidden; background: rgba(23, 24, 21, 0.12); }
+      .boot-loader-bar i { position: absolute; inset: 0 auto 0 0; width: 38%; background: #b93b28; animation: boot-bar 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+      @keyframes boot-in { to { opacity: 1; } }
+      @keyframes boot-blink { 50% { opacity: 0; } }
+      @keyframes boot-bar { from { transform: translateX(-100%); } to { transform: translateX(265%); } }
+      @media (prefers-color-scheme: dark) { .boot-loader { background: #171815; color: #ecebe6; } .boot-loader-bar { background: rgba(236, 235, 230, 0.14); } }
+      @media (prefers-reduced-motion: reduce) { .boot-loader { animation: none; opacity: 1; } .boot-loader i { animation: none; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-loader" role="status" aria-label="Loading"><div class="boot-loader-mark">ljj.world<i></i></div><div class="boot-loader-bar"><i></i></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

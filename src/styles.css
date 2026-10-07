@@ -19254,3 +19254,87 @@ body:has(.blog-index) {
     min-height: 96px;
   }
 }
+
+/* Route code still loading: a thin accent line that only appears if the wait is noticeable. */
+.route-loading {
+  display: grid;
+  min-height: 60vh;
+  place-items: center;
+  opacity: 0;
+  animation: route-loading-in 0.3s 0.2s ease forwards;
+}
+
+.route-loading span {
+  position: relative;
+  width: 120px;
+  height: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.route-loading span::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  background: var(--accent);
+  animation: route-loading-bar 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes route-loading-in { to { opacity: 1; } }
+@keyframes route-loading-bar { from { transform: translateX(-100%); } to { transform: translateX(265%); } }
+
+/* Blog index: the first cover shows a scanning skeleton until it has decoded, then resolves in. */
+.blog-topline-rule {
+  transform-origin: left center;
+}
+
+.blog-console-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-deep) 88%, var(--text));
+  transition: opacity 420ms ease;
+}
+
+.blog-console-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--surface-raised) 70%, transparent) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: blog-skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+.blog-console-portrait[data-cover-ready="true"] .blog-console-skeleton {
+  opacity: 0;
+}
+
+.blog-console-portrait img {
+  transition: opacity 560ms cubic-bezier(0.16, 1, 0.3, 1), filter 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.blog-console-portrait[data-cover-ready="false"] img {
+  opacity: 0;
+  filter: blur(14px) saturate(0.9) contrast(1.02);
+  transform: scale(1.04);
+}
+
+@keyframes blog-skeleton-sweep { to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading,
+  .route-loading span::after,
+  .blog-console-skeleton::after {
+    animation: none;
+  }
+
+  .route-loading {
+    opacity: 1;
+  }
+
+  .blog-console-portrait img {
+    transition: none;
+  }
+}

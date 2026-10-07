@@ -126,6 +126,12 @@ export function BlogPage() {
   }
 
   const reveal = reduceMotion ? false : { opacity: 0, y: 14 };
+  const introStagger = { hidden: {}, shown: { transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
+  const introItem = {
+    hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
+    shown: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.62, ease: easeOut } },
+  };
+  const coverReady = readySlugs.has(activeSlug);
   const noteCount = blogPosts.length;
   const latestYear = blogPosts[0]?.date.slice(0, 4) ?? "2026";
 
@@ -139,7 +145,12 @@ export function BlogPage() {
           <span className="blog-field-pulse blog-field-pulse-bottom" />
           <div className="blog-console-topline">
             <span className="blog-topline-index">02 / BLOG</span>
-            <span className="blog-topline-rule" />
+            <motion.span
+              className="blog-topline-rule"
+              initial={reduceMotion ? false : { scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ duration: reduceMotion ? 0 : 0.9, delay: 0.12, ease: easeOut }}
+            />
             <span className="blog-topline-copy">WORKING NOTES</span>
             <span className="blog-topline-status">
               <i />
@@ -150,18 +161,18 @@ export function BlogPage() {
 
         <motion.div
           className="blog-console-intro"
-          initial={reveal}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0 : 0.52, ease: easeOut }}
+          variants={introStagger}
+          initial={reduceMotion ? false : "hidden"}
+          animate="shown"
         >
-          <p className="blog-console-kicker">写给还要继续维护的自己</p>
-          <h1 id="blog-title">文章与笔记</h1>
-          <p className="blog-console-lead">产品、学习和自建里真正卡住的地方。</p>
-          <p className="blog-console-summary">
+          <motion.p className="blog-console-kicker" variants={introItem}>写给还要继续维护的自己</motion.p>
+          <motion.h1 id="blog-title" variants={introItem}>文章与笔记</motion.h1>
+          <motion.p className="blog-console-lead" variants={introItem}>产品、学习和自建里真正卡住的地方。</motion.p>
+          <motion.p className="blog-console-summary" variants={introItem}>
             记录我把东西做出来、跑起来、再维护下去时实际碰到的问题，而不是功能清单。
-          </p>
+          </motion.p>
 
-          <div className="blog-console-story">
+          <motion.div className="blog-console-story" variants={introItem}>
             <span>{activePost.category}</span>
             <strong>{activePost.title}</strong>
             <p>{activePost.excerpt}</p>
@@ -169,7 +180,7 @@ export function BlogPage() {
               <span>阅读这篇文章</span>
               <ArrowRight size={16} weight="bold" aria-hidden="true" />
             </Link>
-          </div>
+          </motion.div>
         </motion.div>
 
         <motion.div
@@ -178,7 +189,8 @@ export function BlogPage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: reduceMotion ? 0 : 0.64, delay: 0.06, ease: easeOut }}
         >
-          <div className="blog-console-portrait">
+          <div className="blog-console-portrait" data-cover-ready={coverReady}>
+            <span className="blog-console-skeleton" aria-hidden="true" />
             {previewPosts.map((post) => (
               <motion.figure
                 className={post.slug === activePost.slug ? "is-active" : undefined}
@@ -235,8 +247,13 @@ export function BlogPage() {
           </div>
 
           <ol className="blog-index-list" aria-labelledby="blog-index-heading">
-            {blogPosts.map((post) => (
-              <li key={post.slug}>
+            {blogPosts.map((post, index) => (
+              <motion.li
+                key={post.slug}
+                initial={reduceMotion ? false : { opacity: 0, x: 18 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.2 + index * 0.06, ease: easeOut }}
+              >
                 <Link
                   className={post.slug === activePost.slug ? "is-active" : undefined}
                   to={`/blog/${post.slug}`}
@@ -255,7 +272,7 @@ export function BlogPage() {
                   <strong>{post.title}</strong>
                   <span>{post.category}</span>
                 </Link>
-              </li>
+              </motion.li>
             ))}
           </ol>
         </motion.div>

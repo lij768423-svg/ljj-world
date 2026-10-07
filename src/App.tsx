@@ -1636,6 +1636,10 @@ function PageMeta() {
   return null;
 }
 
+function RouteLoading() {
+  return <div className="route-loading" role="status" aria-label="Loading"><span /></div>;
+}
+
 function ScrollToTop() {
   const location = useLocation();
 
@@ -1731,7 +1735,7 @@ function PortfolioRoutes({
                   },
                 }}
         >
-          <Suspense fallback={null}>
+          <Suspense fallback={<RouteLoading />}>
             <ScrollToTop />
             <Routes location={location.pathname}>
               <Route path="/"><HomePage theme={theme} /></Route>
