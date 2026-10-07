@@ -1373,6 +1373,8 @@ body.project-transition-active {
 }
 
 /* Keep route background images and grids, but let the bottom trail show through them. */
+.home-story,
+.home-story > [data-home-scene="intro"],
 .project-index.project-dna-page,
 .about-page,
 .server-story,

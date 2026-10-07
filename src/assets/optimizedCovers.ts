@@ -1,9 +1,9 @@
 export const optimizedCovers = {
   "grok-register-panel": {
-    "image": "/assets/project-covers/grok-register-panel-1584-fa637a62790d.webp",
-    "width": 1584,
-    "height": 993,
-    "srcSet": "/assets/project-covers/grok-register-panel-480-24dcda5fee29.webp 480w, /assets/project-covers/grok-register-panel-960-e4ba21acead0.webp 960w, /assets/project-covers/grok-register-panel-1584-fa637a62790d.webp 1584w"
+    "image": "/assets/project-covers/grok-register-panel-local-1536-17d457f4da03.webp",
+    "width": 1536,
+    "height": 864,
+    "srcSet": "/assets/project-covers/grok-register-panel-local-480-94358501f82a.webp 480w, /assets/project-covers/grok-register-panel-local-960-f9110b1ae609.webp 960w, /assets/project-covers/grok-register-panel-local-1536-17d457f4da03.webp 1536w"
   },
   "grok2api-egress-enhancements": {
     "image": "/assets/project-covers/grok2api-egress-enhancements-1024-bea15fe671ec.webp",

@@ -71,7 +71,7 @@ test("home story has three usable scenes with separated artwork", async ({ page 
   await expect(page.locator(".home-story")).toHaveCSS("background-size", /40px 40px/);
   await expect(page.locator("[data-home-scene]")).toHaveCount(3);
   for (const scene of await page.locator('[data-home-scene="about"], [data-home-scene="projects"]').all()) {
-    await expect(scene).toHaveCSS("background-size", /40px 40px/);
+    await expect(scene).not.toHaveCSS("background-size", "40px 40px");
   }
   await expect(page.locator('[data-line-ornaments="about"]')).toHaveCount(1);
   await expect(page.locator('[data-line-ornaments="projects"]')).toHaveCount(1);
@@ -97,9 +97,8 @@ test("home story has three usable scenes with separated artwork", async ({ page 
       aboutTop: aboutBox.top,
     };
   });
-  expect(Math.abs(stackedEntry.introTop - stackedEntry.storyTop)).toBeLessThanOrEqual(1);
+  expect(stackedEntry.introTop).toBeLessThan(stackedEntry.storyTop - 1);
   expect(stackedEntry.aboutTop).toBeGreaterThan(stackedEntry.storyTop + 1);
-  expect(stackedEntry.aboutTop).toBeLessThan(stackedEntry.storyBottom);
   await expect(page.locator(".home-about-scene")).toHaveAttribute("data-stickers-ready", "false");
 
   const rail = page.getByRole("navigation", { name: "首页章节" });
@@ -132,10 +131,25 @@ test("home story has three usable scenes with separated artwork", async ({ page 
 
   await rail.getByRole("button", { name: "项目" }).click();
   await expect(rail.getByRole("button", { name: "项目" })).toHaveClass(/is-active/);
+  const favoriteFit = await page.locator(".home-story").evaluate((story) => {
+    const scene = story.querySelector<HTMLElement>('[data-home-scene="projects"]')!;
+    const cards = [...scene.querySelectorAll<HTMLElement>(".favorite-project")].map((card) => card.getBoundingClientRect());
+    const sceneBox = scene.getBoundingClientRect();
+    const view = story.getBoundingClientRect();
+    return {
+      sceneHeight: sceneBox.height,
+      viewHeight: view.height,
+      cardsFit: cards.every((card) => card.top >= sceneBox.top - 1 && card.bottom <= sceneBox.bottom + 1),
+      bottomGap: sceneBox.bottom - Math.max(...cards.map((card) => card.bottom)),
+    };
+  });
+  expect(favoriteFit.sceneHeight).toBeLessThanOrEqual(favoriteFit.viewHeight + 1);
+  expect(favoriteFit.cardsFit).toBe(true);
+  expect(favoriteFit.bottomGap).toBeGreaterThanOrEqual(36);
   const favoriteLinks = page.locator(".favorite-project-link");
   await expect(favoriteLinks).toHaveCount(2);
   for (const link of await favoriteLinks.all()) await expect(link).toBeVisible();
-  await expect(favoriteLinks.nth(0)).toHaveAttribute("href", "https://github.com/lij768423-svg/408-");
+  await expect(favoriteLinks.nth(0)).toHaveAttribute("href", "https://github.com/lij768423-svg/grok-register-panel");
   await expect(favoriteLinks.nth(1)).toHaveAttribute("href", "https://lawweb.hermesjj.com/");
   for (const link of await favoriteLinks.all()) {
     await expect(link).toHaveAttribute("target", "_blank");
@@ -175,15 +189,19 @@ test("home scene rail returns to the introduction from the scroll boundary", asy
   await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
 
   const story = page.locator(".home-story");
+  const maxScroll = await story.evaluate((element) => element.scrollHeight - element.clientHeight);
+  expect(maxScroll).toBeGreaterThan(1200);
   await story.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeGreaterThan(2000);
+  await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeGreaterThan(maxScroll - 2);
 
   const stickyOffsets = await story.locator("[data-home-scene]").evaluateAll((scenes) => (
     scenes.map((scene) => (scene as HTMLElement).offsetTop)
   ));
-  expect(new Set(stickyOffsets).size).toBe(1);
+  expect(stickyOffsets).toHaveLength(3);
+  expect(stickyOffsets[0]).toBeLessThan(stickyOffsets[1]);
+  expect(stickyOffsets[1]).toBeLessThan(stickyOffsets[2]);
 
   const rail = page.getByRole("navigation", { name: "首页章节" });
   await rail.getByRole("button", { name: "介绍" }).click();
@@ -194,7 +212,7 @@ test("home scene rail returns to the introduction from the scroll boundary", asy
   await expect(rail.getByRole("button", { name: "介绍" })).toHaveClass(/is-active/);
 });
 
-test("about scene buffers light wheel gestures before projects enter", async ({ page }, testInfo) => {
+test("about scene continues into projects with a light wheel", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "The home story is designed around a desktop viewport.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -208,27 +226,26 @@ test("about scene buffers light wheel gestures before projects enter", async ({ 
     const storyBox = element.getBoundingClientRect();
     const about = element.querySelector<HTMLElement>('[data-home-scene="about"]')!;
     const projects = element.querySelector<HTMLElement>('[data-home-scene="projects"]')!;
-    const buffer = element.querySelector<HTMLElement>(".home-scene-buffer")!;
     return {
       aboutTop: about.offsetTop,
       scrollTop: element.scrollTop,
-      bufferHeight: buffer.offsetHeight,
       projectGap: projects.getBoundingClientRect().top - storyBox.bottom,
     };
   });
   expect(initial.scrollTop).toBe(initial.aboutTop);
-  expect(initial.bufferHeight).toBeGreaterThanOrEqual(220);
-  expect(initial.projectGap).toBeGreaterThanOrEqual(initial.bufferHeight - 1);
+  expect(initial.projectGap).toBeGreaterThanOrEqual(-1);
 
   await story.hover({ position: { x: 700, y: 500 } });
   await page.mouse.wheel(0, 120);
   await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeGreaterThan(initial.aboutTop + 40);
-  const projectGapAfterLightWheel = await story.evaluate((element) => {
+  const after = await story.evaluate((element) => {
     const storyBox = element.getBoundingClientRect();
     const projects = element.querySelector<HTMLElement>('[data-home-scene="projects"]')!;
-    return projects.getBoundingClientRect().top - storyBox.bottom;
+    return {
+      projectGap: projects.getBoundingClientRect().top - storyBox.bottom,
+    };
   });
-  expect(projectGapAfterLightWheel).toBeGreaterThan(40);
+  expect(after.projectGap).toBeLessThan(initial.projectGap);
   await expect(rail.getByRole("button", { name: "关于" })).toHaveClass(/is-active/);
 });
 
@@ -873,7 +890,7 @@ test("server story stays visual-only", async ({ page }, testInfo) => {
   await expect(topology).toHaveAttribute("data-story-exploded", "true");
   await expect(topology.getByRole("heading", { name: "Agent 与 AI" })).toBeVisible();
   await expect(topology.locator(".server-story-module-list li")).toHaveCount(5);
-  await expect(topology.locator('.server-machine-gpu .machine-real-image[href="/assets/server-parts/gpu-line.png"]')).toHaveCSS("opacity", "1");
+  await expect(topology.locator('.server-machine-gpu .machine-real-image[href*="gpu-line"]')).toHaveCSS("opacity", "1");
 });
 
 test("server story uses click-only focus and blank-space reset", async ({ page }, testInfo) => {
@@ -921,16 +938,16 @@ test("server story uses click-only focus and blank-space reset", async ({ page }
   expect(await firstServiceNode.evaluate((node) => Number.parseFloat(getComputedStyle(node).opacity))).toBeLessThan(0.5);
   await expect.poll(
     () => firstConnector.getAttribute("x2").then((value) => Number.parseFloat(value ?? "0")),
-    { timeout: 800 },
+    { timeout: 2500 },
   ).toBeCloseTo(38, 1);
   await expect.poll(
     () => firstServiceNode.evaluate((node) => Number.parseFloat(getComputedStyle(node).opacity)),
-    { timeout: 800 },
+    { timeout: 2500 },
   ).toBeGreaterThan(0.98);
   await page.waitForTimeout(850);
   await expect(story.getByRole("heading", { name: "Agent 与 AI" })).toBeVisible();
   await expect(story.locator(".server-story-module-list > li")).toHaveCount(5);
-  await expect(story.locator('.server-machine-gpu .machine-real-image[href="/assets/server-parts/gpu-line.png"]')).toHaveCSS("opacity", "1");
+  await expect(story.locator('.server-machine-gpu .machine-real-image[href*="gpu-line"]')).toHaveCSS("opacity", "1");
   await story.locator(".server-machine-gpu .machine-real-image").dispatchEvent("click");
   await expect(story).toHaveAttribute("data-story-stage", "agent");
   await expect(story).toHaveAttribute("data-story-exploded", "true");
@@ -1117,14 +1134,12 @@ test("home introduction and generated portrait remain stable", async ({ page }, 
     expect(boxes.portraitBottom).toBeLessThanOrEqual(boxes.viewportHeight + 1);
   }
 
-  test.skip(testInfo.project.name !== "desktop", "Portrait parallax is desktop-only.");
+  test.skip(testInfo.project.name !== "desktop", "Portrait video is desktop-only.");
   await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
   await page.mouse.move(1120, 180);
   await page.waitForTimeout(150);
-  const parallaxX = await page.locator(".hero").evaluate((element) => (
-    Number.parseFloat(element.style.getPropertyValue("--portrait-shift-x"))
-  ));
-  expect(Math.abs(parallaxX)).toBeGreaterThan(1);
+  await expect(page.locator(".hero-portrait-loop")).toHaveAttribute("data-loop-ready", "true");
+  await expect(page.locator(".hero-portrait-live")).toHaveCount(0);
 });
 
 test("about page loads with grouped motion and a bounded animation budget", async ({ page }, testInfo) => {

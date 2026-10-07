@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { chmod, lstat, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -38,6 +38,12 @@ await writeFile(path.join(source, "SOURCE-MANIFEST.json"), `${JSON.stringify(sou
 execFileSync("tar", ["-czf", path.join(output, "source.tar.gz"), "-C", source, "--null", "-T", "-"], { input: [...sourceFiles.map(file => file.path), "SOURCE-MANIFEST.json"].join("\0") + "\0" });
 execFileSync("npm", ["ci", "--no-audit", "--no-fund"], { cwd: source, stdio: "inherit" });
 execFileSync("npm", ["run", "build"], { cwd: source, stdio: "inherit" });
+for (const folder of ["service-art", "server-parts"]) {
+  const directory = path.join(source, "dist", "assets", folder);
+  for (const name of await readdir(directory)) {
+    if (name.endsWith(".png")) await unlink(path.join(directory, name));
+  }
+}
 
 async function inventory(directory, prefix = "") {
   const entries = [];

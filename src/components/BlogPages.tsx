@@ -57,6 +57,7 @@ function ArticleCover({ post, reduceMotion }: { post: BlogPost; reduceMotion: bo
           alt={post.imageAlt}
           width={1600}
           height={1000}
+          loading="eager"
           decoding="async"
           fetchPriority="high"
           style={{
@@ -290,7 +291,7 @@ export function BlogArticlePage() {
   useEffect(() => {
     if (!post) return;
     const nodes = post.sections
-      .map((section) => document.getElementById(sectionId(post.slug, section.title)))
+      .map((section) => document.getElementById(sectionId(post.slug, section.anchor ?? section.title)))
       .filter((node): node is HTMLElement => Boolean(node));
     if (!nodes.length) return;
 
@@ -422,7 +423,7 @@ export function BlogArticlePage() {
               </motion.p>
               {post.sections.map((section, index) => (
                 <motion.section
-                  id={sectionId(post.slug, section.title)}
+                  id={sectionId(post.slug, section.anchor ?? section.title)}
                   key={section.title}
                   initial={reduceMotion ? false : { opacity: 0, y: 18 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -463,7 +464,7 @@ export function BlogArticlePage() {
                 {post.sections.map((section, index) => (
                   <a
                     key={section.title}
-                    href={`#${sectionId(post.slug, section.title)}`}
+                    href={`#${sectionId(post.slug, section.anchor ?? section.title)}`}
                     className={index === activeSection ? "is-active" : undefined}
                     aria-current={index === activeSection ? "true" : undefined}
                   >

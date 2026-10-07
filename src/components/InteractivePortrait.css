@@ -1,0 +1,24 @@
+.hero-intro .hero-portrait-image { transition: opacity 350ms ease; }
+.hero-intro .hero-portrait-image.is-loop-source { opacity: 0; }
+.hero-intro .hero-portrait-loop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  transform: translate3d(5%, 0, 0);
+  filter: saturate(.92) contrast(1.02);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 350ms ease;
+}
+.hero-intro .hero-portrait-loop[data-loop-ready="true"] { opacity: 1; }
+:root:not([data-theme="dark"]) .hero-intro .hero-portrait-loop { filter: brightness(1.24) saturate(.9) contrast(.94); }
+@media (max-width: 1280px) and (min-width: 1081px) {
+  .hero-intro .hero-portrait-loop { transform: translate3d(6.5%, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce), (max-width: 1080px) {
+  .hero-intro .hero-portrait-loop { display: none; }
+  .hero-intro .hero-portrait-image.is-loop-source { opacity: 1; }
+}

@@ -1,0 +1,58 @@
+.server-machine.original-refined .machine-detail {
+  stroke: color-mix(in srgb, currentColor 40%, transparent);
+  stroke-width: .8;
+}
+
+.server-machine.original-refined .machine-vent-line {
+  stroke-opacity: .65;
+}
+
+.server-machine.original-refined .machine-panel {
+  fill: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+}
+
+.server-machine.original-refined .machine-board-fill {
+  fill: color-mix(in srgb, var(--surface-raised) 96%, var(--text));
+}
+
+.server-machine.original-refined .machine-chip {
+  fill: color-mix(in srgb, var(--surface-raised) 94%, var(--text));
+}
+
+.server-machine.original-refined .machine-fan-blade {
+  fill: color-mix(in srgb, var(--surface-raised) 93%, var(--text));
+  stroke-width: .75;
+}
+
+.server-story[data-story-exploded="false"] .original-refined .machine-rotor-disc {
+  opacity: .28;
+}
+
+.server-story[data-story-exploded="false"] .original-refined .machine-orbit {
+  opacity: .55;
+}
+
+.server-story[data-story-exploded="false"] .original-refined .machine-axis {
+  opacity: .32;
+}
+
+.server-story[data-story-exploded="false"] .original-refined .machine-panel-flow {
+  stroke-width: 1.25;
+  opacity: .62;
+  filter: none;
+}
+
+.server-machine.original-refined .machine-trace {
+  stroke-width: .85;
+  stroke-opacity: .7;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .server-story.is-visual-only[data-story-exploded="false"] .original-refined .machine-panel-flow {
+    animation-duration: 12s;
+  }
+
+  .server-story.is-visual-only[data-story-exploded="false"] .original-refined .server-machine-part .machine-wire .machine-gpu-fan .machine-fan-rotor {
+    animation-duration: 6s;
+  }
+}

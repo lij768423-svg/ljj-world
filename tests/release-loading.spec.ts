@@ -24,7 +24,7 @@ test("homepage does not speculatively download other pages", async ({ page }, te
   page.on("request", request => { if (request.resourceType() === "image") images.push(new URL(request.url()).pathname); });
   await page.goto("/", { waitUntil: "networkidle" });
   await page.waitForTimeout(1800);
-  expect(images.some(image => image.includes("grok-register") || image.includes("grok2api-egress") || image.includes("desk-setup"))).toBe(false);
+  expect(images.some(image => image.includes("grok2api-egress") || image.includes("desk-setup"))).toBe(false);
   expect(images.some(image => /virtual-developer-avatar-\d/.test(image))).toBe(false);
   expect(images.some(image => image.includes("virtual-developer-avatar-dark"))).toBe(true);
 });

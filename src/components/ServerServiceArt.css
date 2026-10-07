@@ -7,6 +7,26 @@
 
 .service-art-raster {
   pointer-events: none;
+  animation: service-art-reveal 240ms ease-out both;
+}
+
+.service-art-placeholder text,
+.service-art-retry text {
+  fill: var(--text-muted, var(--text));
+  font-size: 24px;
+}
+
+.service-art-retry { cursor: pointer; }
+.service-art-retry rect { fill: var(--bg); stroke: var(--line-strong); stroke-width: 2; }
+.service-art-retry:focus-visible rect { stroke: var(--accent); stroke-width: 4; }
+
+@keyframes service-art-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-art-raster { animation: none; }
 }
 
 .service-art-missing {

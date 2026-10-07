@@ -47,54 +47,28 @@ test("React Bits kinetic layers render and respond to pointer input", async ({ p
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 4500 });
 
-  const dotGrid = page.locator(".interactive-dot-grid");
-  await expect(dotGrid).toBeVisible();
-  const dotGridHasPixels = await dotGrid.evaluate((node) => {
+  const trail = page.locator(".global-pixel-trail");
+  await expect(trail).toBeVisible();
+  expect(await page.locator(".home-story").evaluate((node) => {
+    const trailLayer = document.querySelector(".global-pixel-trail");
+    const main = document.querySelector(".route-main");
+    return {
+      trailZ: Number(trailLayer && getComputedStyle(trailLayer).zIndex),
+      mainZ: Number(main && getComputedStyle(main).zIndex),
+      storyFill: getComputedStyle(node).backgroundColor,
+    };
+  })).toEqual({ trailZ: 0, mainZ: 1, storyFill: "rgba(0, 0, 0, 0)" });
+  await page.mouse.move(380, 138);
+  await expect.poll(() => trail.evaluate((node) => {
     const canvas = node as HTMLCanvasElement;
     const context = canvas.getContext("2d");
     if (!context) return false;
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    for (let index = 3; index < pixels.length; index += 64) {
+    for (let index = 3; index < pixels.length; index += 16) {
       if (pixels[index] > 0) return true;
     }
     return false;
-  });
-  expect(dotGridHasPixels).toBe(true);
-
-  const revealLayer = page.locator(".pixel-reveal-layer");
-  const revealCanvas = page.locator(".pixel-reveal-canvas");
-  await expect(revealLayer).toBeVisible();
-  await expect(revealCanvas).toBeVisible();
-  await expect(page.locator(".pixel-reveal-collage img")).toHaveCount(4);
-  const revealImagesLoaded = await page.locator(".pixel-reveal-collage img").evaluateAll((images) => {
-    return images.every((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0);
-  });
-  expect(revealImagesLoaded).toBe(true);
-
-  const sampleRevealAlpha = (clientX: number, clientY: number) => revealCanvas.evaluate((node, point) => {
-    const canvas = node as HTMLCanvasElement;
-    const context = canvas.getContext("2d");
-    if (!context) return 255;
-    const bounds = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / bounds.width;
-    const scaleY = canvas.height / bounds.height;
-    const x = Math.max(0, Math.floor((point.clientX - bounds.left) * scaleX) - 10);
-    const y = Math.max(0, Math.floor((point.clientY - bounds.top) * scaleY) - 10);
-    const width = Math.min(20, canvas.width - x);
-    const height = Math.min(20, canvas.height - y);
-    const pixels = context.getImageData(x, y, width, height).data;
-    let minimumAlpha = 255;
-    for (let index = 3; index < pixels.length; index += 4) minimumAlpha = Math.min(minimumAlpha, pixels[index]);
-    return minimumAlpha;
-  }, { clientX, clientY });
-
-  expect(await sampleRevealAlpha(380, 138)).toBe(255);
-  await page.mouse.move(380, 138);
-  await expect.poll(() => sampleRevealAlpha(380, 138), { timeout: 500 }).toBeLessThan(120);
-  await expect.poll(
-    () => sampleRevealAlpha(380, 138),
-    { timeout: 1800, intervals: [100, 150, 200] },
-  ).toBeGreaterThan(240);
+  }), { timeout: 800 }).toBe(true);
 
   await expect(page.locator(".hero-line").first().locator(".sr-only")).toHaveText("你好，我是 ljj。");
   expect(await page.locator(".hero-line").first().locator(":scope > span[aria-hidden='true']").count()).toBeGreaterThan(5);
@@ -106,9 +80,8 @@ test("React Bits kinetic layers render and respond to pointer input", async ({ p
     (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
   ))).toBe(true);
   await page.mouse.move(1040, 240);
-  await expect.poll(() => page.locator(".hero").evaluate((hero) => (
-    hero.style.getPropertyValue("--portrait-shift-x")
-  ))).not.toBe("");
+  await expect(page.locator(".hero-portrait-loop")).toHaveAttribute("data-loop-ready", "true");
+  await expect(page.locator(".hero-portrait-live")).toHaveCount(0);
 
   const magneticButton = page.locator(".hero-actions .magnetic-target").first();
   const magneticBox = await magneticButton.boundingBox();

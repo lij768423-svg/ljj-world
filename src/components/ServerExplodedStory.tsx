@@ -3,6 +3,9 @@ import { useMemo, useState, type KeyboardEvent, type MouseEvent as ReactMouseEve
 import { BlurText } from "./effects/BlurText";
 import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
+import { serverPartImages } from "../assets/serverParts";
+import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
+import "./ServerMachineVisual.css";
 
 type ServerCategoryId = "network" | "hardware" | "agent" | "data" | "containers";
 
@@ -56,11 +59,11 @@ const standardCameraFrames: Record<ServerCategoryId, { x: number; y: number; sca
 };
 
 const categoryVisuals: Record<ServerCategoryId, { src: string; alt: string }> = {
-  network: { src: "/assets/server-parts/nic-line.png", alt: "服务器双口网卡线稿" },
-  hardware: { src: "/assets/server-parts/cpu-line.png", alt: "服务器处理器线稿" },
-  agent: { src: "/assets/server-parts/gpu-line.png", alt: "服务器显卡线稿" },
-  data: { src: "/assets/server-parts/nvme-line.png", alt: "服务器 NVMe 存储线稿" },
-  containers: { src: "/assets/server-parts/container-line.png", alt: "服务器容器运行核心线稿" },
+  network: { src: serverPartImages["nic-line"], alt: "服务器双口网卡线稿" },
+  hardware: { src: serverPartImages["cpu-line"], alt: "服务器处理器线稿" },
+  agent: { src: serverPartImages["gpu-line"], alt: "服务器显卡线稿" },
+  data: { src: serverPartImages["nvme-line"], alt: "服务器 NVMe 存储线稿" },
+  containers: { src: serverPartImages["container-line"], alt: "服务器容器运行核心线稿" },
 };
 
 const serviceConnectorLayouts = [
@@ -158,7 +161,7 @@ function MachineDrawing({
 
   return (
     <motion.div className="server-machine-camera" animate={cameraFrame} transition={movementTransition}>
-      <svg className="server-machine" viewBox="0 0 1000 640" role="img" aria-label="home-serve 主机分层爆炸结构图">
+      <svg className="server-machine original-refined" viewBox="0 0 1000 640" role="img" aria-label="home-serve 主机分层爆炸结构图">
         <defs>
           <pattern id="server-grid" width="32" height="32" patternUnits="userSpaceOnUse">
             <path d="M 32 0 L 0 0 0 32" className="machine-grid-line" />
@@ -280,7 +283,7 @@ function MachineDrawing({
             <text x="516" y="330" textAnchor="middle">9950X</text>
           </g>
           <g className="machine-real-layer">
-            <image className="machine-real-image" href="/assets/server-parts/cpu-line.png" x="353" y="132" width="360" height="360" preserveAspectRatio="xMidYMid meet" />
+            <image className="machine-real-image" href={serverPartImages["cpu-line"]} x="353" y="132" width="360" height="360" preserveAspectRatio="xMidYMid meet" />
           </g>
         </motion.g>
 
@@ -316,7 +319,7 @@ function MachineDrawing({
             <text x="426" y="368" textAnchor="middle">2.5 GbE / I226-V</text>
           </g>
           <g className="machine-real-layer">
-            <image className="machine-real-image" href="/assets/server-parts/nic-line.png" x="295" y="252" width="330" height="330" preserveAspectRatio="xMidYMid meet" />
+            <image className="machine-real-image" href={serverPartImages["nic-line"]} x="295" y="252" width="330" height="330" preserveAspectRatio="xMidYMid meet" />
           </g>
         </motion.g>
 
@@ -336,7 +339,7 @@ function MachineDrawing({
             <text x="534" y="474" textAnchor="middle">RTX 4090 / LOCAL AI</text>
           </g>
           <g className="machine-real-layer">
-            <image className="machine-real-image" href="/assets/server-parts/gpu-line.png" x="343" y="265" width="400" height="300" preserveAspectRatio="xMidYMid meet" />
+            <image className="machine-real-image" href={serverPartImages["gpu-line"]} x="343" y="265" width="400" height="300" preserveAspectRatio="xMidYMid meet" />
           </g>
         </motion.g>
 
@@ -354,7 +357,7 @@ function MachineDrawing({
             <text x="621" y="295" textAnchor="middle">5.4 TB NVMe ARRAY</text>
           </g>
           <g className="machine-real-layer">
-            <image className="machine-real-image" href="/assets/server-parts/nvme-line.png" x="431" y="110" width="420" height="300" preserveAspectRatio="xMidYMid meet" />
+            <image className="machine-real-image" href={serverPartImages["nvme-line"]} x="431" y="110" width="420" height="300" preserveAspectRatio="xMidYMid meet" />
           </g>
         </motion.g>
 
@@ -370,7 +373,7 @@ function MachineDrawing({
             <text x="528" y="558" textAnchor="middle">AIRFLOW / 119 CONTAINERS</text>
           </g>
           <g className="machine-real-layer">
-            <image className="machine-real-image" href="/assets/server-parts/container-line.png" x="315" y="353" width="420" height="260" preserveAspectRatio="xMidYMid meet" />
+            <image className="machine-real-image" href={serverPartImages["container-line"]} x="315" y="353" width="420" height="260" preserveAspectRatio="xMidYMid meet" />
           </g>
         </motion.g>
 
@@ -493,6 +496,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
     setActiveCategoryId(category.id);
     setSelectedServiceId(category.services[0].id);
     setOpenedServiceId(null);
+    prefetchServiceImages(category.services.map((service) => service.id));
   };
 
   const handleStageClick = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -680,6 +684,9 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                           setOpenedServiceId(service.id);
                         }}
                         aria-label={`查看 ${service.name} 介绍`}
+                        onPointerEnter={() => prefetchServiceImage(service.id)}
+                        onFocus={() => prefetchServiceImage(service.id)}
+                        onTouchStart={() => prefetchServiceImage(service.id)}
                       >
                         <span className="server-story-module-index">{String(index + 1).padStart(2, "0")}</span>
                         <span className="server-story-module-copy">

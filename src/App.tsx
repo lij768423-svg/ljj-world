@@ -38,12 +38,13 @@ import { BlurText } from "./components/effects/BlurText";
 import { DecryptedText } from "./components/effects/DecryptedText";
 import { GlobalFlowingLights } from "./components/effects/GlobalFlowingLights";
 import { GlobalPixelTrail } from "./components/effects/GlobalPixelTrail";
-import { InteractiveDotGrid } from "./components/effects/InteractiveDotGrid";
+
 import { Magnetic } from "./components/effects/Magnetic";
-import { PixelReveal, type PixelRevealHandle } from "./components/effects/PixelReveal";
+
 import { SceneLineOrnaments } from "./components/effects/SceneLineOrnaments";
 import { BlogArticlePage, BlogPage } from "./components/BlogPages";
 import { MobileServerStory } from "./components/MobileServerStory";
+import { InteractivePortrait } from "./components/InteractivePortrait";
 import type { CircularGalleryClick, CircularGalleryItem } from "./components/CircularGallery";
 import type { FlowingMenuItemData } from "./components/FlowingMenu";
 import { PortfolioLanguageProvider, translatePortfolioText, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
@@ -458,8 +459,6 @@ const projects: Project[] = [
       ...optimizedCovers["grok-register-panel"],
       sizes: "(max-width: 680px) calc(100vw - 48px), 320px",
       alt: "Grok Register Panel AI 生成概念海报",
-      width: 1584,
-      height: 993,
     },
   },
   {
@@ -1821,10 +1820,9 @@ function Header({
   );
 }
 
-function Hero({ theme }: { theme: ThemeMode }) {
+function Hero({ theme, onSelectScene }: { theme: ThemeMode; onSelectScene: (scene: HomeSceneId) => void }) {
   const reduceMotion = useReducedMotion();
   const isPhone = window.matchMedia("(max-width: 767px)").matches;
-  const pixelRevealRef = useRef<PixelRevealHandle>(null);
   const portraitSource = "/assets/virtual-developer-avatar-dark.webp";
   const portraitSourceSet = "/assets/virtual-developer-avatar-dark-512.webp 512w, /assets/virtual-developer-avatar-dark-1024.webp 1024w, /assets/virtual-developer-avatar-dark-1600.webp 1600w, /assets/virtual-developer-avatar-dark.webp 2048w";
 
@@ -1834,23 +1832,7 @@ function Hero({ theme }: { theme: ThemeMode }) {
         className="hero hero-intro section-shell"
         data-home-scene="intro"
         aria-labelledby="hero-title"
-        onPointerMove={(event) => {
-          if (reduceMotion || event.pointerType === "touch" || window.innerWidth <= 1080) return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          const horizontal = (event.clientX - bounds.left) / bounds.width - 0.5;
-          const vertical = (event.clientY - bounds.top) / bounds.height - 0.5;
-          event.currentTarget.style.setProperty("--portrait-shift-x", `${horizontal * -12}px`);
-          event.currentTarget.style.setProperty("--portrait-shift-y", `${vertical * -8}px`);
-          pixelRevealRef.current?.revealAt(event.clientX, event.clientY);
-        }}
-        onPointerLeave={(event) => {
-          pixelRevealRef.current?.release();
-          event.currentTarget.style.setProperty("--portrait-shift-x", "0px");
-          event.currentTarget.style.setProperty("--portrait-shift-y", "0px");
-        }}
       >
-        <PixelReveal ref={pixelRevealRef} />
-        <InteractiveDotGrid />
         <motion.div
           className="hero-signal-instrument"
           aria-hidden="true"
@@ -1878,7 +1860,6 @@ function Hero({ theme }: { theme: ThemeMode }) {
         </motion.div>
         <motion.figure
           className="hero-portrait"
-          role="img"
           aria-label="依据本人形象创作的黑框眼镜动漫数字分身"
           initial={reduceMotion || isPhone ? false : { opacity: 0, x: 28, scale: 0.985 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -1886,19 +1867,7 @@ function Hero({ theme }: { theme: ThemeMode }) {
             ? { duration: 0 }
             : { duration: 0.82, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
         >
-          <img
-            className="hero-portrait-image"
-            src={portraitSource}
-            srcSet={portraitSourceSet}
-            sizes="(max-width: 1100px) 100vw, min(58vw, 920px)"
-            alt=""
-            width={2048}
-            height={1152}
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            draggable={false}
-          />
+          <InteractivePortrait src={portraitSource} srcSet={portraitSourceSet} />
         </motion.figure>
         <motion.div
           className="hero-copy"
@@ -1920,12 +1889,22 @@ function Hero({ theme }: { theme: ThemeMode }) {
           </p>
           <div className="hero-actions">
             <Magnetic>
-              <a className="button button-primary" href="#featured-projects">
+              <a className="button button-primary" href="#featured-projects" onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                window.history.pushState(null, "", "#featured-projects");
+                onSelectScene("projects");
+              }}>
                 <span>查看项目</span><span className="button-arrow"><ArrowRight size={18} weight="bold" /></span>
               </a>
             </Magnetic>
             <Magnetic>
-              <a className="button button-secondary" href="#about-me">
+              <a className="button button-secondary" href="#about-me" onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                window.history.pushState(null, "", "#about-me");
+                onSelectScene("about");
+              }}>
                 了解我 <ArrowRight size={18} weight="bold" />
               </a>
             </Magnetic>
@@ -2166,6 +2145,7 @@ function AboutScene({
 }
 
 function FavoriteProjectsScene() {
+  const isPhone = usePhoneLayout();
   const favoriteIds = ["grok-register-panel", "law-site"] as const;
   const favorites = favoriteIds
     .map((id) => projects.find((project) => project.id === id))
@@ -2217,12 +2197,16 @@ function FavoriteProjectsScene() {
               >
                 <div className="favorite-project-media">
                   <img
+                    className={project.cardPreview.fit === "contain" ? "is-contain" : ""}
                     src={project.cardPreview.image}
+                    srcSet={project.cardPreview.srcSet}
+                    sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 50vw, 60vw"
                     alt={project.cardPreview.alt}
                     width={project.cardPreview.width}
                     height={project.cardPreview.height}
-                    loading="lazy"
+                    loading={isPhone ? "eager" : "lazy"}
                     decoding="async"
+                    style={{ objectPosition: project.cardPreview.position }}
                   />
                 </div>
                 <div className="favorite-project-copy">
@@ -3339,17 +3323,20 @@ function HomePage({ theme }: { theme: ThemeMode }) {
     if (targetIndex < 0 || !story) return;
     const target = story.querySelector<HTMLElement>(`[data-home-scene="${scene}"]`);
     if (!target) return;
-    let targetTop = 0;
-    for (const child of Array.from(story.children)) {
-      if (child === target) break;
-      if (child instanceof HTMLElement) targetTop += child.offsetHeight;
-    }
     setActiveScene(scene);
     if (scene !== "intro") setAboutPhotosRequested(true);
     if (scene === "about") setAboutStickersReady(true);
+    if (window.getComputedStyle(story).overflowY === "visible") {
+      const topMargin = Number.parseFloat(window.getComputedStyle(target).scrollMarginTop) || 0;
+      window.scrollTo({
+        top: target.getBoundingClientRect().top + window.scrollY - topMargin,
+        behavior: reduceMotion ? "instant" : "smooth",
+      });
+      return;
+    }
     story.scrollTo({
-      top: targetTop,
-      behavior: reduceMotion ? "auto" : "smooth",
+      top: target.offsetTop,
+      behavior: reduceMotion ? "instant" : "smooth",
     });
   }
 
@@ -3357,9 +3344,8 @@ function HomePage({ theme }: { theme: ThemeMode }) {
     <>
       {shouldPlayEntryIntro ? <HomeEntryIntro theme={theme} onComplete={completeEntryIntro} /> : null}
       <div ref={storyRef} className="home-story" aria-busy={shouldPlayEntryIntro ? true : false}>
-        <Hero theme={theme} />
+        <Hero theme={theme} onSelectScene={selectScene} />
         <AboutScene photosRequested={aboutPhotosRequested} stickersReady={aboutStickersReady} />
-        <div className="home-scene-buffer" aria-hidden="true" />
         <FavoriteProjectsScene />
         <HomeSceneRail activeScene={activeScene} onSelect={selectScene} />
       </div>
@@ -3420,12 +3406,16 @@ function MobileProjectGrid({ projects: mobileProjects }: { projects: Array<Proje
                   <div className={`project-card-surface helix-poster-card project-card-${project.category}`}>
                     <div className="project-card-media">
                       <img
+                        className={project.preview.fit === "contain" ? "is-contain" : ""}
                         src={project.preview.image}
+                        srcSet={project.preview.srcSet}
+                        sizes={project.preview.sizes ?? "(max-width: 680px) calc(100vw - 32px), 320px"}
                         alt=""
                         width={project.preview.width}
                         height={project.preview.height}
-                        loading="lazy"
+                        loading="eager"
                         decoding="async"
+                        style={{ objectPosition: project.preview.position }}
                       />
                     </div>
                     <div className="helix-poster-caption">
@@ -4090,13 +4080,20 @@ function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: string 
 }
 
 function ServerTopology() {
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsPhone(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  if (isPhone) return <MobileServerStory categories={topologyCategories} facts={serverFacts} />;
   return (
-    <>
       <Suspense fallback={<div className="server-three-loading" aria-label="正在加载服务器结构图" />}>
         <ServerExplodedStory categories={topologyCategories} facts={serverFacts} visualOnly />
       </Suspense>
-      <MobileServerStory categories={topologyCategories} facts={serverFacts} />
-    </>
   );
 }
 

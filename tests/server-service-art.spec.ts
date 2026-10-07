@@ -43,7 +43,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect(artwork.locator("title")).not.toBeEmpty();
         const raster = artwork.locator(".service-art-raster");
         await expect(raster).toHaveCount(1);
-        await expect(raster).toHaveAttribute("href", /\/assets\/service-art\/.+\.png$/);
+        await expect(raster).toHaveAttribute("href", /\/assets\/service-art\/.+\.webp$/);
         await artwork.evaluate(async (node) => {
           const image = node.querySelector(".service-art-raster");
           const href = image?.getAttribute("href");
@@ -115,5 +115,5 @@ test("service illustration transitions preserve navigation and keyboard access",
   await expect(page.locator('.server-story-service-page [data-service-art="paperless"]')).toBeVisible();
   await expect(page.locator(".server-story-service-page-image")).toHaveCSS("opacity", "1");
   await expect(page.locator(".server-story-service-page .service-art")).toHaveCount(1);
-  await expect(page.locator('.server-story-service-page [data-service-art="paperless"] .service-art-raster')).toHaveAttribute("href", /paperless-.+\.png$/);
+  await expect(page.locator('.server-story-service-page [data-service-art="paperless"] .service-art-raster')).toHaveAttribute("href", /paperless-.+\.webp$/);
 });

@@ -2,6 +2,8 @@ import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ServerServiceArt } from "./ServerServiceArt";
+import { serverPartImages } from "../assets/serverParts";
+import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
 
 type MobileServerService = {
   id: string;
@@ -29,11 +31,11 @@ type MobileServerFact = {
 };
 
 const categoryVisuals: Record<string, { src: string; alt: string }> = {
-  network: { src: "/assets/server-parts/nic-line.png", alt: "服务器双口网卡线稿" },
-  hardware: { src: "/assets/server-parts/cpu-line.png", alt: "服务器处理器线稿" },
-  agent: { src: "/assets/server-parts/gpu-line.png", alt: "服务器显卡线稿" },
-  data: { src: "/assets/server-parts/nvme-line.png", alt: "服务器 NVMe 存储线稿" },
-  containers: { src: "/assets/server-parts/container-line.png", alt: "服务器容器运行核心线稿" },
+  network: { src: serverPartImages["nic-line"], alt: "服务器双口网卡线稿" },
+  hardware: { src: serverPartImages["cpu-line"], alt: "服务器处理器线稿" },
+  agent: { src: serverPartImages["gpu-line"], alt: "服务器显卡线稿" },
+  data: { src: serverPartImages["nvme-line"], alt: "服务器 NVMe 存储线稿" },
+  containers: { src: serverPartImages["container-line"], alt: "服务器容器运行核心线稿" },
 };
 
 export function MobileServerStory({
@@ -56,6 +58,7 @@ export function MobileServerStory({
 
   useEffect(() => {
     setActiveServiceId(activeCategory?.services[0]?.id ?? "");
+    if (activeCategory) prefetchServiceImages(activeCategory.services.map((service) => service.id));
   }, [activeCategory]);
 
   if (!activeCategory || !activeService) return null;
@@ -108,7 +111,7 @@ export function MobileServerStory({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={reduceMotion ? { duration: 0 } : { duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
           >
-            {visual ? <img src={visual.src} alt={visual.alt} /> : <span aria-hidden="true">//</span>}
+            {visual ? <img src={visual.src} alt={visual.alt} loading="eager" decoding="async" /> : <span aria-hidden="true">//</span>}
           </motion.figure>
           <div className="server-mobile-category-copy">
             <span>{activeCategory.shortLabel}</span>
@@ -134,6 +137,9 @@ export function MobileServerStory({
                     type="button"
                     aria-pressed={isActive}
                     onClick={() => setActiveServiceId(service.id)}
+                    onPointerEnter={() => prefetchServiceImage(service.id)}
+                    onFocus={() => prefetchServiceImage(service.id)}
+                    onTouchStart={() => prefetchServiceImage(service.id)}
                   >
                     <span className="server-mobile-service-index">{String(index + 1).padStart(2, "0")}</span>
                     <span className="server-mobile-service-name">

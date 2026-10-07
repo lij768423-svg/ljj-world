@@ -168,7 +168,7 @@ export function GlobalPixelTrail({ enabled = true }: { enabled?: boolean }) {
       ) return;
 
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest(`.hero-intro,${TRAIL_BLOCK_SELECTOR}`)) {
+      if (target?.closest(TRAIL_BLOCK_SELECTOR)) {
         release();
         return;
       }
