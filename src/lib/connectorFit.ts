@@ -22,7 +22,7 @@ const ALPHA_THRESHOLD = 40;
 /** Clearance around the artwork, as a share of the mask (≈ 12px at the desktop size). */
 const CLEARANCE = 0.018;
 /** How far past its original inner point a connector may extend to reach the artwork. */
-const MAX_EXTENSION = 28;
+const MAX_EXTENSION = 9;
 const STEP = 0.2;
 
 const masks = new Map<string, Promise<ArtworkMask | null>>();
@@ -113,18 +113,15 @@ export function fitConnector(layout: ConnectorLayout, mask: ArtworkMask, box: Ar
   return layout;
 }
 
-/**
- * The drawn area of artwork contained in `element` (an `object-fit: contain` image, or a
- * box holding a `meet` SVG), ignoring transforms that are still animating.
- */
-export function measureArtworkBox(element: HTMLElement, naturalWidth: number, naturalHeight: number, frame: Element): ArtworkBox | null {
-  if (!naturalWidth || !naturalHeight) return null;
+/** The drawn area of an `object-fit: contain` image, ignoring transforms that are still animating. */
+export function measureArtworkBox(image: HTMLImageElement, frame: Element): ArtworkBox | null {
+  if (!image.naturalWidth || !image.naturalHeight) return null;
   const stage = frame.getBoundingClientRect();
   if (!stage.width || !stage.height) return null;
-  const rect = element.getBoundingClientRect();
-  const scale = Math.min(element.offsetWidth / naturalWidth, element.offsetHeight / naturalHeight);
-  const width = naturalWidth * scale;
-  const height = naturalHeight * scale;
+  const rect = image.getBoundingClientRect();
+  const scale = Math.min(image.offsetWidth / image.naturalWidth, image.offsetHeight / image.naturalHeight);
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
   return {

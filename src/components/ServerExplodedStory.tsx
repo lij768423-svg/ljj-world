@@ -4,9 +4,6 @@ import { BlurText } from "./effects/BlurText";
 import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
-import { ServerFocusVideo } from "./ServerFocusVideo";
-import { FocusOverlay } from "./ServerFocusOverlay";
-import { serverFocusMedia } from "../assets/serverFocus";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
 import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
 import { loadArtworkMask, measureArtworkBox, placeConnector, type CardSlide, type ConnectorLayout } from "../lib/connectorFit";
@@ -63,9 +60,13 @@ const standardCameraFrames: Record<ServerCategoryId, { x: number; y: number; sca
   containers: { x: 0, y: 0, scale: 1.02 },
 };
 
-const categoryVisuals: Record<ServerCategoryId, { src: string; video?: string; alt: string }> = Object.fromEntries(
-  Object.entries(serverFocusMedia).map(([id, media]) => [id, { src: media.poster, video: media.video, alt: media.alt }]),
-) as Record<ServerCategoryId, { src: string; video?: string; alt: string }>;
+const categoryVisuals: Record<ServerCategoryId, { src: string; alt: string }> = {
+  network: { src: serverPartImages["nic-line"], alt: "服务器双口网卡线稿" },
+  hardware: { src: serverPartImages["cpu-line"], alt: "服务器处理器线稿" },
+  agent: { src: serverPartImages["gpu-line"], alt: "服务器显卡线稿" },
+  data: { src: serverPartImages["nvme-line"], alt: "服务器 NVMe 存储线稿" },
+  containers: { src: serverPartImages["container-line"], alt: "服务器容器运行核心线稿" },
+};
 
 const serviceConnectorLayouts: readonly ConnectorLayout[] = [
   { segments: [[43, 38, 38, 31], [38, 31, 38, 22], [38, 22, 31, 22]], endX: 31, endY: 22 },
@@ -291,10 +292,9 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
   const returningToOverview = hasFocusedModule && !isExploded;
   const connectorFrameRef = useRef<SVGSVGElement>(null);
   const focusImageRef = useRef<HTMLImageElement>(null);
-  const maskSrc = activeVisual.src;
   const [fittedConnectors, setFittedConnectors] = useState<{ src: string; layouts: readonly ConnectorLayout[] } | null>(null);
   const showsFocusVisual = visualOnly && isExploded && !openedService;
-  const connectorLayouts = fittedConnectors?.src === maskSrc ? fittedConnectors.layouts : null;
+  const connectorLayouts = fittedConnectors?.src === activeVisual.src ? fittedConnectors.layouts : null;
 
   useEffect(() => {
     const prefetch = () => Object.values(categoryVisuals).forEach((visual) => void loadArtworkMask(visual.src));
@@ -308,7 +308,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
     const image = focusImageRef.current;
     if (!frame || !image) return;
     let cancelled = false;
-    const src = maskSrc;
+    const src = activeVisual.src;
     const fit = async () => {
       const mask = await loadArtworkMask(src);
       if (cancelled) return;
@@ -316,7 +316,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
         setFittedConnectors({ src, layouts: serviceConnectorLayouts });
         return;
       }
-      const box = measureArtworkBox(image, image.naturalWidth, image.naturalHeight, frame);
+      const box = measureArtworkBox(image, frame);
       const stage = frame.getBoundingClientRect();
       const cards = [...(frame.parentElement?.querySelectorAll<HTMLElement>(".server-story-module-list > li") ?? [])];
       if (!box || !stage.width || !stage.height || !cards.length) return;
@@ -340,7 +340,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
       image.removeEventListener("load", fit);
       observer.disconnect();
     };
-  }, [maskSrc, showsFocusVisual]);
+  }, [activeVisual.src, showsFocusVisual]);
 
   const selectCategory = (category: ServerCategory) => {
     setHasFocusedModule(true);
@@ -483,14 +483,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.58, delay: 0, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  {activeVisual.video ? (
-                    <ServerFocusVideo poster={activeVisual.src} video={activeVisual.video} alt={activeVisual.alt} imageRef={focusImageRef} />
-                  ) : (
-                    <>
-                      <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
-                      {reduceMotion ? null : <FocusOverlay categoryId={activeCategory.id} src={activeVisual.src} />}
-                    </>
-                  )}
+                  <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
                 </motion.div>
 
                 <svg ref={connectorFrameRef} className="server-story-service-connectors" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

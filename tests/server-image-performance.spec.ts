@@ -8,14 +8,12 @@ test.beforeEach(async ({ page }) => {
 test("only the active viewport downloads its images and resize swaps the view", async ({ page }, testInfo) => {
   const images: string[] = [];
   page.on("request", request => {
-    if (/\/assets\/(service-art|server-parts|server-focus)\//.test(request.url())) images.push(request.url());
+    if (/\/assets\/(service-art|server-parts)\//.test(request.url())) images.push(request.url());
   });
   await page.goto("/systems", { waitUntil: "networkidle" });
   const mobile = testInfo.project.name === "mobile";
   expect(images.every(source => source.endsWith(".webp"))).toBe(true);
-  // Desktop preloads the overview's five part drawings; the phone layout loads only its active module's focus poster.
-  expect(images.filter(source => source.includes("server-parts"))).toHaveLength(mobile ? 0 : 5);
-  expect(images.filter(source => source.includes("server-focus"))).toHaveLength(mobile ? 1 : 0);
+  expect(images.filter(source => source.includes("server-parts"))).toHaveLength(mobile ? 1 : 5);
   expect([...new Set(images.filter(source => source.includes("service-art")))]).toHaveLength(mobile ? 5 : 0);
   if (!mobile) {
     await page.getByRole("button", { name: "聚焦 NVMe 数据模块" }).press("Enter");
