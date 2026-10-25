@@ -274,9 +274,9 @@ export const blogPosts: BlogPost[] = [
     date: "2026.07.29",
     readingTime: "2 分钟阅读",
     excerpt: "学校那张桌子要留地方看书，家里那张要能折腾硬件。颜色和设备不同，主要是因为用法不同。",
-    image: "/assets/desk-setup/desk-2026-current-1600.webp",
-    imageAlt: "学校的暖色学习工位与桌面设备",
-    imagePosition: "center center",
+    image: "/assets/project-covers/two-desk-setups.webp",
+    imageAlt: "黏土微缩书桌与桌面小物的概念封面",
+    imagePosition: "center",
     intro: "站里的桌搭照片分成学校和家里两组。学校偏暖色，家里偏冷色，这是我自己的搭配习惯，不能据此说哪种灯光更利于学习。比起统一风格，我更关心书摊开以后有没有地方写字，接设备时要不要先搬一堆东西。",
     sections: [
       {

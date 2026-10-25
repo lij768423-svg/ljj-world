@@ -18,6 +18,7 @@ const covers = {
   "wiki-api": "wiki-api.png",
   "writing-studio": "writing-studio_001.jpg",
   "travel-agent": "travel-agent.png",
+  "two-desk-setups": "two-desk-setups.png",
   "tailscale-latency": "tailscale-latency.png",
   "home-lab": "home-lab_001.jpg",
 };
