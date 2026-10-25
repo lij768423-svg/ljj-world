@@ -3,7 +3,7 @@ import { blogPosts } from '../src/blog';
 import { translatePortfolioText } from '../src/i18n/PortfolioLanguage';
 
 test('rewritten copy has English text and stable section anchors', () => {
-  expect(blogPosts).toHaveLength(5);
+  expect(blogPosts).toHaveLength(6);
   for (const post of blogPosts) {
     expect(post.sections.every(section => section.anchor)).toBe(true);
     for (const text of [post.title, post.excerpt, post.intro, post.readingTime, ...post.sections.flatMap(section => [section.title, ...section.paragraphs])]) {

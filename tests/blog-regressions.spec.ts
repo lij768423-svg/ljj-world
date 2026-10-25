@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { blogPosts } from "../src/blog";
 
 test.beforeEach(async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Viewport coverage is explicit in this suite.");
@@ -24,7 +25,7 @@ for (const viewport of [
   test(`blog content remains reachable at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.goto("/blog", { waitUntil: "networkidle" });
-    await expect(page.locator(".blog-index-list a")).toHaveCount(5);
+    await expect(page.locator(".blog-index-list a")).toHaveCount(6);
     await page.screenshot({ path: testInfo.outputPath("blog-before-scroll.png"), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 
@@ -80,7 +81,7 @@ for (const language of ["zh", "en"] as const) {
       await expect(page.locator(".blog-field-pulse-top")).toHaveCSS("animation-name", "none");
       await page.screenshot({ path: testInfo.outputPath(`blog-${language}-${theme}.png`), fullPage: true });
       await post.press("Enter");
-      await expect(page).toHaveURL(/\/blog\/ai-study-workflow$/);
+      await expect(page).toHaveURL(new RegExp(`/blog/${blogPosts[2].slug}$`));
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await expect(page.locator("html")).toHaveAttribute("data-language", language);
       expect(errors).toEqual([]);

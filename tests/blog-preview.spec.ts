@@ -112,11 +112,15 @@ test("rapid reversals keep a solid base and settle on the latest requested artic
   expect(frames.at(-1)!.opacities.filter((opacity) => opacity > 0.001)).toEqual([1]);
 });
 
+// Matches every size variant of a post's cover, e.g. "home-lab.webp" or "grok-register-panel-local-960-<hash>.webp".
+const coverGlob = (image: string) =>
+  `**/assets/project-covers/${image.split("/").pop()!.replace(/(-local)?(-\d+-[a-f0-9]{12})?\.webp$/, "")}*`;
+
 test("a delayed cover keeps the current preview visible and cannot overwrite a newer selection", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   let releaseImage!: () => void;
   const imageGate = new Promise<void>((resolve) => { releaseImage = resolve; });
-  await page.route("**/assets/project-covers/home-lab.webp", async (route) => {
+  await page.route(coverGlob(blogPosts[1].image), async (route) => {
     await imageGate;
     await route.continue();
   });
@@ -134,7 +138,7 @@ test("a delayed cover keeps the current preview visible and cannot overwrite a n
     releaseImage();
     await page.waitForTimeout(700);
     await expect(posts.nth(2)).toHaveClass(/is-active/);
-    await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("src", /408-web\.webp$/);
+    await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("src", blogPosts[2].image);
   } finally {
     releaseImage();
   }
@@ -143,7 +147,7 @@ test("a delayed cover keeps the current preview visible and cannot overwrite a n
 test("a failed cover preserves the last image without blocking other articles", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("**/assets/project-covers/home-lab.webp", (route) => route.abort());
+  await page.route(coverGlob(blogPosts[1].image), (route) => route.abort());
   await openBlog(page);
   const posts = page.locator(".blog-index-list a");
   await posts.nth(1).focus();
@@ -163,5 +167,5 @@ test("touch entry does not trigger a hover preview or delay article navigation",
   await page.waitForTimeout(150);
   await expect(posts.first()).toHaveClass(/is-active/);
   await posts.nth(1).click();
-  await expect(page).toHaveURL(/\/blog\/home-server-as-a-product$/);
+  await expect(page).toHaveURL(new RegExp(`/blog/${blogPosts[1].slug}$`));
 });
