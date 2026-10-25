@@ -995,7 +995,7 @@ test("all server modules expose complete deployment details", async ({ page }, t
   const modules = [
     { trigger: "聚焦网络与入口模块", services: ["Tailscale", "Cloudflare Tunnel", "Caddy", "Uptime Kuma", "延迟探针"] },
     { trigger: "聚焦 CPU 与内存模块", services: ["Ryzen 9 9950X", "RTX 4090", "5.4 TB NVMe", "Beszel / Netdata", "硬件控制"] },
-    { trigger: "聚焦 GPU 与 AI 模块", services: ["Sub2API", "Grok2API", "Qwen 3.8 27B", "ComfyUI", "Agent Console"] },
+    { trigger: "聚焦 GPU 与 AI 模块", services: ["Sub2API", "Grok2API", "Qwen 3.8 Flash Next", "ComfyUI", "Agent Console"] },
     { trigger: "聚焦 NVMe 数据模块", services: ["Immich", "Paperless-ngx", "MinIO", "Syncthing", "Linkwarden"] },
     { trigger: "聚焦 Docker 容器模块", services: ["Homepage", "Vaultwarden", "Memos", "Stirling PDF", "Docker"] },
   ] as const;

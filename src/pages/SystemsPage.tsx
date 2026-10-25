@@ -125,11 +125,11 @@ const topologyCategories: TopologyCategory[] = [
       },
       {
         id: "qwen38",
-        name: "Qwen 3.8 27B",
+        name: "Qwen 3.8 Flash Next",
         kind: "本地推理",
-        description: "vLLM 加载 27B 权重，Open WebUI 提供 256K 上下文对话。",
+        description: "Strata 引擎加载 Qwen 3.8 Flash Next 量化权重，支持图文输入，提供本机聊天与 OpenAI 兼容接口。",
         connection: "4090 到本机聊天与 OpenAI 兼容接口",
-        deployment: "独立 Compose 管理模型推理与聊天界面；权重保存在本机，管理入口仅在私有网络开放，不用时整套停掉。",
+        deployment: "用户级 systemd 常驻 Strata 服务，端口只经 socket 代理在 Tailnet 内开放；27B 版本由 llama.cpp 按需加载，权重都保存在本机。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
