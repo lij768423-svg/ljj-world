@@ -25,7 +25,7 @@ for (const viewport of [
   test(`blog content remains reachable at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.goto("/blog", { waitUntil: "networkidle" });
-    await expect(page.locator(".blog-index-list a")).toHaveCount(6);
+    await expect(page.locator(".blog-index-list a")).toHaveCount(7);
     await page.screenshot({ path: testInfo.outputPath("blog-before-scroll.png"), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 
