@@ -45,7 +45,17 @@ portfolio.example.com {
 	handle {
 		root * /srv/portfolio/current
 		header Cache-Control "no-cache"
-		try_files {path} /index.html
+		# The build writes one HTML entry per route (dist/<route>/index.html) plus 404.html, so
+		# known routes get their own metadata and unknown paths get a real 404 status while
+		# still booting the app.
+		@missing not file {path} {path}/index.html
+		handle @missing {
+			rewrite * /404.html
+			file_server {
+				status 404
+			}
+		}
+		try_files {path} {path}/index.html
 		file_server
 	}
 	handle_errors {

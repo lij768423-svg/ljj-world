@@ -21,6 +21,11 @@ python3 deploy/retain-assets.py --release /srv/portfolio/current --release /srv/
 5. Atomically replace the `current` symlink only after the new directory is
    complete and readable by Caddy. Validate the live homepage, article deep link,
    JS Content-Type, a retained old JS URL, and a missing asset with a unique URL.
+   Also check the SEO output: `/sitemap.xml` and `/rss.xml` return XML, an article
+   deep link such as `/blog/grok-register-panel` returns its own `<title>` and
+   `og:url` (served from `blog/<slug>/index.html`), and an unknown path returns
+   status 404 with the app shell from `404.html`. The Caddy template's
+   `try_files {path} {path}/index.html` and `@missing` block must be in place.
 6. Roll back by atomically restoring the previous symlink. Retain assets from the
    outgoing release first, including during rollback, so open browser tabs keep
    their lazy-loaded chunk URLs. Do not garbage-collect shared assets as part of

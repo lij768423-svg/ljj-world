@@ -1587,7 +1587,7 @@ const pageMetadata: Record<string, { title: string; description: string; image: 
   },
 };
 
-function getPageMetadata(pathname: string) {
+export function getPageMetadata(pathname: string) {
   const exact = pageMetadata[pathname];
   if (exact) return exact;
 
@@ -1623,7 +1623,9 @@ function PageMeta() {
   const { language } = usePortfolioLanguage();
 
   useEffect(() => {
-    const metadata = getPageMetadata(location.pathname);
+    // "/blog/slug/" and "/blog/slug" are the same page; the prerendered entry and sitemap use the latter.
+    const pathname = location.pathname.replace(/\/+$/, "") || "/";
+    const metadata = getPageMetadata(pathname);
     const title = language === "en" ? translatePortfolioText(metadata.title) : metadata.title;
     const description = language === "en" ? translatePortfolioText(metadata.description) : metadata.description;
     document.title = title;
@@ -1631,6 +1633,10 @@ function PageMeta() {
     document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute("content", title);
     document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute("content", description);
     document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.setAttribute("content", metadata.image);
+    // The build writes canonical/og:url per route; keep them in step during client-side navigation.
+    const pageUrl = `${window.location.origin}${pathname}`;
+    document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute("href", pageUrl);
+    document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute("content", pageUrl);
   }, [language, location.pathname]);
 
   return null;

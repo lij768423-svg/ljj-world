@@ -119,12 +119,15 @@ npm run capture:projects -- law
 npm run build
 ```
 
-将 `dist/` 部署到任意静态托管服务即可。项目使用 History API 路由，因此未知路径需要回退到 `index.html`。仓库提供通用的 [Caddy 示例](./deploy/caddy/portfolio.caddy.example)。Nginx 可使用：
+`npm run build` 在 `vite build` 之后会运行 `scripts/generate-seo.mjs`：为每个路由生成独立的 `dist/<路由>/index.html`（各自的 title、description、canonical、Open Graph 与 JSON-LD），以及 `dist/404.html`、`dist/sitemap.xml` 和 `dist/rss.xml`。路由数据来自 `src/seo/routes.ts`，与应用内的页面元数据、项目列表和文章共用同一份来源。
+
+将 `dist/` 部署到任意静态托管服务即可。项目使用 History API 路由：已知路径优先返回该路由自己的 `index.html`，未知路径返回 `404.html` 并带 404 状态码。仓库提供通用的 [Caddy 示例](./deploy/caddy/portfolio.caddy.example)，`vite preview` 也遵循同样的规则。Nginx 可使用：
 
 ```nginx
 location / {
-    try_files $uri $uri/ /index.html;
+    try_files $uri $uri/index.html =404;
 }
+error_page 404 /404.html;
 ```
 
 ## 目录说明

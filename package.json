@@ -15,7 +15,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/generate-seo.mjs",
+    "seo": "node scripts/generate-seo.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "capture:projects": "node scripts/capture-project-assets.mjs",
     "prepare:about-images": "node scripts/prepare-about-images.mjs",
