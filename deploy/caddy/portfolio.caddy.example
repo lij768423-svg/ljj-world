@@ -46,20 +46,28 @@ portfolio.example.com {
 		root * /srv/portfolio/current
 		header Cache-Control "no-cache"
 		# The build writes one HTML entry per route (dist/<route>/index.html) plus 404.html, so
-		# known routes get their own metadata and unknown paths get a real 404 status while
-		# still booting the app.
+		# known routes get their own metadata and unknown paths get a real 404 status (served
+		# from 404.html via handle_errors) while still booting the app. A release without
+		# 404.html (older builds) keeps the plain SPA fallback so rollbacks stay safe.
 		@missing not file {path} {path}/index.html
 		handle @missing {
-			rewrite * /404.html
-			file_server {
-				status 404
+			@has404 file /404.html
+			handle @has404 {
+				error 404
 			}
+			rewrite * /index.html
 		}
 		try_files {path} {path}/index.html
 		file_server
 	}
 	handle_errors {
 		header Cache-Control "no-store"
+		@notFound expression {err.status_code} == 404
+		handle @notFound {
+			root * /srv/portfolio/current
+			rewrite * /404.html
+			file_server
+		}
 		respond "{err.status_text}" {err.status_code}
 	}
 }

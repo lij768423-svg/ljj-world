@@ -17,10 +17,17 @@ const covers = {
   "codex-api": "codex-api.png",
   "wiki-api": "wiki-api.png",
   "writing-studio": "writing-studio_001.jpg",
-  "hardware-control": "hardware-control.png",
+  "travel-agent": "travel-agent.png",
   "tailscale-latency": "tailscale-latency.png",
   "home-lab": "home-lab_001.jpg",
 };
+
+// Optional project ids on the command line limit the run, e.g. `node scripts/prepare-project-covers.mjs travel-agent`.
+const requested = process.argv.slice(2);
+for (const id of requested) {
+  if (!(id in covers)) throw new Error(`Unknown project cover: ${id}`);
+}
+const selected = requested.length ? Object.fromEntries(requested.map((id) => [id, covers[id]])) : covers;
 
 await mkdir(outputDir, { recursive: true });
 
@@ -28,7 +35,7 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 
 try {
-  for (const [id, filename] of Object.entries(covers)) {
+  for (const [id, filename] of Object.entries(selected)) {
     const extension = path.extname(filename).toLowerCase();
     const mime = extension === ".png" ? "image/png" : "image/jpeg";
     const source = await readFile(path.join(inputDir, filename));

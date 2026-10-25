@@ -708,6 +708,20 @@ async function captureHardware() {
   });
 }
 
+async function captureTravelAgent() {
+  const origin = requiredEnv("TRAVEL_AGENT_CAPTURE_ORIGIN");
+  await capture({
+    name: "travel-agent",
+    url: `${origin}/`,
+    waitFor: "main",
+    prepare: async (page) => {
+      await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0));
+    },
+    settle: 1500,
+    widthVariants: [800, 1600],
+  });
+}
+
 async function captureTailscaleLatency() {
   const origin = requiredEnv("TAILSCALE_LATENCY_CAPTURE_ORIGIN");
   await capture({
@@ -833,6 +847,7 @@ try {
   if (groups.has("writing")) await captureWritingStudio();
   if (groups.has("law")) await captureLaw();
   if (groups.has("hardware")) await captureHardware();
+  if (groups.has("travel")) await captureTravelAgent();
   if (groups.has("tailscale")) await captureTailscaleLatency();
   if (groups.has("mineradio")) await captureMineradio();
   if (groups.has("mineradio-cover")) await captureMineradio({ includeApp: false });

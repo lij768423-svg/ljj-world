@@ -26,7 +26,7 @@ const revealImages = [
   "/assets/408-quiz-800.webp",
   "/assets/408-harmony-800.webp",
   "/assets/law-home-800.webp",
-  "/assets/hardware-control-800.webp",
+  "/assets/travel-agent-800.webp",
 ];
 
 /**

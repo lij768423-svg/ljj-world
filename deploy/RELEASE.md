@@ -18,6 +18,10 @@ python3 deploy/retain-assets.py --release /srv/portfolio/current --release /srv/
    second. Missing assets return 404 with `no-store`; they never return HTML.
    Non-hashed current assets revalidate after one hour. Fingerprint all changed
    images because older browsers may still have the previous cache policy.
+   `deploy/deploy-release.py <release_id> <expected_previous> <manifest_sha256>`
+   performs steps 1–5 on the host (verify the package, extract, retain assets,
+   swap `current`, verify every prerendered route, sitemap, RSS and the 404
+   status against the local origin, and swap back on any failure).
 5. Atomically replace the `current` symlink only after the new directory is
    complete and readable by Caddy. Validate the live homepage, article deep link,
    JS Content-Type, a retained old JS URL, and a missing asset with a unique URL.

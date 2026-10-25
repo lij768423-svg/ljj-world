@@ -8,6 +8,7 @@ import { DeviceMobile } from "@phosphor-icons/react/DeviceMobile";
 import { GithubLogo } from "@phosphor-icons/react/GithubLogo";
 import { GlobeHemisphereWest } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { HardDrives } from "@phosphor-icons/react/HardDrives";
+import { MapTrifold } from "@phosphor-icons/react/MapTrifold";
 import { Moon } from "@phosphor-icons/react/Moon";
 import { MouseSimple } from "@phosphor-icons/react/MouseSimple";
 import { Robot } from "@phosphor-icons/react/Robot";
@@ -516,33 +517,34 @@ export const projects: Project[] = [
     },
   },
   {
-    id: "hardware-control",
-    title: "Hardware Control",
-    description: "将本机风扇与 Linux hwmon 传感器做成带安全确认的轻量 Web 控制台。",
-    category: "system",
-    kind: "硬件工具",
-    status: "局域网运行",
+    id: "travel-agent",
+    title: "行记 旅行规划 Agent",
+    description: "可插拔城市的大模型旅行规划 Agent：一条命令接入新城市，网页端与 MCP 服务共用同一套排程与校验。",
+    category: "ai",
+    kind: "旅行规划 Agent",
+    status: "开源 / 毕业设计",
     year: "2026",
-    tags: ["Python", "hwmon", "systemd"],
+    tags: ["LangGraph", "OR-Tools", "MCP"],
     story: {
-      problem: "服务器风扇控制和温度传感器分散在命令行，误操作还可能让低速策略越过安全边界。",
-      approach: "用 Python 标准库提供窄接口，读取 Linux hwmon，并只允许调用预定义的风扇通道与模式。",
-      outcome: "网页可以查看传感器、切换自动或固定转速，并由守护逻辑恢复长期运行策略。",
+      problem: "大模型直接生成的行程看起来合理，但时间、路线和营业约束经常对不上，换一座城市又要重写规则。",
+      approach: "大模型只负责理解需求和选点，OR-Tools 负责分天与日内排序，规则校验器负责兜底；城市配置、数据和资产全部外置，一条命令即可接入新城市。",
+      outcome: "同一套代码已接入 10 座城市，网页端和 MCP 工具共用同一个账号与行程数据，通过校验的行程附带真实路径、餐饮备选和可解释的推荐理由。",
       highlights: [
-        { title: "受限硬件 API", description: "接口只接受四个风扇通道和明确模式，不开放任意 shell。" },
-        { title: "低速二次确认", description: "低于安全阈值的占空比必须再次确认后才会写入。" },
-        { title: "策略恢复", description: "quiet guard 负责应用夜间策略并同步四通道的当前状态。" },
+        { title: "可插拔城市", description: "onboard_city 一条命令完成配置、数据、标定、片区聚类与评测，不改代码。" },
+        { title: "确定性排程", description: "片区分天后由 OR-Tools VRPTW 排序，单段乘车、步行量和活动时间都是硬约束。" },
+        { title: "MCP 入口", description: "Claude、Codex 等聊天 AI 自己选点，服务端只做排程、餐饮与校验，换餐需确认后才写入。" },
       ],
     },
-    icon: <Cpu size={22} weight="duotone" />,
-    detail: "/projects/hardware-control",
-    cardPreview: projectCardPreview("hardware-control", "Hardware Control"),
+    repo: "https://github.com/lij768423-svg/pluggable-city-travel-agent",
+    icon: <MapTrifold size={22} weight="duotone" />,
+    detail: "/projects/travel-agent",
+    cardPreview: projectCardPreview("travel-agent", "行记 旅行规划 Agent"),
     preview: {
-      image: "/assets/hardware-control.webp",
-      alt: "Home Serve 硬件控制台真实界面",
+      image: "/assets/travel-agent.webp",
+      alt: "行记网页端的城市选择首页真实界面",
       width: 3200,
       height: 2000,
-      srcSet: "/assets/hardware-control-800.webp 800w, /assets/hardware-control-1600.webp 1600w, /assets/hardware-control.webp 3200w",
+      srcSet: "/assets/travel-agent-800.webp 800w, /assets/travel-agent-1600.webp 1600w, /assets/travel-agent.webp 3200w",
       sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
       position: "left top",
     },

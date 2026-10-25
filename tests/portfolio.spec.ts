@@ -14,7 +14,7 @@ const routes = [
   { path: "/projects/codex-api", heading: "Codex API", title: "Codex API | lij768423-svg" },
   { path: "/projects/grok2api-egress-enhancements", heading: "Egress Quality Guard", title: "Egress Quality Guard | lij768423-svg" },
   { path: "/projects/writing-studio", heading: "Writing Studio", title: "Writing Studio | lij768423-svg" },
-  { path: "/projects/hardware-control", heading: "Hardware Control", title: "Hardware Control | lij768423-svg" },
+  { path: "/projects/travel-agent", heading: "行记 旅行规划 Agent", title: "行记 旅行规划 Agent | lij768423-svg" },
   { path: "/projects/tailscale-latency", heading: "Tailscale 延迟测试", title: "Tailscale 延迟测试 | lij768423-svg" },
   { path: "/projects/home-lab", heading: "Home Lab 基础设施", title: "Home Lab 基础设施 | lij768423-svg" },
   { path: "/systems", heading: "我的服务器", title: "我的服务器 | lij768423-svg" },
