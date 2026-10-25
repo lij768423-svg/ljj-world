@@ -328,6 +328,6 @@ export function FanTrayArt() {
     <FanGraphic x={529} y={505} r={27} blades={9} reverse skew framed />
     <FanGraphic x={618} y={505} r={27} blades={9} skew framed />
     <path className="machine-airflow" d="M434 479L440 474L446 479M523 479L529 474L535 479M612 479L618 474L624 479" />
-    <text x="528" y="558" textAnchor="middle">AIRFLOW / 119 CONTAINERS</text>
+    <text x="528" y="558" textAnchor="middle">AIRFLOW / 139 CONTAINERS</text>
   </>;
 }
