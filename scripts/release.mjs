@@ -17,7 +17,8 @@
 // Settings (environment): RELEASE_HOST (ssh target, default root@100.98.6.14, the japan-gateway
 // Tailscale address), RELEASE_ROOT (default /srv/ljj-world), SITE_ORIGIN (default https://ljj.world),
 // SNAPSHOT_HOST (see scripts/snapshot-server.mjs). Flags: --dry-run, --test, --skip-snapshot,
-// --skip-indexnow, --no-push.
+// --skip-indexnow, --no-push. The npm script sets NODE_USE_ENV_PROXY=1 so fetch honours
+// HTTPS_PROXY on machines (like home-serve) that reach the internet through a local proxy.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -141,7 +142,7 @@ for (const [route, status, marker] of probes) {
 
 if (!flags.has("--skip-indexnow")) {
   step("IndexNow");
-  run("node", ["scripts/submit-indexnow.mjs"], { env: { ...process.env, SITE_ORIGIN: origin } });
+  run("node", ["--disable-warning=UNDICI-EHPA", "scripts/submit-indexnow.mjs"], { env: { ...process.env, NODE_USE_ENV_PROXY: "1", SITE_ORIGIN: origin } });
 }
 
 if (!flags.has("--no-push")) {

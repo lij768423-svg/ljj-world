@@ -24,11 +24,11 @@
     "prepare:server-images": "python3 scripts/prepare-server-images.py",
     "prepare:release-covers": "node scripts/prepare-release-covers.mjs",
     "release:package": "node scripts/package-release.mjs",
-    "release": "node scripts/release.mjs",
+    "release": "NODE_USE_ENV_PROXY=1 node --disable-warning=UNDICI-EHPA scripts/release.mjs",
     "snapshot:server": "node scripts/snapshot-server.mjs",
     "typecheck": "tsc -b --pretty false",
     "test:e2e": "playwright test",
-    "indexnow": "node scripts/submit-indexnow.mjs"
+    "indexnow": "NODE_USE_ENV_PROXY=1 node --disable-warning=UNDICI-EHPA scripts/submit-indexnow.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
