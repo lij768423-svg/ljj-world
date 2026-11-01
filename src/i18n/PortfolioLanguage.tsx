@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { languageFromPath, withLanguagePrefix } from "./languageRouting";
 import { portfolioTranslations } from "./portfolioTranslations";
 
 export type PortfolioLanguage = "zh" | "en";
@@ -261,16 +262,29 @@ function GlobalLanguageTransition({ language }: { language: PortfolioLanguage })
 }
 
 export function PortfolioLanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<PortfolioLanguage>(() => (
-    window.localStorage.getItem("portfolio-language") === "zh" ? "zh" : "en"
-  ));
+  // main.tsx has already moved the address under /en when the visit starts in English, so the
+  // path is the single source of truth for the language.
+  const [language, setLanguage] = useState<PortfolioLanguage>(() => languageFromPath(window.location.pathname) ?? "zh");
 
   useEffect(() => {
     window.localStorage.setItem("portfolio-language", language);
   }, [language]);
 
+  useEffect(() => {
+    // Back/forward can cross the /en boundary; follow the address.
+    const sync = () => setLanguage(languageFromPath(window.location.pathname) ?? "zh");
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+
   const toggleLanguage = useCallback(() => {
-    setLanguage((current) => current === "zh" ? "en" : "zh");
+    setLanguage((current) => {
+      const next: PortfolioLanguage = current === "zh" ? "en" : "zh";
+      const { pathname, search, hash } = window.location;
+      const target = `${withLanguagePrefix(pathname, next)}${search}${hash}`;
+      if (target !== `${pathname}${search}${hash}`) window.history.pushState(window.history.state, "", target);
+      return next;
+    });
   }, []);
 
   const value = useMemo(() => ({ language, toggleLanguage }), [language, toggleLanguage]);

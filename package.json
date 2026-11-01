@@ -24,7 +24,8 @@
     "prepare:release-covers": "node scripts/prepare-release-covers.mjs",
     "release:package": "node scripts/package-release.mjs",
     "typecheck": "tsc -b --pretty false",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "indexnow": "node scripts/submit-indexnow.mjs"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

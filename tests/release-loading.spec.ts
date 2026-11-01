@@ -51,7 +51,8 @@ test("save-data suppresses speculative navigation preloads", async ({ page }, te
   const images: string[] = [];
   page.on("request", request => { if (request.resourceType() === "image") images.push(new URL(request.url()).pathname); });
   await page.goto("/blog", { waitUntil: "networkidle" });
-  await page.locator("header a[href='/projects']").first().hover();
+  // The visit may land under /en, so match the route regardless of the language prefix.
+  await page.locator("header a[href$='/projects']").first().hover();
   await page.waitForTimeout(500);
   expect(images.some(image => image.includes("grok2api-egress") || image.includes("desk-setup"))).toBe(false);
 });

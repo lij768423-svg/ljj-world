@@ -93,10 +93,10 @@ if os.readlink(current) != expected_previous:
     raise RuntimeError("Public release changed before activation")
 swap("releases/" + release_id)
 try:
-    routes = ["/", "/projects", "/projects/travel-agent", "/systems", "/about", "/desk", "/blog"]
+    routes = ["/", "/projects", "/projects/travel-agent", "/systems", "/about", "/desk", "/blog", "/en/", "/en/projects", "/en/blog"]
     routes += sorted("/" + str(path.parent.relative_to(release)) for path in (release / "blog").glob("*/index.html"))
     for route in routes:
-        expected = release / "index.html" if route == "/" else release / route.lstrip("/") / "index.html"
+        expected = release / route.strip("/") / "index.html" if route.strip("/") else release / "index.html"
         assert hashlib.sha256(fetch(route)).hexdigest() == digest(expected), route
     for static in ["/sitemap.xml", "/rss.xml", "/robots.txt"]:
         assert hashlib.sha256(fetch(static)).hexdigest() == digest(release / static.lstrip("/")), static

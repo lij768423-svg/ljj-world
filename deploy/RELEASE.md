@@ -35,7 +35,12 @@ python3 deploy/retain-assets.py --release /srv/portfolio/current --release /srv/
    their lazy-loaded chunk URLs. Do not garbage-collect shared assets as part of
    a deploy or rollback.
 
-7. Prune old releases once the new one is verified. Preview first, then apply:
+7. Tell the IndexNow engines (Bing and others) about the new sitemap from the repo:
+   `npm run indexnow`. It checks that the key file in `public/` is served and
+   submits every URL in the live sitemap. Google reads the sitemap through
+   Search Console instead; submit `https://ljj.world/sitemap.xml` there once.
+
+8. Prune old releases once the new one is verified. Preview first, then apply:
 
 ```sh
 python3 deploy/prune-releases.py --root /srv/portfolio --keep 3

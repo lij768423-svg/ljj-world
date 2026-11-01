@@ -30,6 +30,7 @@ import { SceneLineOrnaments } from "./components/effects/SceneLineOrnaments";
 import { InteractivePortrait } from "./components/InteractivePortrait";
 import type { CircularGalleryItem } from "./components/CircularGallery";
 import type { FlowingMenuItemData } from "./components/FlowingMenu";
+import { ENGLISH_PREFIX, withLanguagePrefix } from "./i18n/languageRouting";
 import { PortfolioLanguageProvider, translatePortfolioText, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
 import { blogPosts, getBlogPost } from "./blog";
 import { optimizedCovers } from "./assets/optimizedCovers";
@@ -1635,10 +1636,14 @@ function PageMeta() {
     document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute("content", title);
     document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute("content", description);
     document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.setAttribute("content", metadata.image);
-    // The build writes canonical/og:url per route; keep them in step during client-side navigation.
-    const pageUrl = `${window.location.origin}${pathname}`;
+    // The build writes canonical/og:url/hreflang per route; keep them in step during client-side navigation.
+    const pageUrl = `${window.location.origin}${withLanguagePrefix(pathname, language)}`;
     document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute("href", pageUrl);
     document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute("content", pageUrl);
+    document.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][hreflang]').forEach((link) => {
+      const target = link.hreflang === "en" ? "en" : "zh";
+      link.setAttribute("href", `${window.location.origin}${withLanguagePrefix(pathname, target)}`);
+    });
   }, [language, location.pathname]);
 
   return null;
@@ -1815,16 +1820,22 @@ function App() {
 
   return (
     <PortfolioLanguageProvider>
-      <BrowserRouter>
+      <LocalizedRouter>
         <PortfolioRoutes
           theme={theme}
           trailEnabled={trailEnabled}
           onThemeChange={toggleTheme}
           onTrailChange={toggleTrail}
         />
-      </BrowserRouter>
+      </LocalizedRouter>
     </PortfolioLanguageProvider>
   );
+}
+
+// English pages live under /en; the router strips that prefix so routes and links stay neutral.
+function LocalizedRouter({ children }: { children: ReactNode }) {
+  const { language } = usePortfolioLanguage();
+  return <BrowserRouter base={language === "en" ? ENGLISH_PREFIX : ""}>{children}</BrowserRouter>;
 }
 
 export default App;

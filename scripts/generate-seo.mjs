@@ -39,8 +39,11 @@ const { module: seo } = await runnerImport("/src/seo/routes.ts", {
 });
 const { siteOrigin, siteName, siteAuthor, feedTitle, feedDescription, escapeHtml } = seo;
 const routes = seo.getSeoRoutes();
-const notFound = seo.getNotFoundRoute();
+const notFound = seo.localizeRoute(seo.getNotFoundRoute(), "zh");
 const feedItems = seo.getFeedItems();
+// Every page is served in Chinese at "/…" and in English at "/en/…"; each entry links its
+// alternates with hreflang and x-default points at the Chinese page.
+const localizedRoutes = routes.flatMap((route) => seo.seoLanguages.map((language) => seo.localizeRoute(route, language)));
 
 const absolute = (relative) => new URL(relative, siteOrigin).href;
 const dateTime = (isoDate) => `${isoDate}T00:00:00+08:00`;
@@ -54,6 +57,8 @@ const gitDate = (() => {
 
 const duplicates = routes.map((route) => route.path).filter((item, index, all) => all.indexOf(item) !== index);
 if (duplicates.length) throw new Error(`Duplicate SEO routes: ${duplicates.join(", ")}`);
+const untranslated = localizedRoutes.filter((route) => route.language === "en" && /[㐀-鿿]/u.test(`${route.title} ${route.description}`));
+if (untranslated.length) throw new Error(`English entries still carry Chinese copy (add translations): ${untranslated.map((route) => route.path).join(", ")}`);
 
 function replaceOne(html, pattern, replacement, label) {
   const matches = html.match(new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`)) ?? [];
@@ -64,7 +69,7 @@ function replaceOne(html, pattern, replacement, label) {
 const metaPattern = (attribute, name) => new RegExp(`<meta\\s+${attribute}="${name}"\\s+content="[^"]*"\\s*/?>`);
 
 function renderJsonLd(route) {
-  if (route.path === "/") return null;
+  if (route.path === "/" || route.path === "/en/") return null;
   if (route.type === "article") {
     return {
       "@context": "https://schema.org",
@@ -75,7 +80,7 @@ function renderJsonLd(route) {
       datePublished: dateTime(route.article.datePublished),
       dateModified: dateTime(route.article.datePublished),
       articleSection: route.article.section,
-      inLanguage: "zh-CN",
+      inLanguage: route.language === "en" ? "en" : "zh-CN",
       author: { "@type": "Person", name: siteAuthor, url: `${siteOrigin}/about` },
       publisher: { "@type": "Person", name: siteAuthor },
       mainEntityOfPage: absolute(route.path),
@@ -90,7 +95,10 @@ function renderRoute(html, route) {
   const title = escapeHtml(route.title);
   const description = escapeHtml(route.description);
 
-  let output = replaceOne(html, /<title>[^<]*<\/title>/, `<title>${title}</title>`, "<title>");
+  const lang = route.language === "en" ? "en" : "zh-CN";
+  let output = replaceOne(html, /<html lang="[^"]*">/, `<html lang="${lang}">`, "<html lang>");
+  output = replaceOne(output, metaPattern("property", "og:locale"), `<meta property="og:locale" content="${route.language === "en" ? "en_US" : "zh_CN"}" />`, "og:locale meta");
+  output = replaceOne(output, /<title>[^<]*<\/title>/, `<title>${title}</title>`, "<title>");
   output = replaceOne(output, metaPattern("name", "description"), `<meta name="description" content="${description}" />`, "description meta");
   output = replaceOne(output, metaPattern("property", "og:title"), `<meta property="og:title" content="${title}" />`, "og:title meta");
   output = replaceOne(output, metaPattern("property", "og:description"), `<meta property="og:description" content="${description}" />`, "og:description meta");
@@ -99,6 +107,11 @@ function renderRoute(html, route) {
 
   const extra = [
     route.noindex ? `<meta name="robots" content="noindex" />` : `<link rel="canonical" href="${escapeHtml(url)}" />`,
+    ...(route.noindex ? [] : [
+      `<link rel="alternate" hreflang="zh-CN" href="${escapeHtml(absolute(route.alternates.zh))}" />`,
+      `<link rel="alternate" hreflang="en" href="${escapeHtml(absolute(route.alternates.en))}" />`,
+      `<link rel="alternate" hreflang="x-default" href="${escapeHtml(absolute(route.alternates.zh))}" />`,
+    ]),
     `<meta property="og:url" content="${escapeHtml(url)}" />`,
     `<meta property="og:site_name" content="${escapeHtml(siteName)}" />`,
     `<meta name="twitter:title" content="${title}" />`,
@@ -134,11 +147,13 @@ function outputFile(routePath) {
 }
 
 function renderSitemap() {
-  const entries = routes.map((route) => {
+  const entries = localizedRoutes.map((route) => {
     const lastmod = route.lastmod ?? gitDate;
-    return `  <url>\n    <loc>${escapeHtml(absolute(route.path))}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n  </url>`;
+    const links = [["zh-CN", route.alternates.zh], ["en", route.alternates.en], ["x-default", route.alternates.zh]]
+      .map(([hreflang, href]) => `    <xhtml:link rel="alternate" hreflang="${hreflang}" href="${escapeHtml(absolute(href))}" />`);
+    return `  <url>\n    <loc>${escapeHtml(absolute(route.path))}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n${links.join("\n")}\n  </url>`;
   });
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join("\n")}\n</urlset>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${entries.join("\n")}\n</urlset>\n`;
 }
 
 function renderFeed() {
@@ -181,7 +196,7 @@ function renderFeed() {
 
 const html = await readFile(template, "utf8");
 const written = [];
-for (const route of [...routes, notFound]) {
+for (const route of [...localizedRoutes, notFound]) {
   const target = route === notFound ? path.join(dist, "404.html") : outputFile(route.path);
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, renderRoute(html, route));
@@ -189,4 +204,4 @@ for (const route of [...routes, notFound]) {
 }
 await writeFile(path.join(dist, "sitemap.xml"), renderSitemap());
 await writeFile(path.join(dist, "rss.xml"), renderFeed());
-console.log(`generate-seo: ${routes.length} routes + 404.html, sitemap.xml (${routes.length} urls), rss.xml (${feedItems.length} items)`);
+console.log(`generate-seo: ${routes.length} routes × ${seo.seoLanguages.length} languages + 404.html, sitemap.xml (${localizedRoutes.length} urls), rss.xml (${feedItems.length} items)`);

@@ -40,6 +40,29 @@ test.describe("SEO build output", () => {
     expect(scripts(project)).toEqual(scripts(home));
   });
 
+  test("every route also has an English entry under /en with hreflang links", () => {
+    const zh = read("blog/grok-register-panel/index.html");
+    const en = read("en/blog/grok-register-panel/index.html");
+    const home = read("en/index.html");
+
+    expect(en).toContain('<html lang="en">');
+    expect(zh).toContain('<html lang="zh-CN">');
+    expect(en).toMatch(/<title>Grok Register Panel: which failures are worth retrying\? \| lij768423-svg<\/title>/);
+    expect(meta(en, "property", "og:locale")).toBe("en_US");
+    expect(meta(en, "property", "og:url")).toBe("https://ljj.world/en/blog/grok-register-panel");
+    expect(en).toContain('<link rel="canonical" href="https://ljj.world/en/blog/grok-register-panel" />');
+    for (const html of [zh, en]) {
+      expect(html).toContain('<link rel="alternate" hreflang="zh-CN" href="https://ljj.world/blog/grok-register-panel" />');
+      expect(html).toContain('<link rel="alternate" hreflang="en" href="https://ljj.world/en/blog/grok-register-panel" />');
+      expect(html).toContain('<link rel="alternate" hreflang="x-default" href="https://ljj.world/blog/grok-register-panel" />');
+    }
+    expect(en).toContain('"inLanguage": "en"');
+    expect(home).toContain('<link rel="canonical" href="https://ljj.world/en/" />');
+    expect(home).toContain('"@type": "Person"');
+    const scripts = (html: string) => html.match(/<script type="module"[^>]*src="[^"]+"/g);
+    expect(scripts(en)).toEqual(scripts(zh));
+  });
+
   test("404.html is noindex and keeps the app shell", () => {
     const notFound = read("404.html");
     expect(meta(notFound, "name", "robots")).toBe("noindex");
@@ -54,6 +77,9 @@ test.describe("SEO build output", () => {
     expect(locs).toContain("https://ljj.world/");
     expect(locs).toContain("https://ljj.world/projects/hermes-ios");
     expect(locs).toContain("https://ljj.world/blog/grok-register-panel");
+    expect(locs).toContain("https://ljj.world/en/");
+    expect(locs).toContain("https://ljj.world/en/blog/grok-register-panel");
+    expect(sitemap).toContain('<xhtml:link rel="alternate" hreflang="en" href="https://ljj.world/en/blog/grok-register-panel" />');
     expect(locs.some((loc) => loc.includes("404"))).toBe(false);
     expect(sitemap).toContain("<lastmod>2026-08-07</lastmod>");
     for (const loc of locs) {

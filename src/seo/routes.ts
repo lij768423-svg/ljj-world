@@ -1,5 +1,7 @@
 import { getPageMetadata, projects } from "../App";
 import { blogPosts, type BlogPost } from "../blog";
+import { withLanguagePrefix } from "../i18n/languageRouting";
+import { translatePortfolioText, type PortfolioLanguage } from "../i18n/PortfolioLanguage";
 
 export const siteOrigin = "https://ljj.world";
 export const siteName = "ljj.world";
@@ -82,6 +84,28 @@ export function getSeoRoutes(): SeoRoute[] {
     ...posts.map(articleRoute),
   ];
 }
+
+export type LocalizedSeoRoute = SeoRoute & {
+  language: PortfolioLanguage;
+  /** The same page in every language, keyed by language, as site-relative paths. */
+  alternates: Record<PortfolioLanguage, string>;
+};
+
+/** The route as served in one language: "/projects" → "/en/projects" with translated copy for English. */
+export function localizeRoute(route: SeoRoute, language: PortfolioLanguage): LocalizedSeoRoute {
+  const translate = (value: string) => (language === "en" ? translatePortfolioText(value) : value);
+  return {
+    ...route,
+    language,
+    path: withLanguagePrefix(route.path, language),
+    title: translate(route.title),
+    description: translate(route.description),
+    article: route.article ? { ...route.article, section: translate(route.article.section) } : undefined,
+    alternates: { zh: withLanguagePrefix(route.path, "zh"), en: withLanguagePrefix(route.path, "en") },
+  };
+}
+
+export const seoLanguages: readonly PortfolioLanguage[] = ["zh", "en"];
 
 export function getNotFoundRoute(): SeoRoute {
   return { path: "/404", type: "website", noindex: true, ...getPageMetadata("/__not_found__") };

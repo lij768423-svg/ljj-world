@@ -121,7 +121,7 @@ The supported capture groups are `408`, `408-demo`, `harmony`, `ios`, `law`, `wi
 npm run build
 ```
 
-After `vite build`, `npm run build` runs `scripts/generate-seo.mjs`. It writes one HTML entry per route (`dist/<route>/index.html` with its own title, description, canonical, Open Graph tags and JSON-LD) plus `dist/404.html`, `dist/sitemap.xml` and `dist/rss.xml`. Route data comes from `src/seo/routes.ts`, which shares the app's page metadata, project list and blog posts.
+After `vite build`, `npm run build` runs `scripts/generate-seo.mjs`. It writes one HTML entry per route and language (`dist/<route>/index.html` in Chinese and `dist/en/<route>/index.html` in English, each with its own title, description, canonical, hreflang, Open Graph tags and JSON-LD) plus `dist/404.html`, `dist/sitemap.xml` and `dist/rss.xml`. The URL carries the language: a first visit from a browser that prefers Chinese stays at `/…`, any other browser is moved to `/en/…`, and the language switch moves between the two. Route data comes from `src/seo/routes.ts`, which shares the app's page metadata, project list and blog posts.
 
 Deploy `dist/` to any static host. The app uses History API routing: known paths serve their own `index.html` first, and unknown paths serve `404.html` with a 404 status. A generic [Caddy example](./deploy/caddy/portfolio.caddy.example) is included and `vite preview` follows the same rules. For Nginx:
 
