@@ -102,6 +102,9 @@ try:
         assert hashlib.sha256(fetch(static)).hexdigest() == digest(release / static.lstrip("/")), static
     missing = fetch(f"/__missing-{uuid.uuid4().hex}", expect_status=404)
     assert hashlib.sha256(missing).hexdigest() == digest(release / "404.html"), "404.html"
+    if (release / "en" / "404.html").is_file():
+        missing_en = fetch(f"/en/__missing-{uuid.uuid4().hex}", expect_status=404)
+        assert hashlib.sha256(missing_en).hexdigest() == digest(release / "en" / "404.html"), "en/404.html"
     new_js = re.search(r'src="(/assets/[^"]+\.js)"', (release / "index.html").read_text()).group(1)
     fetch(new_js)
     fetch(previous_js)

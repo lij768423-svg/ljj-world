@@ -2,7 +2,7 @@
 //   - one HTML entry per route (dist/<route>/index.html) with its own title, description,
 //     canonical, Open Graph / Twitter tags and JSON-LD, so crawlers and link previews see the
 //     page instead of the home page shell;
-//   - dist/404.html (noindex) for the static host to serve with a 404 status;
+//   - dist/404.html and dist/en/404.html (noindex) for the static host to serve with a 404 status;
 //   - dist/sitemap.xml and dist/rss.xml.
 // Route data comes from src/seo/routes.ts, loaded through Vite so it shares the app's own
 // page metadata, project list and blog posts.
@@ -39,7 +39,8 @@ const { module: seo } = await runnerImport("/src/seo/routes.ts", {
 });
 const { siteOrigin, siteName, siteAuthor, feedTitle, feedDescription, escapeHtml } = seo;
 const routes = seo.getSeoRoutes();
-const notFound = seo.localizeRoute(seo.getNotFoundRoute(), "zh");
+// One not-found page per language: the host serves en/404.html for missing paths under /en.
+const notFoundPages = seo.seoLanguages.map((language) => seo.localizeRoute(seo.getNotFoundRoute(), language));
 const feedItems = seo.getFeedItems();
 // Every page is served in Chinese at "/…" and in English at "/en/…"; each entry links its
 // alternates with hreflang and x-default points at the Chinese page.
@@ -57,7 +58,7 @@ const gitDate = (() => {
 
 const duplicates = routes.map((route) => route.path).filter((item, index, all) => all.indexOf(item) !== index);
 if (duplicates.length) throw new Error(`Duplicate SEO routes: ${duplicates.join(", ")}`);
-const untranslated = localizedRoutes.filter((route) => route.language === "en" && /[㐀-鿿]/u.test(`${route.title} ${route.description}`));
+const untranslated = [...localizedRoutes, ...notFoundPages].filter((route) => route.language === "en" && /[㐀-鿿]/u.test(`${route.title} ${route.description}`));
 if (untranslated.length) throw new Error(`English entries still carry Chinese copy (add translations): ${untranslated.map((route) => route.path).join(", ")}`);
 
 function replaceOne(html, pattern, replacement, label) {
@@ -196,12 +197,14 @@ function renderFeed() {
 
 const html = await readFile(template, "utf8");
 const written = [];
-for (const route of [...localizedRoutes, notFound]) {
-  const target = route === notFound ? path.join(dist, "404.html") : outputFile(route.path);
+for (const route of [...localizedRoutes, ...notFoundPages]) {
+  const target = notFoundPages.includes(route)
+    ? path.join(dist, ...(route.language === "en" ? ["en"] : []), "404.html")
+    : outputFile(route.path);
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, renderRoute(html, route));
   written.push(path.relative(dist, target));
 }
 await writeFile(path.join(dist, "sitemap.xml"), renderSitemap());
 await writeFile(path.join(dist, "rss.xml"), renderFeed());
-console.log(`generate-seo: ${routes.length} routes × ${seo.seoLanguages.length} languages + 404.html, sitemap.xml (${localizedRoutes.length} urls), rss.xml (${feedItems.length} items)`);
+console.log(`generate-seo: ${routes.length} routes × ${seo.seoLanguages.length} languages + 404 pages, sitemap.xml (${localizedRoutes.length} urls), rss.xml (${feedItems.length} items)`);

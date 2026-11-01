@@ -686,7 +686,7 @@ export const portfolioTranslations: Record<string, string> = {
   "要解决的问题": "problem to be solved",
   "业务领域": "Business areas",
   "业务领域按服务阶段组织，让访客先判断自己的问题应该从哪里开始。": "Business areas are organized by service stages, allowing visitors to determine where to start with their questions.",
-  "页面不存在 | lij768423-svg": "Page does not exist |lij768423-svg",
+  "页面不存在 | lij768423-svg": "Page not found | lij768423-svg",
   "一边准备研究生考试，一边把真实需求做成能长期运行的产品。": "While preparing for the postgraduate exam, I also turned real needs into products that can run for a long time.",
   "一次访问怎样进入我的服务": "How to access my service in one visit",
   "一次作答，怎样变成下一次有效复习": "How to answer once and turn it into an effective review next time",

@@ -65,8 +65,19 @@ portfolio.example.com {
 		@notFound expression {err.status_code} == 404
 		handle @notFound {
 			root * /srv/portfolio/current
-			rewrite * /404.html
-			file_server
+			# Missing paths under /en get the English not-found page when the release has one.
+			@englishMissing {
+				path /en /en/*
+				file /en/404.html
+			}
+			handle @englishMissing {
+				rewrite * /en/404.html
+				file_server
+			}
+			handle {
+				rewrite * /404.html
+				file_server
+			}
 		}
 		respond "{err.status_text}" {err.status_code}
 	}

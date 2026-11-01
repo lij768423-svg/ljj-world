@@ -68,6 +68,17 @@ test.describe("SEO build output", () => {
     expect(meta(notFound, "name", "robots")).toBe("noindex");
     expect(notFound).not.toContain('rel="canonical"');
     expect(notFound).toContain('id="root"');
+    expect(notFound).toContain('<html lang="zh-CN">');
+  });
+
+  test("en/404.html is the English not-found page", () => {
+    const notFound = read("en/404.html");
+    expect(notFound).toContain('<html lang="en">');
+    expect(notFound).toMatch(/<title>Page not found \| lij768423-svg<\/title>/);
+    expect(meta(notFound, "name", "robots")).toBe("noindex");
+    expect(meta(notFound, "property", "og:locale")).toBe("en_US");
+    expect(notFound).not.toContain('rel="canonical"');
+    expect(notFound).toContain('id="root"');
   });
 
   test("sitemap lists every indexable route exactly once", () => {
