@@ -408,6 +408,13 @@ body.desk-route .global-pixel-trail {
   width: max-content;
 }
 
+/* Word-wrapping hero lines keep the content width of the old one-line layout, but never grow
+   past the column, so a phone wraps them between words. */
+.blur-text.is-wrapping.hero-line {
+  display: block;
+  max-width: 100%;
+}
+
 .hero-card-media,
 .project-card-surface,
 .project-overview-media,

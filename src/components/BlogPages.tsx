@@ -35,9 +35,9 @@ function CodeBlock({ block }: { block: Extract<BlogBlock, { type: "code" }> }) {
 
   return (
     <figure className="blog-code">
-      <div className="blog-code-bar">
+      <figcaption className="blog-code-bar">
         <span className="blog-code-language" data-no-translate>{block.language}</span>
-        {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+        {block.caption ? <span className="blog-code-caption">{block.caption}</span> : null}
         <button
           type="button"
           className="blog-code-copy"
@@ -49,7 +49,7 @@ function CodeBlock({ block }: { block: Extract<BlogBlock, { type: "code" }> }) {
         >
           {copied ? <Check size={15} weight="bold" aria-hidden="true" /> : <Copy size={15} weight="bold" aria-hidden="true" />}
         </button>
-      </div>
+      </figcaption>
       <pre tabIndex={0} data-no-translate><code>{block.code}</code></pre>
     </figure>
   );

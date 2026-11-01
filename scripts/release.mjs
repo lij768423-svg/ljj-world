@@ -23,6 +23,13 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+const fail = (error) => {
+  console.error(`\nrelease stopped: ${error?.message ?? error}`);
+  process.exit(1);
+};
+process.on("uncaughtException", fail);
+process.on("unhandledRejection", fail);
+
 const root = path.resolve(import.meta.dirname, "..");
 const flags = new Set(process.argv.slice(2));
 const known = new Set(["--dry-run", "--test", "--skip-snapshot", "--skip-indexnow", "--no-push"]);

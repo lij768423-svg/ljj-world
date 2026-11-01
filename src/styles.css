@@ -18959,7 +18959,7 @@ body:has(.blog-index) {
   text-transform: uppercase;
 }
 
-.blog-code-bar figcaption {
+.blog-code-caption {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
