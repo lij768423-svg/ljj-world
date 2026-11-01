@@ -1,0 +1,34 @@
+{
+  "capturedAt": "2026-11-01",
+  "host": "home-serve",
+  "cpu": {
+    "model": "Ryzen 9 9950X",
+    "cores": 16,
+    "threads": 32
+  },
+  "memoryGiB": 59,
+  "nvme": {
+    "count": 3,
+    "totalTB": 6
+  },
+  "hdd": {
+    "count": 2,
+    "totalTB": 8
+  },
+  "gpus": [
+    {
+      "name": "RTX 4090",
+      "memoryGB": 48
+    },
+    {
+      "name": "RTX 3080",
+      "memoryGB": 20
+    }
+  ],
+  "nvidiaDriver": "595.99.02",
+  "docker": {
+    "version": "29.1.3",
+    "runningContainers": 153,
+    "composeProjects": 68
+  }
+}

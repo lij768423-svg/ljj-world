@@ -5,13 +5,14 @@ import { OpenAiLogo } from "@phosphor-icons/react/OpenAiLogo";
 import { Stack } from "@phosphor-icons/react/Stack";
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { MobileServerStory } from "../components/MobileServerStory";
+import { serverSnapshot as server } from "../data/server";
 
 const ServerExplodedStory = lazy(() => import("../components/ServerExplodedStory").then((module) => ({ default: module.ServerExplodedStory })));
 const serverFacts = [
-  { label: "主机", value: "home-serve" },
-  { label: "运行容器", value: "139" },
-  { label: "内存", value: "59 GiB" },
-  { label: "NVMe 存储", value: "5.4 TB" },
+  { label: "主机", value: server.host },
+  { label: "运行容器", value: String(server.runningContainers) },
+  { label: "内存", value: server.memory },
+  { label: "NVMe 存储", value: server.nvme },
 ] as const;
 
 type TopologyCategoryId = "network" | "hardware" | "agent" | "data" | "containers";
@@ -163,25 +164,25 @@ const topologyCategories: TopologyCategory[] = [
     services: [
       {
         id: "cpu",
-        name: "Ryzen 9 9950X",
+        name: server.cpuModel,
         kind: "计算",
-        description: "16 核 32 线程，跑容器、编译、转码和并行代理。",
+        description: `${server.cpuCores} 核 ${server.cpuThreads} 线程，跑容器、编译、转码和并行代理。`,
         connection: "主机计算核心到全部工作负载",
         deployment: "装在 ASUS ProArt X870E-CREATOR WIFI 上，运行 Ubuntu 26.04 LTS，直接承载全部主机工作负载。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
         id: "gpu",
-        name: "RTX 4090",
+        name: server.primaryGpu.name,
         kind: "GPU",
-        description: "48 GB 显存，给本地推理、图片生成和媒体工作流供能；另有一块 20 GB 显存的 RTX 3080 承接其余 GPU 任务。",
+        description: `${server.primaryGpu.memoryGB} GB 显存，给本地推理、图片生成和媒体工作流供能；另有一块 ${server.secondaryGpu.memoryGB} GB 显存的 ${server.secondaryGpu.name} 承接其余 GPU 任务。`,
         connection: "NVIDIA 驱动到 vLLM、ComfyUI 与 Immich 机器学习",
-        deployment: "宿主机驱动 595.91，按需向 vLLM、ComfyUI、Immich ML 等容器开放两块 GPU。",
+        deployment: `宿主机驱动 ${server.driver}，按需向 vLLM、ComfyUI、Immich ML 等容器开放两块 GPU。`,
         entryLabel: "仅 Tailnet 内可用",
       },
       {
         id: "nvme",
-        name: "5.4 TB NVMe",
+        name: `${server.nvme} NVMe`,
         kind: "存储",
         description: "三块 2 TB NVMe 分别承载系统、应用数据与扩展存储，两块 4 TB 机械盘负责归档与冷备份。",
         connection: "容器卷与个人数据",
@@ -268,7 +269,7 @@ const topologyCategories: TopologyCategory[] = [
     id: "containers",
     label: "容器与日常工具",
     shortLabel: "CONTAINERS",
-    description: "139 个运行容器、58 套 Compose，按入口、状态和备份收成一组。",
+    description: `${server.runningContainers} 个运行容器、${server.composeProjects} 套 Compose，按入口、状态和备份收成一组。`,
     x: 50,
     y: 87,
     icon: <Stack size={43} weight="thin" />,
@@ -316,7 +317,7 @@ const topologyCategories: TopologyCategory[] = [
         kind: "运行底座",
         description: "应用、数据库与依赖隔离运行，并按统一方式检查和备份。",
         connection: "Compose 项目到容器、网络与数据卷",
-        deployment: "Docker 29 上的 Compose 项目统一归档，Portainer 通过 Docker Socket 查看容器和数据卷。",
+        deployment: `Docker ${server.dockerMajor} 上的 Compose 项目统一归档，Portainer 通过 Docker Socket 查看容器和数据卷。`,
         entryLabel: "仅 Tailnet 内可用",
       },
     ],
@@ -333,10 +334,10 @@ function ServerTopology() {
     return () => query.removeEventListener("change", update);
   }, []);
 
-  if (isPhone) return <MobileServerStory categories={topologyCategories} facts={serverFacts} />;
+  if (isPhone) return <MobileServerStory categories={topologyCategories} facts={serverFacts} capturedAt={server.capturedAt} />;
   return (
       <Suspense fallback={<div className="server-three-loading" aria-label="正在加载服务器结构图" />}>
-        <ServerExplodedStory categories={topologyCategories} facts={serverFacts} visualOnly />
+        <ServerExplodedStory categories={topologyCategories} facts={serverFacts} capturedAt={server.capturedAt} visualOnly />
       </Suspense>
   );
 }

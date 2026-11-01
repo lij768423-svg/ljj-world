@@ -33,6 +33,7 @@ import type { FlowingMenuItemData } from "./components/FlowingMenu";
 import { ENGLISH_PREFIX, withLanguagePrefix } from "./i18n/languageRouting";
 import { PortfolioLanguageProvider, translatePortfolioText, usePortfolioLanguage } from "./i18n/PortfolioLanguage";
 import { blogPosts, getBlogPost } from "./blog";
+import { shareCardPath } from "./seo/shareCards";
 import { optimizedCovers } from "./assets/optimizedCovers";
 
 const loadProjectHelix = () => import("./components/ProjectHelix").then((module) => ({ default: module.ProjectHelix }));
@@ -828,8 +829,8 @@ function Hero({ theme, onSelectScene }: { theme: ThemeMode; onSelectScene: (scen
               <DecryptedText text="lij768423-svg / 独立开发者" />
             </span>
             <span className="hero-statement">
-              <BlurText className="hero-line" text="你好，我是 ljj。" delay={0.08} crossFadeTransition />
-              <BlurText className="hero-line" text="把想法做成长期运行的产品。" delay={0.3} crossFadeTransition />
+              <BlurText className="hero-line" text="你好，我是 ljj。" delay={0.08} crossFadeTransition wrapWords />
+              <BlurText className="hero-line" text="把想法做成长期运行的产品。" delay={0.3} crossFadeTransition wrapWords />
             </span>
           </h1>
           <p className="hero-summary">
@@ -1635,7 +1636,9 @@ function PageMeta() {
     document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute("content", description);
     document.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute("content", title);
     document.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute("content", description);
-    document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.setAttribute("content", metadata.image);
+    const blogSlug = /^\/blog\/([^/]+)$/.exec(pathname)?.[1];
+    const image = blogSlug && getBlogPost(blogSlug) ? shareCardPath(blogSlug, language) : metadata.image;
+    document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.setAttribute("content", new URL(image, window.location.origin).href);
     // The build writes canonical/og:url/hreflang per route; keep them in step during client-side navigation.
     const pageUrl = `${window.location.origin}${withLanguagePrefix(pathname, language)}`;
     document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute("href", pageUrl);

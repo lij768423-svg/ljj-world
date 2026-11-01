@@ -5,6 +5,7 @@ import {
   translatePortfolioText,
   usePortfolioLanguage,
 } from "../../i18n/PortfolioLanguage";
+import { getLineBreakGroups } from "../../lib/lineBreaks";
 
 type BlurTextProps = {
   text: string;
@@ -85,35 +86,39 @@ export function BlurText({
     </motion.span>
   );
 
+  const crossFadeStyle = crossFadeTransition ? {
+    opacity: crossFadeOpacity,
+    filter: `blur(${(1 - crossFadeOpacity) * 3}px)`,
+  } : undefined;
+  const crossFadeClass = crossFadeTransition ? " has-language-crossfade" : "";
+
   if (wrapWords) {
-    // Words stay intact as inline-blocks; the plain spaces between them are where lines break.
+    // Each group stays intact as an inline-block. Lines break at spaces, and between CJK
+    // groups through the <wbr> placed there, never inside a Latin word.
     let offset = 0;
+    const groups = getLineBreakGroups(displayText);
     return (
-      <span className={`blur-text is-wrapping ${className}`.trim()}>
+      <span className={`blur-text is-wrapping${crossFadeClass} ${className}`.trim()} style={crossFadeStyle}>
         <span className="sr-only">{resolvedText}</span>
-        {displayText.split(/(\s+)/).map((part, partIndex) => {
+        {groups.map((group, groupIndex) => {
           const start = offset;
-          offset += Array.from(part).length;
-          if (!part) return null;
-          if (/^\s+$/.test(part)) return " ";
-          return (
-            <span key={partIndex} className="blur-text-word" aria-hidden="true">
-              {Array.from(part).map((character, index) => renderCharacter(character, start + index))}
-            </span>
-          );
+          offset += Array.from(group).length;
+          if (/^\s+$/u.test(group)) return " ";
+          const previous = groups[groupIndex - 1];
+          const needsBreakOpportunity = previous !== undefined && !/^\s+$/u.test(previous);
+          return [
+            needsBreakOpportunity ? <wbr key={`${groupIndex}-wbr`} /> : null,
+            <span key={groupIndex} className="blur-text-word" aria-hidden="true">
+              {Array.from(group).map((character, index) => renderCharacter(character, start + index))}
+            </span>,
+          ];
         })}
       </span>
     );
   }
 
   return (
-    <span
-      className={`blur-text${crossFadeTransition ? " has-language-crossfade" : ""} ${className}`.trim()}
-      style={crossFadeTransition ? {
-        opacity: crossFadeOpacity,
-        filter: `blur(${(1 - crossFadeOpacity) * 3}px)`,
-      } : undefined}
-    >
+    <span className={`blur-text${crossFadeClass} ${className}`.trim()} style={crossFadeStyle}>
       <span className="sr-only">{resolvedText}</span>
       {Array.from(displayText).map(renderCharacter)}
     </span>

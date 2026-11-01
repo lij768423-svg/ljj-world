@@ -58,8 +58,16 @@ const gitDate = (() => {
 
 const duplicates = routes.map((route) => route.path).filter((item, index, all) => all.indexOf(item) !== index);
 if (duplicates.length) throw new Error(`Duplicate SEO routes: ${duplicates.join(", ")}`);
+// Articles point og:image at their generated share card (public/assets/share, drawn by
+// scripts/generate-share-cards.mjs and committed). A post without one fails the build here
+// rather than shipping a broken preview.
+const missingCards = localizedRoutes.filter((route) => route.shareImage && !existsSync(path.join(dist, route.shareImage)));
+if (missingCards.length) throw new Error(`Share cards are missing (run \`npm run share-cards\`): ${missingCards.map((route) => route.shareImage).join(", ")}`);
 const untranslated = [...localizedRoutes, ...notFoundPages].filter((route) => route.language === "en" && /[㐀-鿿]/u.test(`${route.title} ${route.description}`));
 if (untranslated.length) throw new Error(`English entries still carry Chinese copy (add translations): ${untranslated.map((route) => route.path).join(", ")}`);
+// Titles end in " | lij768423-svg"; a translation that drops a space around the bar slips in easily.
+const badSeparators = [...localizedRoutes, ...notFoundPages].filter((route) => /\S\||\|\S/u.test(route.title));
+if (badSeparators.length) throw new Error(`Titles need spaces around "|": ${badSeparators.map((route) => `${route.path} (${route.title})`).join(", ")}`);
 
 function replaceOne(html, pattern, replacement, label) {
   const matches = html.match(new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`)) ?? [];
@@ -77,7 +85,7 @@ function renderJsonLd(route) {
       "@type": "BlogPosting",
       headline: route.title.replace(/ \| [^|]+$/, ""),
       description: route.description,
-      image: [absolute(route.image)],
+      image: [absolute(route.image), ...(route.shareImage ? [absolute(route.shareImage)] : [])],
       datePublished: dateTime(route.article.datePublished),
       dateModified: dateTime(route.article.datePublished),
       articleSection: route.article.section,
@@ -92,7 +100,7 @@ function renderJsonLd(route) {
 
 function renderRoute(html, route) {
   const url = absolute(route.path);
-  const image = absolute(route.image);
+  const image = absolute(route.shareImage ?? route.image);
   const title = escapeHtml(route.title);
   const description = escapeHtml(route.description);
 
@@ -118,6 +126,11 @@ function renderRoute(html, route) {
     `<meta name="twitter:title" content="${title}" />`,
     `<meta name="twitter:description" content="${description}" />`,
     `<meta name="twitter:image" content="${escapeHtml(image)}" />`,
+    ...(route.shareImage ? [
+      `<meta property="og:image:width" content="${seo.shareCardSize.width}" />`,
+      `<meta property="og:image:height" content="${seo.shareCardSize.height}" />`,
+      `<meta property="og:image:alt" content="${escapeHtml(route.title.replace(/ \| [^|]+$/, ""))}" />`,
+    ] : []),
   ];
   if (route.type === "article") {
     extra.push(

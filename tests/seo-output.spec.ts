@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { blogPosts } from "../src/blog";
 
 // Checks the files `npm run build` (vite build + scripts/generate-seo.mjs) leaves in dist/.
 // CI builds before running the suite; locally run `npm run build` first.
@@ -61,6 +62,37 @@ test.describe("SEO build output", () => {
     expect(home).toContain('"@type": "Person"');
     const scripts = (html: string) => html.match(/<script type="module"[^>]*src="[^"]+"/g);
     expect(scripts(en)).toEqual(scripts(zh));
+  });
+
+  test("articles use a generated share card per language", () => {
+    const zh = read("blog/pluggable-city-travel-agent/index.html");
+    const en = read("en/blog/pluggable-city-travel-agent/index.html");
+    expect(meta(zh, "property", "og:image")).toBe("https://ljj.world/assets/share/pluggable-city-travel-agent-zh.jpg");
+    expect(meta(en, "property", "og:image")).toBe("https://ljj.world/assets/share/pluggable-city-travel-agent-en.jpg");
+    expect(meta(en, "name", "twitter:image")).toBe(meta(en, "property", "og:image"));
+    expect(meta(zh, "property", "og:image:width")).toBe("1200");
+    expect(meta(zh, "property", "og:image:height")).toBe("630");
+    expect(meta(zh, "property", "og:image:alt")).toBe("一套代码接入十座城市：行记的可插拔城市设计");
+    for (const post of blogPosts) {
+      for (const language of ["zh", "en"]) {
+        const card = path.join(dist, "assets", "share", `${post.slug}-${language}.jpg`);
+        expect(existsSync(card), card).toBe(true);
+        // JPEG, 1200x630: read the SOF0/SOF2 frame header.
+        const bytes = readFileSync(card);
+        expect(bytes.subarray(0, 2).toString("hex")).toBe("ffd8");
+        let offset = 2;
+        let size: [number, number] | undefined;
+        while (offset < bytes.length && !size) {
+          const marker = bytes[offset + 1];
+          const length = bytes.readUInt16BE(offset + 2);
+          if (marker === 0xc0 || marker === 0xc2) size = [bytes.readUInt16BE(offset + 7), bytes.readUInt16BE(offset + 5)];
+          offset += 2 + length;
+        }
+        expect(size, card).toEqual([1200, 630]);
+      }
+    }
+    // Pages without a card keep their own image and no card dimensions.
+    expect(meta(read("projects/index.html"), "property", "og:image:width")).toBeUndefined();
   });
 
   test("404.html is noindex and keeps the app shell", () => {

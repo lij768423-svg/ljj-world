@@ -93,6 +93,8 @@ This repository is easiest to adapt by replacing content first, then assets, the
 | Change | Where |
 | --- | --- |
 | Projects, outbound links, server services, metadata | [`src/App.tsx`](./src/App.tsx) |
+| Blog posts: paragraphs plus code, list and figure blocks | [`src/blog.ts`](./src/blog.ts) |
+| Server numbers on /systems (snapshot, refreshed by `npm run snapshot:server`) | [`src/data/serverSnapshot.json`](./src/data/serverSnapshot.json) |
 | English/Chinese text mapping and global transition | [`src/i18n`](./src/i18n) |
 | Project DNA and paper-style project detail | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
 | Server machine and service expansion | [`src/components/ServerExplodedStory.tsx`](./src/components/ServerExplodedStory.tsx) |
@@ -122,6 +124,19 @@ npm run build
 ```
 
 After `vite build`, `npm run build` runs `scripts/generate-seo.mjs`. It writes one HTML entry per route and language (`dist/<route>/index.html` in Chinese and `dist/en/<route>/index.html` in English, each with its own title, description, canonical, hreflang, Open Graph tags and JSON-LD) plus `dist/404.html`, `dist/sitemap.xml` and `dist/rss.xml`. The URL carries the language: a first visit from a browser that prefers Chinese stays at `/…`, any other browser is moved to `/en/…`, and the language switch moves between the two. Route data comes from `src/seo/routes.ts`, which shares the app's page metadata, project list and blog posts.
+
+Articles also get a 1200×630 share card per language for link previews. The cards live in `public/assets/share/` and are drawn from the post data in headless Chromium; the build fails when one is missing, so run this after adding or retitling a post:
+
+```bash
+npm run share-cards
+```
+
+This site ships with one command from a clean `main`: it refreshes the /systems snapshot, packages a release, activates it on the static host with route-by-route checks and automatic rollback, submits the sitemap to IndexNow and pushes `main`. Hosts and flags are described at the top of [`scripts/release.mjs`](./scripts/release.mjs) and in [`deploy/RELEASE.md`](./deploy/RELEASE.md).
+
+```bash
+npm run release -- --dry-run
+npm run release
+```
 
 Deploy `dist/` to any static host. The app uses History API routing: known paths serve their own `index.html` first, and unknown paths serve `404.html` with a 404 status. A generic [Caddy example](./deploy/caddy/portfolio.caddy.example) is included and `vite preview` follows the same rules. For Nginx:
 

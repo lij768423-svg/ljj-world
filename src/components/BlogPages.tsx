@@ -1,6 +1,8 @@
 import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
 import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
+import { Check } from "@phosphor-icons/react/Check";
+import { Copy } from "@phosphor-icons/react/Copy";
 import {
   motion,
   useReducedMotion,
@@ -9,7 +11,7 @@ import {
 } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
-import { blogPosts, getBlogPost, type BlogPost } from "../blog";
+import { blogPosts, blogSectionText, getBlogPost, type BlogBlock, type BlogContent, type BlogPost } from "../blog";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 const previewSizes = "(max-width: 760px) calc(100vw - 32px), (max-width: 980px) max(44vw, 640px), max(32vw, calc(160vh - 420px))";
@@ -21,6 +23,62 @@ function sectionId(slug: string, title: string) {
 function shortDate(date: string) {
   const parts = date.split(".");
   return parts.length >= 3 ? `${parts[1]}.${parts[2]}` : date;
+}
+
+function CodeBlock({ block }: { block: Extract<BlogBlock, { type: "code" }> }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const reset = window.setTimeout(() => setCopied(false), 1600);
+    return () => window.clearTimeout(reset);
+  }, [copied]);
+
+  return (
+    <figure className="blog-code">
+      <figcaption className="blog-code-bar">
+        <span className="blog-code-language" data-no-translate>{block.language}</span>
+        {block.caption ? <span className="blog-code-caption">{block.caption}</span> : null}
+        <button
+          type="button"
+          className="blog-code-copy"
+          onClick={() => {
+            void navigator.clipboard?.writeText(block.code).then(() => setCopied(true), () => undefined);
+          }}
+          aria-label={copied ? "已复制" : "复制代码"}
+          title={copied ? "已复制" : "复制代码"}
+        >
+          {copied ? <Check size={15} weight="bold" aria-hidden="true" /> : <Copy size={15} weight="bold" aria-hidden="true" />}
+        </button>
+      </figcaption>
+      <pre tabIndex={0} data-no-translate><code>{block.code}</code></pre>
+    </figure>
+  );
+}
+
+function BlogBlockView({ block }: { block: BlogContent }) {
+  if (typeof block === "string") return <p>{block}</p>;
+  if (block.type === "code") return <CodeBlock block={block} />;
+  if (block.type === "list") {
+    const List = block.ordered ? "ol" : "ul";
+    return (
+      <List className="blog-list">
+        {block.items.map((item) => <li key={item}>{item}</li>)}
+      </List>
+    );
+  }
+  return (
+    <figure className="blog-figure">
+      <img src={block.src} alt={block.alt} width={block.width} height={block.height} loading="lazy" decoding="async" />
+      {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+    </figure>
+  );
+}
+
+function blockKey(block: BlogContent, index: number) {
+  if (typeof block === "string") return block;
+  if (block.type === "code") return `code-${index}-${block.code.slice(0, 24)}`;
+  if (block.type === "list") return `list-${index}-${block.items[0] ?? ""}`;
+  return `figure-${block.src}`;
 }
 
 function ReadingProgress({ targetRef }: { targetRef: React.RefObject<HTMLElement | null> }) {
@@ -359,7 +417,7 @@ export function BlogArticlePage() {
   }
 
   const githubMatch = post.sections
-    .flatMap((section) => section.paragraphs)
+    .flatMap(blogSectionText)
     .join("\n")
     .match(/https:\/\/github\.com\/[^\s。]+/);
 
@@ -453,8 +511,8 @@ export function BlogArticlePage() {
                     </span>
                     <h2>{section.title}</h2>
                   </div>
-                  {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
+                  {section.content.map((block, blockIndex) => (
+                    <BlogBlockView key={blockKey(block, blockIndex)} block={block} />
                   ))}
                 </motion.section>
               ))}

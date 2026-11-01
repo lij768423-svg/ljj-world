@@ -71,7 +71,8 @@ test("React Bits kinetic layers render and respond to pointer input", async ({ p
   }), { timeout: 800 }).toBe(true);
 
   await expect(page.locator(".hero-line").first().locator(".sr-only")).toHaveText("你好，我是 ljj。");
-  expect(await page.locator(".hero-line").first().locator(":scope > span[aria-hidden='true']").count()).toBeGreaterThan(5);
+  // One animated span per character, grouped into unbreakable words.
+  expect(await page.locator(".hero-line").first().locator(".blur-text-word > span[aria-hidden='true']").count()).toBeGreaterThan(5);
   await expect(page.locator(".identity .decrypted-text .sr-only")).toHaveText("lij768423-svg / 独立开发者");
 
   const portrait = page.locator(".hero-portrait-image");
