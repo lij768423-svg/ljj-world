@@ -41,15 +41,20 @@ const releaseRoot = process.env.RELEASE_ROOT ?? "/srv/ljj-world";
 const origin = (process.env.SITE_ORIGIN ?? "https://ljj.world").replace(/\/$/, "");
 const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20"];
 
+// Only this process and IndexNow fetch over HTTPS; children such as npm and Vite would each
+// print the experimental proxy-agent warning, so they run without the opt-in.
+const childEnv = { ...process.env };
+delete childEnv.NODE_USE_ENV_PROXY;
+
 const step = (title) => console.log(`\n== ${title}`);
-const capture = (command, args, options = {}) => execFileSync(command, args, { cwd: root, encoding: "utf8", ...options }).trim();
+const capture = (command, args, options = {}) => execFileSync(command, args, { cwd: root, encoding: "utf8", env: childEnv, ...options }).trim();
 const run = (command, args, options = {}) => {
-  const result = spawnSync(command, args, { cwd: root, stdio: "inherit", ...options });
+  const result = spawnSync(command, args, { cwd: root, stdio: "inherit", env: childEnv, ...options });
   if (result.status !== 0) throw new Error(`${command} ${args.join(" ")} exited with ${result.status ?? result.signal}`);
 };
 // Runs a command with its output shown live and returns what it printed.
 const runAndCapture = (command, args) => new Promise((resolve, reject) => {
-  const child = spawn(command, args, { cwd: root, stdio: ["ignore", "pipe", "inherit"] });
+  const child = spawn(command, args, { cwd: root, stdio: ["ignore", "pipe", "inherit"], env: childEnv });
   let output = "";
   child.stdout.on("data", (chunk) => {
     output += chunk;
@@ -142,13 +147,13 @@ for (const [route, status, marker] of probes) {
 
 if (!flags.has("--skip-indexnow")) {
   step("IndexNow");
-  run("node", ["--disable-warning=UNDICI-EHPA", "scripts/submit-indexnow.mjs"], { env: { ...process.env, NODE_USE_ENV_PROXY: "1", SITE_ORIGIN: origin } });
+  run("node", ["--disable-warning=UNDICI-EHPA", "scripts/submit-indexnow.mjs"], { env: { ...childEnv, NODE_USE_ENV_PROXY: "1", SITE_ORIGIN: origin } });
 }
 
 if (!flags.has("--no-push")) {
   step(`Push to ${remoteName}`);
   // The site is already live at this point, so a failed push is reported, not fatal.
-  const pushed = spawnSync("git", ["push", "--quiet", remoteName, "main"], { cwd: root, stdio: "inherit" });
+  const pushed = spawnSync("git", ["push", "--quiet", remoteName, "main"], { cwd: root, stdio: "inherit", env: childEnv });
   if (pushed.status === 0) console.log(`${upstream} now at ${git("rev-parse", "--short", "HEAD")}`);
   else console.warn(`warning: push to ${remoteName} failed; the live site runs ${git("rev-parse", "--short", "HEAD")}, push it by hand`);
 }
