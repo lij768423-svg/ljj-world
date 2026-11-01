@@ -39,6 +39,8 @@ type ServerFact = {
 type ServerExplodedStoryProps = {
   categories: ServerCategory[];
   facts: readonly ServerFact[];
+  /** When the numbers in facts were read from the server (YYYY-MM-DD). */
+  capturedAt: string;
   visualOnly?: boolean;
 };
 
@@ -274,7 +276,7 @@ function MachineDrawing({
   );
 }
 
-export function ServerExplodedStory({ categories, facts, visualOnly = false }: ServerExplodedStoryProps) {
+export function ServerExplodedStory({ categories, facts, capturedAt, visualOnly = false }: ServerExplodedStoryProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const [activeCategoryId, setActiveCategoryId] = useState<ServerCategoryId>("network");
   const [selectedServiceId, setSelectedServiceId] = useState("tailscale");
@@ -386,6 +388,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
               </div>
             ))}
           </dl>
+          <p className="server-facts-captured">{`数据采集于 ${capturedAt}`}</p>
         </header>}
 
         <div className="server-story-visual">
@@ -590,6 +593,7 @@ export function ServerExplodedStory({ categories, facts, visualOnly = false }: S
                     </div>
                   ))}
                 </dl>
+                <p className="server-facts-captured">{`数据采集于 ${capturedAt}`}</p>
               </motion.div>
             )}
           </AnimatePresence>

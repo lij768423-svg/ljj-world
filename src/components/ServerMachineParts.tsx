@@ -6,6 +6,8 @@
  * each module changes. Depth is a consistent oblique extrusion towards the lower right.
  */
 
+import { serverSnapshot as server } from "../data/server";
+
 type Point = readonly [number, number];
 
 const DEPTH_SLOPE = 0.85;
@@ -258,7 +260,7 @@ export function MemoryArt() {
         <path className="machine-detail" d={`M${x + 3} 292H${x + 10}M${x + 3} 297H${x + 10}M${x + 6.5} 304V372`} />
       </g>
     ))}
-    <text x="626" y="402" textAnchor="middle">4 x DDR5 / 59 GiB</text>
+    <text x="626" y="402" textAnchor="middle">4 x DDR5 / {server.memory}</text>
   </>;
 }
 
@@ -301,7 +303,7 @@ export function GraphicsArt() {
     <path className="machine-detail" d={lines(6, (index) => `M${604 + index * 4.4} 358.5V362.5`)} />
     <Box x={682} y={376} width={16} height={66} radius={1.5} depth={3} className="machine-bracket" />
     {[383, 397, 411, 425].map((y) => <rect key={y} className="machine-port" x="686" y={y} width="8" height="10" rx="1" />)}
-    <text x="534" y="474" textAnchor="middle">RTX 4090 / LOCAL AI</text>
+    <text x="534" y="474" textAnchor="middle">{server.primaryGpu.name} / LOCAL AI</text>
   </>;
 }
 
@@ -315,7 +317,7 @@ export function StorageArt() {
     <path className="machine-detail" d="M598 242H606M626 242H634" />
     <Screw x={683} y={242} r={4} />
     <text x="616" y="245" textAnchor="middle">NVMe</text>
-    <text x="616" y="292" textAnchor="middle">5.4 TB NVMe ARRAY</text>
+    <text x="616" y="292" textAnchor="middle">{server.nvme} NVMe ARRAY</text>
   </>;
 }
 
@@ -328,6 +330,6 @@ export function FanTrayArt() {
     <FanGraphic x={529} y={505} r={27} blades={9} reverse skew framed />
     <FanGraphic x={618} y={505} r={27} blades={9} skew framed />
     <path className="machine-airflow" d="M434 479L440 474L446 479M523 479L529 474L535 479M612 479L618 474L624 479" />
-    <text x="528" y="558" textAnchor="middle">AIRFLOW / 139 CONTAINERS</text>
+    <text x="528" y="558" textAnchor="middle">AIRFLOW / {server.runningContainers} CONTAINERS</text>
   </>;
 }

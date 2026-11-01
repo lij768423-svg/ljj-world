@@ -1,5 +1,26 @@
 # Release and rollback
 
+## One command
+
+From a clean `main` (on home-serve, or any machine that can SSH to the host):
+
+```sh
+npm run release -- --dry-run   # preflight, snapshot preview, package; uploads nothing
+npm run release                # the whole sequence below
+npm run release -- --test      # also typecheck, build and run the Playwright suite first
+```
+
+`scripts/release.mjs` refuses to start off `main`, with uncommitted tracked changes, or behind
+the remote. It then refreshes `src/data/serverSnapshot.json` from home-serve and commits it when
+the numbers changed, runs `npm run release:package`, uploads the package with the three deploy
+helpers to `RELEASE_HOST` (default `root@100.98.6.14`, japan-gateway over Tailscale), runs
+`deploy-release.py` there (steps 1–6 below, with rollback), prunes to three releases, checks the
+public site, submits the sitemap to IndexNow and pushes `main`. A failed push after activation is
+a warning: the site is already live, so push by hand. `--skip-snapshot`, `--skip-indexnow` and
+`--no-push` turn single steps off.
+
+## By hand
+
 Use the complete source/site archives and `release-manifest.json` produced by
 `npm run release:package`, not a checkout of an unrelated Git HEAD. Verify the
 archive hashes before extracting. The source package includes untracked

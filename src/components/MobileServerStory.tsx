@@ -41,9 +41,12 @@ const categoryVisuals: Record<string, { src: string; alt: string }> = {
 export function MobileServerStory({
   categories,
   facts,
+  capturedAt,
 }: {
   categories: MobileServerCategory[];
   facts: readonly MobileServerFact[];
+  /** When the numbers in facts were read from the server (YYYY-MM-DD). */
+  capturedAt: string;
 }) {
   const reduceMotion = useReducedMotion() ?? false;
   const firstCategory = categories[0];
@@ -83,6 +86,7 @@ export function MobileServerStory({
               </div>
             ))}
           </dl>
+          <p className="server-facts-captured">{`数据采集于 ${capturedAt}`}</p>
         </header>
 
         <nav className="server-mobile-categories" aria-label="服务器结构章节">

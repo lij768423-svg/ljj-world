@@ -1,10 +1,32 @@
 import { optimizedCovers } from "./assets/optimizedCovers";
 
+/**
+ * Rich blocks inside a section. Code is shown verbatim and never translated, so keep comments
+ * in it ASCII; list items, captions and alt text go through the translation table like prose.
+ */
+export type BlogBlock =
+  | { type: "code"; language: string; code: string; caption?: string }
+  | { type: "list"; ordered?: boolean; items: string[] }
+  | { type: "figure"; src: string; alt: string; width: number; height: number; caption?: string };
+
+/** A plain string is a paragraph. */
+export type BlogContent = string | BlogBlock;
+
 export type BlogSection = {
   anchor?: string;
   title: string;
-  paragraphs: string[];
+  content: BlogContent[];
 };
+
+/** Every piece of readable prose in a section (paragraphs, list items, captions, alt text). */
+export function blogSectionText(section: BlogSection): string[] {
+  return section.content.flatMap((block) => {
+    if (typeof block === "string") return [block];
+    if (block.type === "list") return block.items;
+    if (block.type === "figure") return [block.alt, ...(block.caption ? [block.caption] : [])];
+    return block.caption ? [block.caption] : [];
+  });
+}
 
 export type BlogPost = {
   slug: string;
@@ -37,7 +59,7 @@ export const blogPosts: BlogPost[] = [
       {
         anchor: "先想清楚缺的是什么",
         title: "缺的不是渲染，是每个页面自己的元信息",
-        paragraphs: [
+        content: [
           "文章正文和项目介绍都在 JavaScript 里，Google 能执行脚本后读到，所以首页、项目索引这些页面本来就能被收录。真正缺的是三样东西：每条路由自己的 title、description、canonical 和 Open Graph 标签；一份告诉爬虫有哪些页面的 sitemap；以及不存在的路径应该返回 404 而不是首页。分享卡片的问题也在这里，微信和 Telegram 不会执行脚本，只看 HTML 里的标签。",
           "应用里其实早就有一份按路由查元信息的函数，页面切换时用它改 document.title。这意味着数据是现成的，缺的只是把同一份数据在构建时写进 HTML。于是方向就定了：不做服务端渲染，构建后为每条路由生成一份独立的 HTML 入口，壳子和脚本与首页完全相同，只有 head 里的标签不同。",
         ],
@@ -45,31 +67,53 @@ export const blogPosts: BlogPost[] = [
       {
         anchor: "构建后生成而不是另写一份",
         title: "让生成脚本复用应用自己的数据",
-        paragraphs: [
+        content: [
           "生成脚本跑在 vite build 之后。它通过 Vite 的 runnerImport 直接加载一个 TypeScript 的路由清单模块，这个模块引用应用里的元信息函数、项目列表和文章数据，所以路由、标题和描述只有一个来源，不会出现页面改了而 sitemap 没改的情况。唯一的坑是清单模块会连带引入组件，组件又引入样式表，Vite 的 CSS 管道在这种加载方式下会崩，解决办法是加一个前置插件，把样式表导入解析成空模块。",
           "输出是每条路由一个目录下的 index.html，加上带 noindex 的 404.html、sitemap.xml 和带全文的 rss.xml。文章页另外写入 BlogPosting 结构化数据和发布时间，首页保留原来的 Person 记录，其他页面把它去掉。生成后还有一个检查：每份路由 HTML 里的 script 标签必须和首页一字不差，保证它们启动的是同一个应用。",
+          {
+            type: "code",
+            language: "text",
+            caption: "构建产物：每条路由一个目录，壳子和脚本完全相同",
+            code: "dist/\n├── index.html\n├── 404.html\n├── sitemap.xml\n├── rss.xml\n├── about/index.html\n├── projects/\n│   ├── index.html\n│   └── travel-agent/index.html\n└── blog/\n    ├── index.html\n    └── spa-crawlable-pages/index.html",
+          },
         ],
       },
       {
         anchor: "静态主机要配合",
         title: "文件生成了，主机还得知道先找谁",
-        paragraphs: [
+        content: [
           "有了 blog/某篇文章/index.html，主机的回退规则就不能再是“找不到就给 index.html”。Caddy 的 try_files 改成先试路径本身，再试路径下的 index.html；两者都没有时触发 404，由 handle_errors 把 404.html 作为响应体送出，状态码保持 404。线上跑的 Caddy 版本比较老，所以没有用 file_server 自带的状态码参数，这种写法在旧版本上也能用。",
+          {
+            type: "code",
+            language: "caddy",
+            caption: "已知路由返回自己的 HTML，未知路径返回 404",
+            code: "handle {\n  root * /srv/portfolio/current\n  @missing not file {path} {path}/index.html\n  handle @missing {\n    @has404 file /404.html\n    handle @has404 {\n      error 404\n    }\n    # releases without 404.html keep the old SPA fallback\n    rewrite * /index.html\n  }\n  try_files {path} {path}/index.html\n  file_server\n}\nhandle_errors {\n  @notFound expression {err.status_code} == 404\n  handle @notFound {\n    root * /srv/portfolio/current\n    rewrite * /404.html\n    file_server\n  }\n  respond \"{err.status_text}\" {err.status_code}\n}",
+          },
           "回滚也要考虑。旧版本的发布目录里没有 404.html 和各路由的目录，如果新规则遇到旧发布就全部 404，回滚会把站点打坏。所以规则里留了一层：404.html 不存在时退回原来的首页回退。本地 vite preview 也加了同样逻辑的中间件，这样不用上线就能验证“未知路径返回 404、已知路由返回自己的 HTML”。",
         ],
       },
       {
         anchor: "部署时逐条核对",
         title: "上线脚本把每条路由都核一遍",
-        paragraphs: [
-          "原来的部署脚本在切换软链接后会抓首页和几条路由，核对返回的 HTML 和 index.html 的哈希是否一致，这正是旧世界的假设。现在每条路由有自己的文件，核对改成逐条和对应文件比：首页、项目索引、每篇文章、sitemap、RSS、robots，再用一个随机路径确认返回 404 且正文就是 404.html，最后确认上一版的 JS 块仍能被访问。任何一项失败就把软链接切回去。",
+        content: [
+          "原来的部署脚本在切换软链接后会抓首页和几条路由，核对返回的 HTML 和 index.html 的哈希是否一致，这正是旧世界的假设。现在每条路由有自己的文件，核对改成逐条和对应文件比，任何一项失败就把软链接切回去：",
+          {
+            type: "list",
+            ordered: true,
+            items: [
+              "首页、项目索引和每篇文章，和发布包里对应的 index.html 比哈希",
+              "sitemap.xml、rss.xml 和 robots.txt 必须能访问",
+              "一个随机路径必须返回 404，正文就是 404.html",
+              "上一版的 JS 块仍能访问，还开着旧页面的访客不会白屏",
+            ],
+          },
           "第一次跑的时候，核对本身就抓到一个问题：带尾斜杠的文章地址在运行时查不到元信息，标题会变成“页面不存在”，canonical 也带着斜杠。修法很小，查元信息前先把尾斜杠去掉，但如果不是逐条核对，这个问题会一直留在线上。",
         ],
       },
       {
         anchor: "做完之后还剩什么",
         title: "可抓取不等于会被收录",
-        paragraphs: [
+        content: [
           "生成的 HTML 是中文的，而界面默认语言是英文：爬虫执行脚本后看到的标题是英文，不执行脚本看到的是中文，这也是 Google 收录的标题全是英文的原因。两边统一是下一步，要么默认语言跟随浏览器，要么元信息随语言切换时一起写回。另外 Cloudflare 的托管 robots 默认屏蔽了 Baiduspider，这条要在面板里关掉，代码里改不了。",
           "sitemap 上线以后还要主动提交到 Google 和 Bing 的站长工具，否则只能等它们自己发现。动态路由必须能被枚举，这个站的项目和文章都是有限的列表，所以可以；如果内容来自数据库，这套做法就要换成按需渲染。最后，页面正文仍然由脚本渲染，这篇做的只是让每个页面在被抓取的那一刻有自己的身份，不是把站点变成静态文档。",
         ],
@@ -91,7 +135,7 @@ export const blogPosts: BlogPost[] = [
       {
         anchor: "城市不该写在代码里",
         title: "先把“杭州”从代码里抠出去",
-        paragraphs: [
+        content: [
           "现在每座城市在注册表里是一个条目：编码、边界、默认起点、酒店区、夜游街、本地菜和品牌文案；每城还有自己的资产目录（景点审阅、停留参考、片区名）和数据目录（景点、餐厅、住宿表，模型标签，交通标定）。规划、调度、校验、导航和前端都只读当前城市的配置，代码里不再出现任何一座城市的名字。",
           "隔离比抽象更重要。每份行程绑定自己的城市和景点目录版本，景点编号只在本城目录内有效，不会串到别的城市。启用哪些城市由环境变量决定，不在列表里的城市历史行程仍可查看，但不能新建。这样切换城市时，错的那一处只会错在配置或数据上，而不是藏在某个条件分支里。",
         ],
@@ -99,31 +143,69 @@ export const blogPosts: BlogPost[] = [
       {
         anchor: "一条命令九个步骤",
         title: "接入一座城市是一条流水线，不是一次手工活",
-        paragraphs: [
-          "接入脚本按固定顺序跑九步：用高德行政区接口取编码和边界并起草配置；下载 ChinaTravel Sandbox 里该城的景点、餐厅、住宿三张表；用模型给景点打标签、生成停留时长参考；推导默认起点、酒店区、夜游街和本地菜；按距离分层采样 28 对地点实测路线，拟合这座城市的车程和车费；片区自动聚类并由模型起草名字；规则体检；完整性检查；最后跑评测。每一步的结果写进一份接入记录，中断后重跑会跳过已完成的步骤，也可以只重跑某一步。",
+        content: [
+          "接入脚本按固定顺序跑九步。每一步的结果写进一份接入记录，中断后重跑会跳过已完成的步骤，也可以只重跑某一步：",
+          {
+            type: "list",
+            ordered: true,
+            items: [
+              "用高德行政区接口取编码和边界，起草城市配置",
+              "下载 ChinaTravel Sandbox 里该城的景点、餐厅、住宿三张表",
+              "用模型给景点打标签，生成停留时长参考",
+              "推导默认起点、酒店区、夜游街和本地菜",
+              "按距离分层采样 28 对地点实测路线，拟合这座城市的车程和车费",
+              "片区自动聚类，由模型起草名字",
+              "规则体检",
+              "完整性检查",
+              "跑评测",
+            ],
+          },
+          {
+            type: "code",
+            language: "bash",
+            caption: "先 dry-run 看预计调用次数，再正式跑",
+            code: "cd backend\nuv run python scripts/onboard_city.py --name 苏州 --dry-run  # steps and expected API calls\nuv run python scripts/onboard_city.py --name 苏州            # run every step, resumable\nuv run python scripts/check_city.py --city suzhou           # integrity check on its own",
+          },
           "外部调用是这条流水线的主要成本，所以先用 dry-run 打印预计次数再开跑：以苏州为例，接一座城市大约调用模型 130 次、高德 2300 次，其中评测这一步就占了高德的大头。推导规则都很朴素，例如默认起点选周边 3 公里内景点最多的那家住宿，酒店区取住宿店名括号里反复出现且位置集中的区域词；朴素的好处是出了问题能直接看出来。",
         ],
       },
       {
         anchor: "规则体检只做能确定的事",
         title: "体检只改能确定的，其余留给人",
-        paragraphs: [
-          "体检规则来自南京试点踩过的坑，只有三条会直接改数据：坐标落在城市范围外的地点暂停推荐；原表停留时长不到模型典型值一半的，按模型区间调长，只加不减；同时满足游乐园类型、门票不低于 150 元、典型时长不少于 5 小时、名字像乐园的，按整天游玩、园内用餐处理。偏长的时长、0 元门票的乐园和游船、可能要预约的校园、名称相近的疑似重复条目，都只列入待核清单。",
+        content: [
+          "体检规则来自南京试点踩过的坑，只有三条会直接改数据：",
+          {
+            type: "list",
+            items: [
+              "坐标落在城市范围外的地点，暂停推荐",
+              "原表停留时长不到模型典型值一半的，按模型区间调长，只加不减",
+              "同时满足游乐园类型、门票不低于 150 元、典型时长不少于 5 小时、名字像乐园的，按整天游玩、园内用餐处理",
+            ],
+          },
+          "偏长的时长、0 元门票的乐园和游船、可能要预约的校园、名称相近的疑似重复条目，都只列入待核清单。",
           "待核清单的结论由人填回一张表再合并，合并后不再重跑体检，免得结论被覆盖。我在文档里反复写同一句话：这些修正是项目估计，不等于人工或现场核验。自动化能做的是把需要人看的东西缩小到一张表，而不是替人下结论。",
         ],
       },
       {
         anchor: "过了门槛才算接入",
         title: "二十个画像是门槛，不是证明",
-        paragraphs: [
+        content: [
           "评测用 20 个固定画像，覆盖不同片区、天数、交通方式、预算、节奏、同行人和兴趣组合，起点按住宿分布自动选。门槛很直接：20 个画像都没有报错，且至少 18 个满足约束；没过就停下，先看评估报告，脚本不会建议启用。过了门槛还有两样东西要人过目：模型起草的片区名，不顺眼直接改；以及上面那张待核清单。",
           "之后先在测试实例里启用，实际生成一份行程看一看，生产环境的启用需要人确认后再改配置重启。没有专属插画的城市自动用中性底纹，所以接入和画图是两件事，不会互相卡住。现在正在运行的实例开放了 10 座城市，首页上还有两座标着即将开放，它们的数据不在这个数据集里，要自备同格式的数据才能走同一条流水线。",
+          {
+            type: "figure",
+            src: "/assets/travel-agent-1600.webp",
+            width: 1600,
+            height: 1000,
+            alt: "行记首页截图，城市节点沿一条螺旋线排开，左上角是杭州的城市卡片",
+            caption: "行记的首页：城市沿一条螺旋排开，左上角是杭州的城市卡片。",
+          },
         ],
       },
       {
         anchor: "这套流程的边界",
         title: "可插拔不等于什么城市都行",
-        paragraphs: [
+        content: [
           "数据集只覆盖 10 座城市，其他城市要自己准备同格式的数据；本地菜的关键词表只内置了 8 座城市，没收录的退回到数据里最常见的菜系。AI 上网逐条核对票价、开放时间和预约要求不在自动流程里，南京做过两层，别的城市还没有。餐厅库扩充和城市专属插画也都列在后续工作里。",
           "最后还是那句话：通过程序校验，只代表满足系统已知的约束，不代表在真实世界里一定可行。可插拔解决的是“再接一座城市要改多少代码”这个问题，答案现在是零；它没有解决、也不打算假装解决的是数据本身是否正确。代码在 https://github.com/lij768423-svg/pluggable-city-travel-agent 。",
         ],
@@ -145,7 +227,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "从一次性脚本到可操作面板",
         "title": "先把失败停在哪一步看清楚",
-        "paragraphs": [
+        content: [
           "一批任务里，有的还没拿到验证码，有的已经留下 SSO 记录，只差后续授权。把它们都算作“失败”，统计很省事，恢复却很麻烦。面板把运行状态和失败记录放在一起，方便判断哪些任务还在继续，哪些需要人处理。",
           "workers、批次数和“再跑 N”都可以调整，但加并发之前得先知道卡在哪里。邮箱接口没有响应时，多开几个浏览器不会让验证码更快到。"
         ]
@@ -153,7 +235,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "出口质量决定上限",
         "title": "网络错误和明确拒绝分开处理",
-        "paragraphs": [
+        content: [
           "启动前的出口检查会记录 IP 和 ASN；运行中，网络异常与服务端拒绝也分别记录。连接超时说明这次请求没走通，不能单凭它断定账号或者邮箱有问题。服务端明确拒绝后则应该停下，保留原因，不把拒绝当成普通超时一直重试。",
           "代理配置里可能带用户名和密码，所以面板接口只返回脱敏端点。注册、SSO 和 OAuth 使用同一出口，主要是避免授权过程中网络条件变化，让排查又多一个变量。"
         ]
@@ -161,7 +243,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "邮箱与域名也是资源池",
         "title": "收不到邮件，不等于域名被拒绝",
-        "paragraphs": [
+        content: [
           "项目接了多个邮箱后端。这里需要区分三件事：邮箱 API 本身报错、验证码暂时没到，以及对方明确不接受这个域名。前两项不能直接计入域名拒绝次数，否则邮箱服务抖一下，就可能误伤一批本来可用的地址。",
           "因此，域名状态只根据明确的拒绝信号更新。验证码超时保留为超时，留给后续检查，不替服务端猜原因。"
         ]
@@ -169,7 +251,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "风控要早停，失败要可补录",
         "title": "把已经完成的部分留下来",
-        "paragraphs": [
+        content: [
           "失败记录保留 SSO pending 和 accounts 文本，授权没有走完时，可以从这些记录继续补录。已有邮箱会跳过，成功一条就从待处理队列移除，避免下一轮又处理一遍。",
           "这套恢复入口的用途很有限：接着处理尚未完成的记录。它不保证服务端下一次会接受请求，也不应该拿来绕过对方的拒绝。"
         ]
@@ -177,7 +259,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "安全是面板的默认配置",
         "title": "停止按钮不能误杀别的任务",
-        "paragraphs": [
+        content: [
           "同一台机器上可能有好几个 Python 项目。停止任务时只匹配当前项目根目录下的进程，比按一个常见进程名全部结束要稳妥。写接口要求 MONITOR_TOKEN，绑定失败也不会自动改成监听所有网卡。",
           "原始日志尾默认关闭，账号和状态文件限制为文件所有者可读写。配置、账号文件和授权结果不放进开源仓库；截图时同样要检查这些内容有没有露出来。"
         ]
@@ -185,7 +267,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "我从这件事里带走的",
         "title": "代码与使用范围",
-        "paragraphs": [
+        content: [
           "代码在 https://github.com/lij768423-svg/grok-register-panel 。上游关系和部署说明都在 README 里。这里写的是我对任务管理和失败处理的改动，不是对上游注册能力的原创声明，也不承诺成功率。请只在获授权的环境中使用，并遵守相关服务条款。"
         ]
       }
@@ -206,7 +288,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "先确定服务边界",
         "title": "哪些服务真的需要公网入口",
-        "paragraphs": [
+        content: [
           "Homepage 用来集中放入口，Tailscale 负责自己的设备之间的连接。只有确实要让外部访问的服务才放到反向代理后面。一个管理页面能配域名，不代表它就应该出现在公网。",
           "新增服务时，我先弄清楚三个位置：程序监听在哪里，数据写到哪里，备份放到哪里。容器名字可以改，端口也可以换，但如果数据目录没记下来，迁移时就得重新翻配置。"
         ]
@@ -214,7 +296,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "把维护纳入日常",
         "title": "看到绿色状态，还要知道它检查了什么",
-        "paragraphs": [
+        content: [
           "容器在运行，只说明进程没有退出。登录、上传和读取数据可能仍然有问题，所以监控结果要连同检查方式一起看。只探测首页的 HTTP 状态，就不要把结果理解成所有功能都正常。",
           "我也会用 AI 汇总状态和日志，但会保留检查时间和没能获取的数据。连不上某个服务，报告应该写“未检查”，而不是用上一次的正常结果补空。涉及删除、改网络和覆盖数据的操作，仍然单独确认。"
         ]
@@ -222,7 +304,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "自建真正带来的东西",
         "title": "更新之前，把退路留好",
-        "paragraphs": [
+        content: [
           "备份任务执行成功，和备份能够恢复，是两件事。要验证后者，应该在单独目录或测试实例里恢复一份，看看文件、权限和必要配置是否齐全，不能直接覆盖正在用的数据。",
           "更新服务前留下旧配置和版本号，更新后检查实际会用到的操作。出问题时，能先退回去比当场猜配置有用。至于闲置的实验服务，我宁愿先停掉：少一个后台任务，就少一份需要惦记的更新和日志。"
         ]
@@ -244,7 +326,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "从一次答错开始",
         "title": "先留下“我为什么选了这个”",
-        "paragraphs": [
+        content: [
           "错题列表至少要能找回题干、选项、自己的答案和正确答案。如果只留一个题号，过几天再看，很难想起当时到底混淆了什么。记录原因可以很短，比如“把页表项和页大小混了”，不用每道题都写成笔记。",
           "题库有间隔复习安排，不过到了复习时间，仍然要重新作答。看见熟悉的解析和自己能够算出答案，不是一回事。进度条可以提醒还有多少题，不能替我判断是否掌握。"
         ]
@@ -252,7 +334,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "让 AI 承接解释",
         "title": "问 AI 时，把卡住的那一步说出来",
-        "paragraphs": [
+        content: [
           "“讲一下这道题”容易得到一整段泛泛的解释。更有用的问法是把题目、选项和自己的推导一起给出，再问具体一步，例如“这里为什么不能把命中时间直接相加”。这样也更容易检查回答是否真的解决了疑问。",
           "模型解释仍然要和题目条件、标准答案或教材核对。尤其是计算题，应该把中间步骤写出来再验算。开源静态题库可以单独使用；账号同步和服务端 AI 需要额外后端，下载页面代码并不等于这些服务也已经配置好了。"
         ]
@@ -260,7 +342,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "把学习反馈给产品",
         "title": "笔记只留下一次会用到的内容",
-        "paragraphs": [
+        content: [
           "需要留到知识库的，是条件、结论和容易弄错的地方，不必把整段聊天都复制过去。比如同类题在什么前提下能用这个公式，换了哪个条件就不能用。重新遇到题目时，几行这样的记录比长篇解释好找。",
           "开发工具也会占复习时间。搜索不好用、错题找不到，值得修；只是想换个按钮样式，就先记下来。题库是帮我做题的，不该变成逃开做题的另一个理由。"
         ]
@@ -282,7 +364,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "学校强调收束",
         "title": "学校：先给书和纸留位置",
-        "paragraphs": [
+        content: [
           "学校这套主要用来学习和写代码。显示器、键盘当然要放得顺手，但桌面不能只按电脑使用来安排。书、草稿纸和手臂都需要空间，照片里看着干净不等于坐下来就舒服。",
           "收纳也不必复杂。常用的放在能直接拿到的位置，不常用的挪开。学习结束后能把桌面恢复到下一次可用的状态，比再加一件装饰更实在。"
         ]
@@ -290,7 +372,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "家里保留展开空间",
         "title": "家里：别把接口和走线堵死",
-        "paragraphs": [
+        content: [
           "家里这套还要放主机和音频设备，也会接硬件做实验。理线时如果只顾把线藏起来，换一根线就可能要把整套设备拉出来。接口能摸到、供电能分清，比背面完全看不见线重要。",
           "扩展空间不是必须塞满的空位。留一点桌面和插拔余量，临时接设备才不用先拆已有布置。我也不想为了让两组照片看起来像一套，就在学校和家里重复摆同样的东西。"
         ]
@@ -298,7 +380,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "桌搭是工作流的外壳",
         "title": "照片之外，还得坐下来试",
-        "paragraphs": [
+        content: [
           "我会用几个很普通的问题看一套桌搭：屏幕会不会反光，手放键盘上是否别扭，椅子能不能拉近，清理灰尘是否方便。这些不太适合当照片标题，却会影响每天怎么用它。",
           "所以这两套就保持不同。设备清单和照片可以当记录，不用把每次调整都解释成一套方法论。用着不顺手的地方，下次再改。"
         ]
@@ -320,7 +402,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "先把内容模型确定下来",
         "title": "先拿真实内容排一遍",
-        "paragraphs": [
+        content: [
           "占位标题很短，真实服务名称未必；示例文章只有两段，实际内容可能长得多。先用真实资料试列表和详情页，能早点看到标题换行、分类太多、图片比例不合适这些问题。不能只靠一张首屏截图判断完成度。",
           "同时要确认谁来更新、更新什么。如果人员和服务信息会变化，发布、修改和下架就要有对应入口。资料还没有准备好时，先标清缺项，不用编造案例把版面填满。"
         ]
@@ -328,7 +410,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "交互只解决明确问题",
         "title": "每加一个功能，就多写几条失败情况",
-        "paragraphs": [
+        content: [
           "在线咨询不能只测试消息发送成功，还要看无人接待、网络断开和人工接管时显示什么。AI 摘要也一样：生成失败时，原文应当仍然可读。功能说明里把这些情况写出来，比一句“支持智能咨询”更接近要做的工作。",
           "首版放不下的功能就单列，不藏在“后续优化”四个字里。至少说明它现在不提供，以及没有它时用户怎么完成事情。这样到验收时，不会双方想的根本不是同一版。"
         ]
@@ -336,7 +418,7 @@ export const blogPosts: BlogPost[] = [
       {
         "anchor": "上线只是维护的开始",
         "title": "交付时，要能更新，也要能退回去",
-        "paragraphs": [
+        content: [
           "我会把域名、证书、配置和备份的位置留在交付记录里，但不把密码直接写进普通文档。发布前后检查首页、详情页和资源加载；旧版本先保留，发现问题可以退回，而不是在正在访问的目录里边改边试。",
           "做完一个网站，不意味着以后所有新增需求都已经包含。内容更新、故障处理和新功能开发是不同的工作，把它们分开说清楚，对自己和使用网站的人都省事。"
         ]

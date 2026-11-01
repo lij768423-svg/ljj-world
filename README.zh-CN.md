@@ -91,6 +91,8 @@ npm run test:e2e
 | 要改什么 | 位置 |
 | --- | --- |
 | 项目、外部链接、服务器服务、页面元数据 | [`src/App.tsx`](./src/App.tsx) |
+| 博客文章：段落以及代码、列表、配图块 | [`src/blog.ts`](./src/blog.ts) |
+| /systems 上的服务器数字（快照，用 `npm run snapshot:server` 刷新） | [`src/data/serverSnapshot.json`](./src/data/serverSnapshot.json) |
 | 中英文映射与全局文字过渡 | [`src/i18n`](./src/i18n) |
 | DNA 项目索引与纸张式项目详情 | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
 | 服务器主机和服务拆解 | [`src/components/ServerExplodedStory.tsx`](./src/components/ServerExplodedStory.tsx) |
@@ -120,6 +122,19 @@ npm run build
 ```
 
 `npm run build` 在 `vite build` 之后会运行 `scripts/generate-seo.mjs`：为每个路由生成独立的 `dist/<路由>/index.html`（各自的 title、description、canonical、Open Graph 与 JSON-LD），以及 `dist/404.html`、`dist/sitemap.xml` 和 `dist/rss.xml`。路由数据来自 `src/seo/routes.ts`，与应用内的页面元数据、项目列表和文章共用同一份来源。
+
+每篇文章还会按语言各有一张 1200×630 的分享卡片，用于链接预览。卡片放在 `public/assets/share/`，由文章数据在无头 Chromium 里绘制；缺少卡片时构建会失败，新增或改标题后运行：
+
+```bash
+npm run share-cards
+```
+
+本站在干净的 `main` 上一条命令发布：刷新 /systems 快照、打包、在静态主机上激活并逐条核对路由（失败自动回滚）、向 IndexNow 提交 sitemap，最后推送 `main`。主机与参数见 [`scripts/release.mjs`](./scripts/release.mjs) 顶部和 [`deploy/RELEASE.md`](./deploy/RELEASE.md)。
+
+```bash
+npm run release -- --dry-run
+npm run release
+```
 
 将 `dist/` 部署到任意静态托管服务即可。项目使用 History API 路由：已知路径优先返回该路由自己的 `index.html`，未知路径返回 `404.html` 并带 404 状态码。仓库提供通用的 [Caddy 示例](./deploy/caddy/portfolio.caddy.example)，`vite preview` 也遵循同样的规则。Nginx 可使用：
 

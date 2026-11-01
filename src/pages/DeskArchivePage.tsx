@@ -17,6 +17,11 @@ function DeskGalleryFallback({ label }: { label: string }) {
 }
 
 type DeskGroup = keyof typeof deskScenes;
+
+const deskPhotoGroups: { group: DeskGroup; heading: string }[] = [
+  { group: "home", heading: "家里的桌搭" },
+  { group: "school", heading: "寝室的桌搭" },
+];
 type DeskSelection = CircularGalleryClick & { group: DeskGroup };
 
 function DeskLightbox({
@@ -296,6 +301,26 @@ export function DeskArchivePage({ theme }: { theme: ThemeMode }) {
             <DeskGalleryFallback label="正在加载寝室桌搭" />
           )}
         </div>
+      </section>
+      {/* The galleries draw on a canvas, so their titles and notes only exist as pixels. This
+          list carries the same text for screen readers and search engines. */}
+      <section className="sr-only" aria-labelledby="desk-photo-notes-title">
+        <h2 id="desk-photo-notes-title">桌搭照片说明</h2>
+        {deskPhotoGroups.map(({ group, heading }) => (
+          <section key={group} aria-label={heading}>
+            <h3>{heading}</h3>
+            <p>{deskScenes[group].summary}</p>
+            <ol>
+              {deskScenes[group].desks.map((desk) => (
+                <li key={desk.id}>
+                  <h4>{desk.title}</h4>
+                  <p>{desk.description}</p>
+                  <p>{desk.period} · {desk.device}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
       </section>
       <AnimatePresence>
         {selection ? (
