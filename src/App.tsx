@@ -115,22 +115,19 @@ const preloadCircularGallery = () => {
 };
 export const CircularGallery = lazy(loadCircularGallery);
 
-const flowingMenuImages = [
-  "/assets/flowing-menu/home.webp",
-  "/assets/flowing-menu/projects.webp",
-  "/assets/flowing-menu/server.webp",
-  "/assets/flowing-menu/desk.webp",
-  "/assets/writing-studio-github.webp",
-  "/assets/flowing-menu/about.webp",
+// Each menu row scrolls its own set: generated still lifes plus the original photo for that page.
+const flowingMenuImages = (section: string, original?: string) => [
+  ...[1, 2, 3, 4].map((index) => `/assets/flowing-menu/${section}-${index}.webp`),
+  ...(original ? [original] : []),
 ];
 
 const flowingMenuItems: FlowingMenuItemData[] = [
-  { href: "/", label: "Home", ariaLabel: "Home - 首页", images: flowingMenuImages },
-  { href: "/projects", label: "Projects", ariaLabel: "Projects - 全部项目", images: [...flowingMenuImages.slice(1), flowingMenuImages[0]] },
-  { href: "/systems", label: "Server", ariaLabel: "Server - 我的服务器", images: [...flowingMenuImages.slice(2), ...flowingMenuImages.slice(0, 2)] },
-  { href: "/desk", label: "Desk setup", ariaLabel: "Desk setup - 桌搭展示", images: [...flowingMenuImages.slice(3), ...flowingMenuImages.slice(0, 3)] },
-  { href: "/blog", label: "Blog", ariaLabel: "Blog - 文章与笔记", images: [...flowingMenuImages.slice(4), ...flowingMenuImages.slice(0, 4)] },
-  { href: "/about", label: "About", ariaLabel: "About - 关于", images: [...flowingMenuImages.slice(5), ...flowingMenuImages.slice(0, 5)] },
+  { href: "/", label: "Home", ariaLabel: "Home - 首页", images: flowingMenuImages("home", "/assets/flowing-menu/home.webp") },
+  { href: "/projects", label: "Projects", ariaLabel: "Projects - 全部项目", images: flowingMenuImages("projects", "/assets/flowing-menu/projects.webp") },
+  { href: "/systems", label: "Server", ariaLabel: "Server - 我的服务器", images: flowingMenuImages("server", "/assets/flowing-menu/server.webp") },
+  { href: "/desk", label: "Desk setup", ariaLabel: "Desk setup - 桌搭展示", images: flowingMenuImages("desk", "/assets/flowing-menu/desk.webp") },
+  { href: "/blog", label: "Blog", ariaLabel: "Blog - 文章与笔记", images: flowingMenuImages("blog") },
+  { href: "/about", label: "About", ariaLabel: "About - 关于", images: flowingMenuImages("about", "/assets/flowing-menu/about.webp") },
 ];
 
 type Category = "product" | "ai" | "system";

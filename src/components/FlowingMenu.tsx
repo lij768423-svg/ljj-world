@@ -53,7 +53,8 @@ function FlowingMenuItem({
     const calculateRepetitions = () => {
       const part = inner.querySelector<HTMLElement>(".flowing-menu-marquee-part");
       if (!part || part.offsetWidth === 0) return;
-      setRepetitions(Math.max(4, Math.ceil(item.offsetWidth / part.offsetWidth) + 2));
+      // One full cycle of images to scroll through, plus enough parts to keep the row covered.
+      setRepetitions(Math.max(4, images.length + Math.ceil(item.offsetWidth / part.offsetWidth) + 1));
     };
 
     calculateRepetitions();
@@ -69,10 +70,11 @@ function FlowingMenuItem({
     const part = inner.querySelector<HTMLElement>(".flowing-menu-marquee-part");
     if (!part || part.offsetWidth === 0) return;
 
+    // Loop after a whole cycle of images so the reset lands on the same picture.
     marqueeTweenRef.current?.kill();
     marqueeTweenRef.current = gsap.to(inner, {
-      x: -part.offsetWidth,
-      duration: speed,
+      x: -part.offsetWidth * images.length,
+      duration: speed * images.length,
       ease: "none",
       repeat: -1,
     });
@@ -81,7 +83,7 @@ function FlowingMenuItem({
       marqueeTweenRef.current?.kill();
       marqueeTweenRef.current = null;
     };
-  }, [reduceMotion, repetitions, speed]);
+  }, [images.length, reduceMotion, repetitions, speed]);
 
   useEffect(() => () => {
     revealTimelineRef.current?.kill();

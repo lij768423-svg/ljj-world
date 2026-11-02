@@ -174,6 +174,37 @@ test("project DNA keeps running when the language switches", async ({ page }, te
   })).toEqual({ sameStage: true, resets: [] });
 });
 
+test("menu rows scroll their own images and loop over a whole cycle", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The marquee only runs on desktop.");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/projects", { waitUntil: "domcontentloaded" });
+  await page.locator(".menu-toggle").click();
+  await expect(page.locator(".flowing-menu .flowing-menu-marquee-part").first()).toBeAttached();
+
+  const rows = await page.locator(".flowing-menu-item").evaluateAll((items) => items.map((item) => {
+    const parts = [...item.querySelectorAll<HTMLElement>(".flowing-menu-marquee-part")];
+    const images = parts.map((part) => part.querySelector<HTMLElement>("i")!.style.backgroundImage.replace(/^url\("?|"?\)$/g, ""));
+    const cycle = new Set(images).size;
+    return {
+      images: [...new Set(images)],
+      periodic: images.every((image, index) => index < cycle || image === images[index - cycle]),
+      covered: parts.length * parts[0].offsetWidth >= item.getBoundingClientRect().width + cycle * parts[0].offsetWidth,
+    };
+  }));
+
+  expect(rows).toHaveLength(6);
+  const seen = new Set<string>();
+  for (const row of rows) {
+    expect(row.images.length).toBeGreaterThanOrEqual(4);
+    expect(row).toMatchObject({ periodic: true, covered: true });
+    for (const image of row.images) {
+      expect(seen.has(image), `${image} appears in two rows`).toBe(false);
+      seen.add(image);
+      expect((await page.request.get(image)).status(), image).toBe(200);
+    }
+  }
+});
+
 test("pixel trail remains global across portfolio routes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Pointer effects are desktop-first.");
   await page.setViewportSize({ width: 1280, height: 720 });
