@@ -64,7 +64,8 @@ const runAndCapture = (command, args) => new Promise((resolve, reject) => {
   child.on("close", (code) => (code === 0 ? resolve(output) : reject(new Error(`${command} ${args.join(" ")} exited with ${code}`))));
 });
 // home-serve reaches GitHub and the public site through a proxy that sometimes drops a TLS
-// handshake, so each network step gets a few attempts before the release stops.
+// handshake, and japan-gateway over a Tailscale relay that sometimes drops a connection, so each
+// repeatable network step gets a few attempts before the release stops.
 const withRetries = async (label, attempt, tries = 3) => {
   for (let index = 1; ; index += 1) {
     try {
@@ -125,12 +126,12 @@ if (dryRun) {
 
 step(`Upload to ${releaseHost}`);
 const remotePackage = `${releaseRoot}/deployments/${releaseId}`;
-remote(`mkdir -p ${quote(remotePackage)}`);
+await withRetries("mkdir", () => remote(`mkdir -p ${quote(remotePackage)}`));
 const uploads = [
   ...["SHA256SUMS", "release-manifest.json", "site.tar.gz", "source.tar.gz"].map((name) => path.join(packageDir, name)),
   ...["retain-assets.py", "deploy-release.py", "prune-releases.py"].map((name) => path.join(root, "deploy", name)),
 ];
-run("scp", ["-q", ...sshOptions, ...uploads, `${releaseHost}:${remotePackage}/`]);
+await withRetries("upload", () => run("scp", ["-q", ...sshOptions, ...uploads, `${releaseHost}:${remotePackage}/`]));
 
 step("Activate");
 // deploy-release.py refuses to run if the live release changed since preflight, verifies the
