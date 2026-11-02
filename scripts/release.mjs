@@ -39,7 +39,8 @@ const dryRun = flags.has("--dry-run");
 const releaseHost = process.env.RELEASE_HOST ?? "root@100.98.6.14";
 const releaseRoot = process.env.RELEASE_ROOT ?? "/srv/ljj-world";
 const origin = (process.env.SITE_ORIGIN ?? "https://ljj.world").replace(/\/$/, "");
-const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20"];
+// The Tailscale relay to japan-gateway can take over 15 s to open a connection.
+const sshOptions = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=30", "-o", "ServerAliveInterval=20"];
 
 // Only this process and IndexNow fetch over HTTPS; children such as npm and Vite would each
 // print the experimental proxy-agent warning, so they run without the opt-in.
