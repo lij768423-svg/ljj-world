@@ -63,6 +63,19 @@ const runAndCapture = (command, args) => new Promise((resolve, reject) => {
   child.on("error", reject);
   child.on("close", (code) => (code === 0 ? resolve(output) : reject(new Error(`${command} ${args.join(" ")} exited with ${code}`))));
 });
+// home-serve reaches GitHub and the public site through a proxy that sometimes drops a TLS
+// handshake, so each network step gets a few attempts before the release stops.
+const withRetries = async (label, attempt, tries = 3) => {
+  for (let index = 1; ; index += 1) {
+    try {
+      return await attempt();
+    } catch (error) {
+      if (index === tries) throw error;
+      console.warn(`${label} failed (${error.message}); retry ${index}/${tries - 1}`);
+      await new Promise((resolve) => setTimeout(resolve, 5000 * index));
+    }
+  }
+};
 const git = (...args) => capture("git", args);
 const remote = (script) => capture("ssh", [...sshOptions, releaseHost, script]);
 const quote = (value) => `'${String(value).replace(/'/g, "'\\''")}'`;
@@ -74,7 +87,7 @@ const dirty = git("status", "--porcelain", "--untracked-files=no");
 if (dirty) throw new Error(`Commit or stash tracked changes first:\n${dirty}`);
 const upstream = git("rev-parse", "--abbrev-ref", "main@{upstream}");
 const [remoteName] = upstream.split("/");
-run("git", ["fetch", "--quiet", remoteName]);
+await withRetries("git fetch", () => run("git", ["fetch", "--quiet", remoteName]));
 const [behind, ahead] = git("rev-list", "--left-right", "--count", `${upstream}...main`).split(/\s+/).map(Number);
 if (behind) throw new Error(`main is ${behind} commit(s) behind ${upstream}; pull first`);
 console.log(`main at ${git("rev-parse", "--short", "HEAD")}, ${ahead} commit(s) ahead of ${upstream}`);
@@ -139,23 +152,28 @@ const probes = [
   [`/release-check-${releaseId}`, 404, 'name="robots" content="noindex"'],
 ];
 for (const [route, status, marker] of probes) {
-  const response = await fetch(`${origin}${route}`, { redirect: "manual", headers: { "Cache-Control": "no-cache" } });
-  const body = await response.text();
+  const [response, body] = await withRetries(route, async () => {
+    const reply = await fetch(`${origin}${route}`, { redirect: "manual", headers: { "Cache-Control": "no-cache" } });
+    return [reply, await reply.text()];
+  });
   if (response.status !== status || !body.includes(marker)) throw new Error(`${route}: expected ${status} with ${marker}, got ${response.status}`);
   console.log(`${String(response.status).padEnd(4)}${route}`);
 }
 
 if (!flags.has("--skip-indexnow")) {
   step("IndexNow");
-  run("node", ["--disable-warning=UNDICI-EHPA", "scripts/submit-indexnow.mjs"], { env: { ...childEnv, NODE_USE_ENV_PROXY: "1", SITE_ORIGIN: origin } });
+  await withRetries("IndexNow", () => run("node", ["--disable-warning=UNDICI-EHPA", "scripts/submit-indexnow.mjs"], { env: { ...childEnv, NODE_USE_ENV_PROXY: "1", SITE_ORIGIN: origin } }));
 }
 
 if (!flags.has("--no-push")) {
   step(`Push to ${remoteName}`);
   // The site is already live at this point, so a failed push is reported, not fatal.
-  const pushed = spawnSync("git", ["push", "--quiet", remoteName, "main"], { cwd: root, stdio: "inherit", env: childEnv });
-  if (pushed.status === 0) console.log(`${upstream} now at ${git("rev-parse", "--short", "HEAD")}`);
-  else console.warn(`warning: push to ${remoteName} failed; the live site runs ${git("rev-parse", "--short", "HEAD")}, push it by hand`);
+  try {
+    await withRetries("git push", () => run("git", ["push", "--quiet", remoteName, "main"]));
+    console.log(`${upstream} now at ${git("rev-parse", "--short", "HEAD")}`);
+  } catch {
+    console.warn(`warning: push to ${remoteName} failed; the live site runs ${git("rev-parse", "--short", "HEAD")}, push it by hand`);
+  }
 }
 
 console.log(`\nReleased ${releaseId} to ${origin}`);
