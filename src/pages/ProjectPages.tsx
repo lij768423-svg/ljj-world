@@ -371,13 +371,16 @@ function ProjectLinks({ project, includeDetail = true }: { project: Project; inc
   );
 }
 
+// Built once: the helix rebuilds its WebGL scene whenever this array changes identity, and the
+// language switch re-renders the route.
+const helixProjects = projects.map((project) => ({
+  ...project,
+  preview: project.cardPreview,
+  href: project.detail ?? `/projects/${project.id}`,
+}));
+
 export function ProjectsPage() {
   const isPhone = usePhoneLayout();
-  const helixProjects = projects.map((project) => ({
-    ...project,
-    preview: project.cardPreview,
-    href: project.detail ?? `/projects/${project.id}`,
-  }));
 
   return (
     <section id="projects" className="project-index has-stage-title project-dna-page" aria-labelledby="project-dna-title">

@@ -143,6 +143,37 @@ test("project DNA waits for cold cover decoding before its entry animation start
   await expect(helix).toHaveAttribute("data-helix-stage", "live", { timeout: 3_000 });
 });
 
+test("project DNA keeps running when the language switches", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The DNA choreography is desktop-first.");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => localStorage.setItem("portfolio-pointer-trail", "off"));
+
+  await page.goto("/projects", { waitUntil: "domcontentloaded" });
+  const helix = page.locator(".project-helix");
+  await expect(helix).toHaveAttribute("data-helix-ready", "true", { timeout: 6_000 });
+  await helix.evaluate((stage) => {
+    const resets: string[] = [];
+    Object.assign(window, { helixStage: stage, helixResets: resets });
+    new MutationObserver(() => {
+      if (stage.getAttribute("data-helix-ready") === "false") resets.push("ready");
+    }).observe(stage, { attributes: true, attributeFilter: ["data-helix-ready"] });
+  });
+
+  await page.locator(".language-switch").click();
+  await expect(page).toHaveURL(/\/en\/projects$/);
+  await expect(page.locator("#project-dna-title")).toHaveText("Project index");
+  await page.locator(".language-switch").click();
+  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page.locator("#project-dna-title")).toHaveText("项目索引");
+  await page.waitForTimeout(300);
+
+  expect(await page.evaluate(() => {
+    const state = window as Window & { helixStage?: Element; helixResets?: string[] };
+    return { sameStage: state.helixStage === document.querySelector(".project-helix"), resets: state.helixResets };
+  })).toEqual({ sameStage: true, resets: [] });
+});
+
 test("pixel trail remains global across portfolio routes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Pointer effects are desktop-first.");
   await page.setViewportSize({ width: 1280, height: 720 });
