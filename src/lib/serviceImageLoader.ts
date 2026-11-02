@@ -1,6 +1,9 @@
 import { serviceArtImages } from "../assets/serviceArt";
 
 const pendingImages = new Map<string, Promise<void>>();
+// Holding the element keeps the image in the browser's memory cache. Once it is garbage collected,
+// the <image> that shows the artwork may have to fetch it again.
+const loadedImages = new Map<string, HTMLImageElement>();
 
 export function loadServiceImage(source: string): Promise<void> {
   const existing = pendingImages.get(source);
@@ -13,7 +16,9 @@ export function loadServiceImage(source: string): Promise<void> {
     };
     image.onerror = () => reject(new Error("Service image could not load"));
     image.src = source;
-  }).catch(error => {
+  }).then(() => {
+    loadedImages.set(source, image);
+  }, error => {
     pendingImages.delete(source);
     throw error;
   });

@@ -58,6 +58,9 @@ test("cached intent image is not downloaded again on entry", async ({ page }, te
   const button = page.getByRole("button", { name: "查看 Immich 介绍", exact: true });
   await button.focus();
   await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").filter(entry => entry.name.includes("/service-art/immich-")).length)).toBe(1);
+  // A slow machine can collect garbage between the prefetch and the entry; the image must survive it.
+  const session = await page.context().newCDPSession(page);
+  await session.send("HeapProfiler.collectGarbage");
   await button.press("Enter");
   await expect(page.locator('[data-service-art="immich"]')).toHaveAttribute("data-image-state", "ready");
   const transfers = await page.evaluate(() => (performance.getEntriesByType("resource") as PerformanceResourceTiming[]).filter(entry => entry.name.includes("/service-art/immich-") && entry.transferSize > 0).length);
