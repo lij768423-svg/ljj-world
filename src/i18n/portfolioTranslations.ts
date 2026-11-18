@@ -290,7 +290,7 @@ export const portfolioTranslations: Record<string, string> = {
   "服务器容器运行核心线稿": "Server container running core line draft",
   "服务器使用场景": "Server usage scenarios",
   "服务器双口网卡线稿": "Server dual port network card line drawing",
-  "服务器显卡线稿": "Server graphics card line drawing",
+  "服务器双显卡线稿": "Line drawing of the server's two graphics cards",
   "服务器运行界面": "Server running interface",
   "服务入口": "Service entrance",
   "服务系统": "service system",

@@ -65,7 +65,7 @@ const standardCameraFrames: Record<ServerCategoryId, { x: number; y: number; sca
 const categoryVisuals: Record<ServerCategoryId, { src: string; alt: string }> = {
   network: { src: serverPartImages["nic-line"], alt: "服务器双口网卡线稿" },
   hardware: { src: serverPartImages["cpu-line"], alt: "服务器处理器线稿" },
-  agent: { src: serverPartImages["gpu-line"], alt: "服务器显卡线稿" },
+  agent: { src: serverPartImages["gpu-line"], alt: "服务器双显卡线稿" },
   data: { src: serverPartImages["nvme-line"], alt: "服务器 NVMe 存储线稿" },
   containers: { src: serverPartImages["container-line"], alt: "服务器容器运行核心线稿" },
 };
@@ -245,7 +245,7 @@ function MachineDrawing({
               onKeyDown={(event) => handleModuleKeyDown(event, "agent")}
             >
               <title>查看 GPU 与 AI 模块</title>
-              <rect className="machine-module-hit" x="394" y="354" width="310" height="102" />
+              <rect className="machine-module-hit" x="394" y="354" width="310" height="118" />
               <path className="machine-module-leader" d="M704 405H726" />
               <circle className="machine-module-marker" cx="704" cy="405" r="4" />
               <rect className="machine-module-action" x="728" y="375" width="106" height="30" />
@@ -262,7 +262,7 @@ function MachineDrawing({
               onKeyDown={(event) => handleModuleKeyDown(event, "containers")}
             >
               <title>查看 Docker 容器模块</title>
-              <rect className="machine-module-hit" x="386" y="466" width="300" height="76" />
+              <rect className="machine-module-hit" x="386" y="474" width="300" height="68" />
               <path className="machine-module-leader" d="M536 542V566" />
               <circle className="machine-module-marker" cx="536" cy="542" r="4" />
               <rect className="machine-module-action" x="467" y="568" width="138" height="30" />

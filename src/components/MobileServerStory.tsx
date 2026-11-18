@@ -33,7 +33,7 @@ type MobileServerFact = {
 const categoryVisuals: Record<string, { src: string; alt: string }> = {
   network: { src: serverPartImages["nic-line"], alt: "服务器双口网卡线稿" },
   hardware: { src: serverPartImages["cpu-line"], alt: "服务器处理器线稿" },
-  agent: { src: serverPartImages["gpu-line"], alt: "服务器显卡线稿" },
+  agent: { src: serverPartImages["gpu-line"], alt: "服务器双显卡线稿" },
   data: { src: serverPartImages["nvme-line"], alt: "服务器 NVMe 存储线稿" },
   containers: { src: serverPartImages["container-line"], alt: "服务器容器运行核心线稿" },
 };
