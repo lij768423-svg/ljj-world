@@ -480,8 +480,6 @@ export const portfolioTranslations: Record<string, string> = {
   "Strata 引擎加载 Qwen 3.8 Flash Next 量化权重，支持图文输入，提供本机聊天与 OpenAI 兼容接口。": "The Strata engine loads quantized Qwen 3.8 Flash Next weights with image input, serving local chat and an OpenAI-compatible API.",
   "4090 到本机聊天与 OpenAI 兼容接口": "The 4090 to local chat and an OpenAI-compatible API",
   "用户级 systemd 常驻 Strata 服务，端口只经 socket 代理在 Tailnet 内开放；27B 版本由 llama.cpp 按需加载，权重都保存在本机。": "A user-level systemd unit keeps the Strata server running and exposes it on Tailnet only through a socket proxy; the 27B build loads on demand through llama.cpp, and all weights stay local.",
-  "装在 ASUS ProArt X870E-CREATOR WIFI 上，运行 Ubuntu 26.04 LTS，直接承载全部主机工作负载。": "Seated in an ASUS ProArt X870E-CREATOR WIFI and running Ubuntu 26.04 LTS, it carries the whole host workload.",
-  "NVIDIA 驱动到 vLLM、ComfyUI 与 Immich 机器学习": "The NVIDIA driver to vLLM, ComfyUI, and Immich machine learning",
   "三块 2 TB NVMe 分别承载系统、应用数据与扩展存储，两块 4 TB 机械盘负责归档与冷备份。": "Three 2 TB NVMe drives separate the system, application data, and additional storage; two 4 TB hard drives hold archives and cold backups.",
   "990 EVO Plus 承载系统，990 PRO 承载应用数据，Kingston 用作扩展存储；两块 WD 4 TB SATA 盘分别存放下载与归档、服务器备份与 Time Machine。": "990 EVO Plus holds the system, 990 PRO holds application data, and Kingston provides additional storage; two WD 4 TB SATA drives hold downloads and archives, and server backups with Time Machine.",
   "宿主机运行 tailscaled；双口 2.5G 网卡做 active-backup bonding，后台和管理端绑 Tailnet。": "tailscaled runs on the host. Dual 2.5G NICs run active-backup bonding. Admin surfaces bind to Tailnet.",
@@ -1160,4 +1158,9 @@ export const portfolioTranslations: Record<string, string> = {
   "SSH 只执行一段只读脚本，远端不落文件，也不读环境变量和 docker inspect。": "SSH runs one read-only script that leaves no files behind and never reads environment variables or docker inspect.",
   "零依赖": "Zero dependencies",
   "Python 3.11 起只用标准库，前端是原生 JavaScript 加 D3，没有构建步骤。": "From Python 3.11 it uses only the standard library, and the front end is plain JavaScript with D3 and no build step.",
+  "装在 ASUS ProArt X870E-CREATOR WIFI 上，运行 Ubuntu 26.04 LTS；四条 32 GB DDR5 为了稳定降到 3600 MT/s 运行，开 EXPO 5600 时读大文件会静默出错。": "Seated in an ASUS ProArt X870E-CREATOR WIFI and running Ubuntu 26.04 LTS; the four 32 GB DDR5 modules run at 3600 MT/s for stability, because EXPO 5600 silently corrupted large file reads.",
+  "两块 GPU 分担推理、生图与相册识别": "Two GPUs share inference, image generation, and photo recognition",
+  "双 GPU": "Dual GPU",
+  "显卡": "GPUs",
+  "操作系统": "OS",
 };

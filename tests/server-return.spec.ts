@@ -70,7 +70,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect(story).toHaveAttribute("data-story-overview-entry", "return");
         await expect(story.locator(".machine-load-shell")).toHaveCSS("animation-name", "none");
         await expect(overview.getByRole("heading", { name: "我的服务器" })).toBeVisible();
-        await expect(overview.locator(".server-story-overview-facts > div")).toHaveCount(4);
+        await expect(overview.locator(".server-story-overview-facts > div")).toHaveCount(6);
       }
     });
   }

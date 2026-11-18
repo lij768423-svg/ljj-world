@@ -34,12 +34,12 @@ function translateDynamicText(value: string) {
   // /systems copy built from the server snapshot (src/data/server.ts).
   let server = value.match(/^数据采集于 (\d{4}-\d{2}-\d{2})$/u);
   if (server) return `Snapshot taken ${server[1]}`;
-  server = value.match(/^(\d+) 核 (\d+) 线程，跑容器、编译、转码和并行代理。$/u);
-  if (server) return `${server[1]} cores and ${server[2]} threads for containers, compiles, transcodes, and parallel agents.`;
-  server = value.match(/^(\d+) GB 显存，给本地推理、图片生成和媒体工作流供能；另有一块 (\d+) GB 显存的 (.+) 承接其余 GPU 任务。$/u);
-  if (server) return `${server[1]} GB of VRAM for local inference, image generation, and media workflows; a second ${server[3]} with ${server[2]} GB takes the remaining GPU work.`;
-  server = value.match(/^宿主机驱动 ([\d.]+)，按需向 vLLM、ComfyUI、Immich ML 等容器开放两块 GPU。$/u);
-  if (server) return `Host driver ${server[1]}, exposing both GPUs to vLLM, ComfyUI, Immich ML, and similar containers on demand.`;
+  server = value.match(/^(\d+) 核 (\d+) 线程，配 (\d+ Gi?B) DDR5，跑容器、编译、转码和并行代理。$/u);
+  if (server) return `${server[1]} cores and ${server[2]} threads with ${server[3]} of DDR5 for containers, compiles, transcodes, and parallel agents.`;
+  server = value.match(/^(\d+) GB 显存的 (.+) 常驻本地大模型；(\d+) GB 显存的 (.+) 负责图片生成、相册识别和按需启动的 vLLM。$/u);
+  if (server) return `The ${server[2]} with ${server[1]} GB of VRAM keeps the local LLM loaded; the ${server[4]} with ${server[3]} GB handles image generation, photo recognition, and vLLM started on demand.`;
+  server = value.match(/^宿主机驱动 ([\d.]+)；Strata 独占 4090，ComfyUI 和 Immich ML 容器通过 CDI 按卡绑定 3080，vLLM 空闲 5 分钟自动停下。$/u);
+  if (server) return `Host driver ${server[1]}; Strata has the 4090 to itself, ComfyUI and Immich ML containers are bound to the 3080 through CDI, and vLLM stops after 5 idle minutes.`;
   server = value.match(/^(\d+) 个运行容器、(\d+) 套 Compose，按入口、状态和备份收成一组。$/u);
   if (server) return `${server[1]} running containers and ${server[2]} Compose stacks, grouped by entry points, status, and backups.`;
   server = value.match(/^Docker (\d+) 上的 Compose 项目统一归档，Portainer 通过 Docker Socket 查看容器和数据卷。$/u);

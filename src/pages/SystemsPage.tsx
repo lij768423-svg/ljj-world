@@ -13,6 +13,8 @@ const serverFacts = [
   { label: "运行容器", value: String(server.runningContainers) },
   { label: "内存", value: server.memory },
   { label: "NVMe 存储", value: server.nvme },
+  { label: "显卡", value: server.gpus },
+  { label: "操作系统", value: server.os },
 ] as const;
 
 type TopologyCategoryId = "network" | "hardware" | "agent" | "data" | "containers";
@@ -166,18 +168,19 @@ const topologyCategories: TopologyCategory[] = [
         id: "cpu",
         name: server.cpuModel,
         kind: "计算",
-        description: `${server.cpuCores} 核 ${server.cpuThreads} 线程，跑容器、编译、转码和并行代理。`,
+        description: `${server.cpuCores} 核 ${server.cpuThreads} 线程，配 ${server.memory} DDR5，跑容器、编译、转码和并行代理。`,
         connection: "主机计算核心到全部工作负载",
-        deployment: "装在 ASUS ProArt X870E-CREATOR WIFI 上，运行 Ubuntu 26.04 LTS，直接承载全部主机工作负载。",
+        deployment: "装在 ASUS ProArt X870E-CREATOR WIFI 上，运行 Ubuntu 26.04 LTS；四条 32 GB DDR5 为了稳定降到 3600 MT/s 运行，开 EXPO 5600 时读大文件会静默出错。",
         entryLabel: "仅 Tailnet 内可用",
       },
       {
         id: "gpu",
-        name: server.primaryGpu.name,
-        kind: "GPU",
-        description: `${server.primaryGpu.memoryGB} GB 显存，给本地推理、图片生成和媒体工作流供能；另有一块 ${server.secondaryGpu.memoryGB} GB 显存的 ${server.secondaryGpu.name} 承接其余 GPU 任务。`,
-        connection: "NVIDIA 驱动到 vLLM、ComfyUI 与 Immich 机器学习",
-        deployment: `宿主机驱动 ${server.driver}，按需向 vLLM、ComfyUI、Immich ML 等容器开放两块 GPU。`,
+        // Keep "+ 3080" together so a wrapped heading breaks after the first card.
+        name: server.gpus.replace(" + ", " +\u00a0"),
+        kind: "双 GPU",
+        description: `${server.primaryGpu.memoryGB} GB 显存的 ${server.primaryGpu.name} 常驻本地大模型；${server.secondaryGpu.memoryGB} GB 显存的 ${server.secondaryGpu.name} 负责图片生成、相册识别和按需启动的 vLLM。`,
+        connection: "两块 GPU 分担推理、生图与相册识别",
+        deployment: `宿主机驱动 ${server.driver}；Strata 独占 4090，ComfyUI 和 Immich ML 容器通过 CDI 按卡绑定 3080，vLLM 空闲 5 分钟自动停下。`,
         entryLabel: "仅 Tailnet 内可用",
       },
       {

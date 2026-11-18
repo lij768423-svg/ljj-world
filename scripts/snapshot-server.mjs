@@ -6,7 +6,8 @@
 //   npm run snapshot:server -- --dry-run # print what would change, write nothing
 //   SNAPSHOT_HOST=other npm run snapshot:server
 //
-// It reads only: docker ps / compose ls / version, /proc/meminfo, lsblk, nvidia-smi and lscpu.
+// It reads only: docker ps / compose ls / version, /proc/meminfo, dmidecode's memory table (through
+// passwordless sudo when there is one), /etc/os-release, lsblk, nvidia-smi and lscpu.
 // The release script runs it before every build; CI and machines without access keep the
 // committed snapshot.
 import { execFileSync } from "node:child_process";
@@ -27,6 +28,8 @@ echo "@containers"; docker ps -q | wc -l
 echo "@compose"; docker compose ls --all --quiet | wc -l
 echo "@docker"; docker version --format '{{.Server.Version}}'
 echo "@meminfo"; grep MemTotal /proc/meminfo
+echo "@dimms"; sudo -n dmidecode -t memory 2>/dev/null | grep -E '^[[:space:]]+Size: [0-9]+ GB' || true
+echo "@os"; . /etc/os-release && echo "$NAME $VERSION_ID"
 echo "@disks"; lsblk --bytes --nodeps --noheadings --output NAME,SIZE,ROTA,TRAN
 echo "@gpus"; nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits
 echo "@cpu"; lscpu
@@ -58,6 +61,8 @@ const integer = (name) => {
 };
 
 const memTotalKiB = Number(/MemTotal:\s+(\d+)/.exec(one("meminfo"))?.[1]);
+// Installed capacity from the DIMMs; MemTotal is lower because firmware and the kernel reserve some.
+const dimmGB = (sections.dimms ?? []).map((line) => Number(/Size:\s+(\d+) GB/.exec(line)?.[1])).filter(Number.isFinite);
 const disks = sections.disks.map((line) => {
   const [name, size, rotational, transport = ""] = line.split(/\s+/);
   return { name, bytes: Number(size), rotational: rotational === "1", transport };
@@ -89,6 +94,8 @@ const snapshot = {
     threads,
   },
   memoryGiB: Math.floor(memTotalKiB / 1024 / 1024),
+  memoryInstalled: dimmGB.length ? { modules: dimmGB.length, totalGB: dimmGB.reduce((sum, size) => sum + size, 0) } : null,
+  os: one("os"),
   nvme: { count: nvme.length, totalTB: terabytes(nvme) },
   hdd: { count: hdd.length, totalTB: terabytes(hdd) },
   gpus: gpus.map(({ name, memoryGB }) => ({ name, memoryGB })),
