@@ -12,7 +12,7 @@ const routes = [
   { path: "/projects/harmonyos", heading: "408 for HarmonyOS", title: "408 for HarmonyOS 案例 | lij768423-svg" },
   { path: "/projects/mineradio", heading: "Mineradio Web 适配", title: "Mineradio Web 适配 | lij768423-svg" },
   { path: "/projects/grok-register-panel", heading: "Grok Register Panel", title: "Grok Register Panel | lij768423-svg" },
-  { path: "/projects/codex-api", heading: "Codex API", title: "Codex API | lij768423-svg" },
+  { path: "/projects/meshatlas", heading: "MeshAtlas", title: "MeshAtlas | lij768423-svg" },
   { path: "/projects/grok2api-egress-enhancements", heading: "Egress Quality Guard", title: "Egress Quality Guard | lij768423-svg" },
   { path: "/projects/writing-studio", heading: "Writing Studio", title: "Writing Studio | lij768423-svg" },
   { path: "/projects/travel-agent", heading: "行记 旅行规划 Agent", title: "行记 旅行规划 Agent | lij768423-svg" },

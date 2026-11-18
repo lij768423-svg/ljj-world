@@ -14,7 +14,7 @@ const covers = {
   "law-site": "law-site.png",
   mineradio: "mineradio_001.jpg",
   "agent-console": "agent-console.png",
-  "codex-api": "codex-api.png",
+  meshatlas: "meshatlas.png",
   "wiki-api": "wiki-api.png",
   "writing-studio": "writing-studio_001.jpg",
   "travel-agent": "travel-agent.png",

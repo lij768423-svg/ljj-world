@@ -6,12 +6,12 @@ import { Code } from "@phosphor-icons/react/Code";
 import { Cpu } from "@phosphor-icons/react/Cpu";
 import { DeviceMobile } from "@phosphor-icons/react/DeviceMobile";
 import { GithubLogo } from "@phosphor-icons/react/GithubLogo";
+import { GlobeHemisphereEast } from "@phosphor-icons/react/GlobeHemisphereEast";
 import { GlobeHemisphereWest } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { HardDrives } from "@phosphor-icons/react/HardDrives";
 import { MapTrifold } from "@phosphor-icons/react/MapTrifold";
 import { Moon } from "@phosphor-icons/react/Moon";
 import { MouseSimple } from "@phosphor-icons/react/MouseSimple";
-import { Robot } from "@phosphor-icons/react/Robot";
 import { ShareNetwork } from "@phosphor-icons/react/ShareNetwork";
 import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { Sun } from "@phosphor-icons/react/Sun";
@@ -430,27 +430,29 @@ export const projects: Project[] = [
     },
   },
   {
-    id: "codex-api",
-    title: "Codex API",
-    description: "把 Codex CLI 包装成 OpenAI 兼容接口，提供 SSE 生命周期事件与会话级安全控制。",
-    category: "ai",
-    kind: "AI 基础服务",
-    status: "私有运行",
+    id: "meshatlas",
+    title: "MeshAtlas",
+    description: "Tailscale tailnet 的实时地图：每台机器在哪、走直连还是中继、上面跑着什么，一屏看完。",
+    category: "system",
+    kind: "网络可视化",
+    status: "开源 / 在线演示",
     year: "2026",
-    tags: ["Python", "OpenAI API", "SSE"],
+    tags: ["Python", "Tailscale", "D3"],
     story: {
-      problem: "OpenAI 兼容客户端无法直接调用 Codex CLI，也缺少工作目录和高权限执行的明确边界。",
-      approach: "用无依赖 Python HTTP 服务解析兼容请求，校验 cwd 与沙盒模式后执行 codex exec --json，并映射流式事件。",
-      outcome: "形成仅在 Tailnet 内运行的受控网关，同时支持健康检查、模型列表、同步和流式会话。",
+      problem: "Tailscale 后台只列出有哪些机器，看不出节点之间走直连、DERP 还是 peer relay，也看不到每台机器上跑着什么。",
+      approach: "一个零依赖的 Python 进程读取 tailscale status、DERP 地图和 tailscale ping，再经 SSH 运行一段只读脚本采集容器、systemd 服务和资源占用，历史写入 SQLite。",
+      outcome: "节点按位置落在世界地图上，每条连线标出路径和实测延迟，配合延迟矩阵、节点详情和事件日志；数据不出 tailnet，另有在浏览器里现场生成数据的在线演示。",
       highlights: [
-        { title: "兼容客户端接入", description: "提供 chat completions、models 与 health 端点，降低客户端改造成本。" },
-        { title: "执行安全边界", description: "工作目录必须位于白名单，高权限模式还需要显式环境开关。" },
-        { title: "生命周期映射", description: "解析 Codex JSON 事件并回传正文、阶段状态与用量信息。" },
+        { title: "看路径，不只是 ping", description: "每条连线标出直连、经过哪个 DERP 区域或 peer relay，路径一变就写进事件日志。" },
+        { title: "无 agent 只读采集", description: "SSH 只执行一段只读脚本，远端不落文件，也不读环境变量和 docker inspect。" },
+        { title: "零依赖", description: "Python 3.11 起只用标准库，前端是原生 JavaScript 加 D3，没有构建步骤。" },
       ],
     },
-    detail: "/projects/codex-api",
-    icon: <Robot size={22} weight="duotone" />,
-    cardPreview: projectCardPreview("codex-api", "Codex API"),
+    site: "https://lij768423-svg.github.io/meshatlas/",
+    repo: "https://github.com/lij768423-svg/meshatlas",
+    detail: "/projects/meshatlas",
+    icon: <GlobeHemisphereEast size={22} weight="duotone" />,
+    cardPreview: projectCardPreview("meshatlas", "MeshAtlas"),
   },
   {
     id: "grok2api-egress-enhancements",
