@@ -4,7 +4,7 @@ const categories = [
   { trigger: "聚焦网络与入口模块", tab: "NETWORK", services: ["tailscale", "cloudflare", "caddy", "uptime-kuma", "network-probe"] },
   { trigger: "聚焦 GPU 与 AI 模块", tab: "AGENT", services: ["sub2api", "grok2api", "qwen38", "comfyui", "agent-console"] },
   { trigger: "聚焦 CPU 与内存模块", tab: "HARDWARE", services: ["cpu", "gpu", "nvme", "beszel", "hw-control"] },
-  { trigger: "聚焦 NVMe 数据模块", tab: "DATA", services: ["immich", "paperless", "minio", "syncthing", "linkwarden"] },
+  { trigger: "聚焦 NVMe 数据模块", tab: "DATA", services: ["immich", "paperless", "minio", "restic", "linkwarden"] },
   { trigger: "聚焦 Docker 容器模块", tab: "CONTAINERS", services: ["homepage", "vaultwarden", "memos", "stirling", "docker"] },
 ];
 

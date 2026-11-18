@@ -18,9 +18,9 @@ export const serviceArtImages: Record<string, string> = {
   "nvme": "/assets/service-art/nvme-29e9de4df077.webp",
   "paperless": "/assets/service-art/paperless-d80119ff2338.webp",
   "qwen38": "/assets/service-art/qwen38-a6da6d640984.webp",
+  "restic": "/assets/service-art/restic-62576ec957e6.webp",
   "stirling": "/assets/service-art/stirling-d0ea61449681.webp",
   "sub2api": "/assets/service-art/sub2api-83cc3bfba29f.webp",
-  "syncthing": "/assets/service-art/syncthing-fe4f1f4e01b9.webp",
   "tailscale": "/assets/service-art/tailscale-614eeb4f576c.webp",
   "uptime-kuma": "/assets/service-art/uptime-kuma-2d9f3eddb9fd.webp",
   "vaultwarden": "/assets/service-art/vaultwarden-9afec4214285.webp"

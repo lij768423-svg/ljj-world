@@ -20,16 +20,6 @@
     "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
   },
   {
-    "id": "syncthing",
-    "repository": "syncthing/syncthing",
-    "commit": "2ca95cf1498104113fdfde46df4107f2450a0f71",
-    "originalPath": "assets/logo-only.svg",
-    "source": "https://raw.githubusercontent.com/syncthing/syncthing/2ca95cf1498104113fdfde46df4107f2450a0f71/assets/logo-only.svg",
-    "filename": "syncthing-32a59ba5e16e.svg",
-    "sha256": "32a59ba5e16eea315c533d38358107984049d54c8130122cd0a63480fffa80dd",
-    "treatment": "Original paths retained; displayed as a monochrome identification mark, not an official endorsed illustration."
-  },
-  {
     "id": "minio",
     "repository": "minio/minio",
     "commit": "7aac2a2c5b7c882e68c1ce017d8256be2feea27f",
