@@ -170,6 +170,42 @@ function withinStage(layout: ConnectorLayout, slide: CardSlide, frame: Placement
   return layout.endY >= half && layout.endY <= 100 - half;
 }
 
+/** The card's box in the 0–100 space: cards left of centre hang to the left of their end point. */
+function cardBox(layout: ConnectorLayout, frame: PlacementFrame): ArtworkBox {
+  const left = layout.endX < 50 ? layout.endX - frame.cardWidth : layout.endX;
+  return { left, top: layout.endY - frame.cardHeight / 2, width: frame.cardWidth, height: frame.cardHeight };
+}
+
+const CARD_SAMPLE_STEP = 0.5;
+/** Extra room kept between a card and the artwork (px), on top of the mask clearance. */
+const CARD_GAP = 16;
+
+/** Whether the card, with a small gap around it, would sit on the artwork or its clearance. */
+function cardCoversArtwork(layout: ConnectorLayout, mask: ArtworkMask, box: ArtworkBox, frame: PlacementFrame) {
+  const card = cardBox(layout, frame);
+  const gapX = (CARD_GAP / frame.pixelWidth) * 100;
+  const gapY = (CARD_GAP / frame.pixelHeight) * 100;
+  for (let y = card.top - gapY; y <= card.top + card.height + gapY; y += CARD_SAMPLE_STEP) {
+    for (let x = card.left - gapX; x <= card.left + card.width + gapX; x += CARD_SAMPLE_STEP) {
+      if (covers(mask, box, [x, y])) return true;
+    }
+  }
+  return false;
+}
+
+/** Move a card sideways, away from the artwork: its horizontal leg grows. */
+function slideAway(layout: ConnectorLayout, offset: number): ConnectorLayout {
+  const segments = layout.segments.map((segment) => [...segment] as [number, number, number, number]);
+  const dx = layout.endX < 50 ? -offset : offset;
+  segments[segments.length - 1][2] += dx;
+  return { segments, endX: layout.endX + dx, endY: layout.endY };
+}
+
+function withinStageSideways(layout: ConnectorLayout, frame: PlacementFrame) {
+  const card = cardBox(layout, frame);
+  return card.left >= EDGE_MARGIN && card.left + card.width <= 100 - EDGE_MARGIN;
+}
+
 /**
  * Fit a connector to the artwork and, if the artwork leaves it too short to read, slide its
  * card outwards (staying on stage) until the connector is long enough again.
@@ -177,6 +213,7 @@ function withinStage(layout: ConnectorLayout, slide: CardSlide, frame: Placement
 export function placeConnector(layout: ConnectorLayout, slide: CardSlide, mask: ArtworkMask, box: ArtworkBox, frame: PlacementFrame) {
   let best = fitConnector(layout, mask, box);
   let bestLength = pixelLength(best, frame);
+  let bestOffset = 0;
   for (let offset = SLIDE_STEP; bestLength < MIN_CONNECTOR_LENGTH; offset += SLIDE_STEP) {
     const moved = slideCard(layout, slide, offset);
     if (!withinStage(moved, slide, frame)) break;
@@ -185,7 +222,27 @@ export function placeConnector(layout: ConnectorLayout, slide: CardSlide, mask: 
     if (length > bestLength) {
       best = fitted;
       bestLength = length;
+      bestOffset = offset;
     }
+  }
+  if (!cardCoversArtwork(best, mask, box, frame)) return best;
+
+  // The card itself lands on the artwork, which happens in short windows where the wide GPU and
+  // NVMe drawings leave little room above and below. Keep sliding the same way while the stage
+  // allows, then move the card sideways, away from the artwork, until it clears.
+  for (let offset = bestOffset + SLIDE_STEP; ; offset += SLIDE_STEP) {
+    const moved = slideCard(layout, slide, offset);
+    if (!withinStage(moved, slide, frame)) break;
+    const fitted = fitConnector(moved, mask, box);
+    if (!cardCoversArtwork(fitted, mask, box, frame)) return fitted;
+  }
+  if (slide === "right") return best;
+  const base = bestOffset ? slideCard(layout, slide, bestOffset) : layout;
+  for (let offset = SLIDE_STEP; ; offset += SLIDE_STEP) {
+    const moved = slideAway(base, offset);
+    if (!withinStageSideways(moved, frame)) break;
+    const fitted = fitConnector(moved, mask, box);
+    if (!cardCoversArtwork(fitted, mask, box, frame)) return fitted;
   }
   return best;
 }
