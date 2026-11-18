@@ -3345,7 +3345,9 @@ html[data-theme="dark"] .machine-real-image {
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 42%, transparent));
 }
 
-.server-story.is-visual-only[data-story-exploded="true"] .machine-real-layer {
+/* The focus view draws the part as a centred <img>. The in-machine copy only ever showed while the
+   camera pulled back, at a different size and position, so the drawing jumped for a frame. */
+.server-story.is-visual-only .machine-real-layer {
   display: none;
 }
 

@@ -5,7 +5,7 @@ import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
-import { prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
+import { loadServiceImage, prefetchServiceImage, prefetchServiceImages } from "../lib/serviceImageLoader";
 import { loadArtworkMask, measureArtworkBox, placeConnector, type CardSlide, type ConnectorLayout } from "../lib/connectorFit";
 import "./ServerMachineVisual.css";
 
@@ -299,7 +299,12 @@ export function ServerExplodedStory({ categories, facts, capturedAt, visualOnly 
   const connectorLayouts = fittedConnectors?.src === activeVisual.src ? fittedConnectors.layouts : null;
 
   useEffect(() => {
-    const prefetch = () => Object.values(categoryVisuals).forEach((visual) => void loadArtworkMask(visual.src));
+    const prefetch = () => Object.values(categoryVisuals).forEach((visual) => {
+      void loadArtworkMask(visual.src);
+      // Most part drawings are 1536 px. Decoding one on its first focus drops a few frames and the
+      // drawing pops in, so decode them while the overview is idle.
+      void loadServiceImage(visual.src).catch(() => undefined);
+    });
     const timer = window.setTimeout(prefetch, 1200);
     return () => window.clearTimeout(timer);
   }, []);
@@ -467,7 +472,9 @@ export function ServerExplodedStory({ categories, facts, capturedAt, visualOnly 
                 className="server-story-focus-copy"
                 initial={false}
                 animate={{ opacity: 1 }}
-                exit={reduceMotion ? undefined : { opacity: 0 }}
+                // Fade the large drawing out while the camera pulls back. Removing it in one frame made
+                // the dark hatching flash, because nothing at that spot takes its place.
+                exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
                 transition={{ duration: 0 }}
               >
                 <motion.header
@@ -480,10 +487,13 @@ export function ServerExplodedStory({ categories, facts, capturedAt, visualOnly 
                   <p>{activeCategory.description}</p>
                 </motion.header>
 
+                {/* Fade only. Scaling the drawing while it fades in resampled its dense heatsink
+                    hatching every frame, and the dark areas shimmered with moiré. The camera
+                    behind it still zooms in. */}
                 <motion.div
                   className="server-story-focus-visual"
-                  initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{ duration: 0.58, delay: 0, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <img ref={focusImageRef} src={activeVisual.src} alt={activeVisual.alt} />
