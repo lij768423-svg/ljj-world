@@ -3475,7 +3475,6 @@ html[data-theme="dark"] .machine-real-image {
 .server-story.is-visual-only[data-story-exploded="true"] .machine-orbit,
 .server-story.is-visual-only[data-story-exploded="true"] .machine-flow,
 .server-story.is-visual-only[data-story-exploded="true"] .machine-fan-rotor,
-.server-story.is-visual-only[data-story-exploded="true"] .machine-gpu-fan .machine-fan-rotor,
 .server-story.is-visual-only[data-story-exploded="true"] .machine-rotor-disc,
 .server-story.is-visual-only[data-story-exploded="true"] .machine-panel-flow,
 .server-story.is-visual-only[data-story-exploded="true"] .machine-trace,
@@ -4080,16 +4079,6 @@ html[data-language-transitioning="true"] .server-story-module-list small {
   .server-machine-board .machine-load-board > path:not(.machine-trace):not(.machine-scan-line) {
     animation-delay: 300ms;
   }
-
-  .server-story.is-visual-only[data-story-exploded="false"] .server-machine-part .machine-wire .machine-gpu-fan .machine-fan-rotor {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: server-fan-spin 3.4s linear infinite;
-  }
-
-  .server-story.is-visual-only[data-story-exploded="false"] .server-machine-part .machine-wire .machine-gpu-fan.is-reverse .machine-fan-rotor {
-    animation-direction: reverse;
-  }
 }
 
 .server-machine .machine-trace {
@@ -4568,7 +4557,6 @@ html[data-language-transitioning="true"] .server-story-module-list small {
   .server-machine .machine-orbit,
   .server-machine .machine-flow,
   .machine-fan-rotor,
-  .machine-gpu-fan .machine-fan-rotor,
   .machine-rotor-disc,
   .machine-panel-flow,
   .machine-load-group,

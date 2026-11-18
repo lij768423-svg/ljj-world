@@ -205,12 +205,6 @@ html[data-theme="dark"] .server-machine.original-refined .machine-ground {
   transition: opacity 360ms ease;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .server-story.is-visual-only[data-story-exploded="false"] .original-refined .server-machine-part .machine-wire .machine-gpu-fan .machine-fan-rotor {
-    animation-duration: 6s;
-  }
-}
-
 .server-story-service-connectors .server-story-connector-anchor line {
   stroke-linecap: round;
   filter: none;

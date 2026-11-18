@@ -921,14 +921,13 @@ test("server story uses click-only focus and blank-space reset", async ({ page }
   await page.waitForTimeout(120);
   expect(await page.evaluate(() => window.scrollY)).toBe(initialAnchor.scrollY);
   await expect(story.locator(".machine-real-image")).toHaveCount(5);
-  const gpuFan = story.locator(".machine-gpu-fan .machine-fan-rotor").first();
-  await expect(gpuFan).toHaveCSS("animation-name", "server-fan-spin");
-  // The visual-only overview slows the GPU fans (ServerMachineVisual.css).
-  await expect(gpuFan).toHaveCSS("animation-duration", "6s");
-  const fanRotationBefore = await gpuFan.evaluate((node) => getComputedStyle(node).rotate);
-  await page.waitForTimeout(160);
-  const fanRotationAfter = await gpuFan.evaluate((node) => getComputedStyle(node).rotate);
-  expect(fanRotationAfter).not.toBe(fanRotationBefore);
+  // The graphics cards sit flat in their slots with the fans facing down, so the case fans are the
+  // ones that visibly turn in the overview; they start after the entry animation.
+  const caseFan = story.locator(".server-machine-fans .machine-fan-rotor").first();
+  await expect(caseFan).toHaveCSS("animation-name", "server-fan-spin");
+  await expect(caseFan).toHaveCSS("animation-duration", "4.8s");
+  const fanRotationBefore = await caseFan.evaluate((node) => getComputedStyle(node).rotate);
+  await expect.poll(() => caseFan.evaluate((node) => getComputedStyle(node).rotate), { timeout: 4000 }).not.toBe(fanRotationBefore);
 
   await story.getByRole("button", { name: "聚焦 GPU 与 AI 模块" }).click();
   await expect(story).toHaveAttribute("data-story-stage", "agent");

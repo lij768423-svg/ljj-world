@@ -286,50 +286,61 @@ export function NetworkArt() {
   </>;
 }
 
+const GPU_REAR = 680;
+
 /**
- * One graphics card seen from the side panel. Both cards share the rear bracket line at x 682,
- * so a shorter card only gives up length towards the front of the case.
+ * One graphics card installed flat in a PCIe slot, seen edge-on through the side panel: backplate
+ * on top, the PCB edge, the fin stack, then the shroud with the fan frames facing down. Both cards
+ * end at the same rear bracket, so a shorter card only gives up length towards the front.
  */
 function GraphicsCard({ front, top, height, fans, fanRadius, depth, power = false }: {
   front: number; top: number; height: number; fans: number[]; fanRadius: number; depth: number; power?: boolean;
 }) {
   const bottom = top + height;
-  const middle = top + height / 2;
-  const shroud: Point[] = [
-    [front + 6, top], [662, top], [680, top + 14], [680, bottom - 14], [666, bottom],
-    [front + 6, bottom], [front, bottom - 6], [front, top + 6],
+  const outline: Point[] = [
+    [front + 4, top], [GPU_REAR, top], [GPU_REAR, bottom], [front + 12, bottom], [front, bottom - 12], [front, top + 4],
   ];
-  const finStart = fans[fans.length - 1] + fanRadius + 10;
-  const finCount = Math.floor((616 - finStart) / 4);
-  const portCount = Math.max(2, Math.floor((height - 8) / 12));
-  const portPitch = (height - 10) / portCount;
+  const pcbTop = top + 7;
+  const finTop = pcbTop + 4;
+  // The shroud band under the fins keeps a share of the card's thickness, above the fan frames.
+  const bandBottom = bottom - 8;
+  const bandTop = bandBottom - Math.round(height * 0.22);
+  const finBottom = bandTop - 3;
+  const finStart = front + 8;
+  const finEnd = GPU_REAR - 34;
+  const bandMiddle = (bandTop + bandBottom) / 2;
   return <>
-    <Solid points={shroud} depth={depth} />
-    <path className="machine-component-fill" d={pathFrom(shroud)} />
-    <path className="machine-shroud-trim" d={`M${front + 12} ${top + 7}H656L671 ${top + 19}V${bottom - 18}L659 ${bottom - 7}H${front + 12}Z`} />
-    <rect className="machine-heatsink" x={finStart - 4} y={top + 10} width={616 - finStart + 4} height={height - 20} rx="2" />
-    <path className="machine-fin" d={lines(finCount, (index) => `M${finStart + index * 4} ${top + 13}V${bottom - 13}`)} />
-    {fans.map((x, index) => (
-      <FanGraphic key={x} x={x} y={middle} r={fanRadius} blades={9} reverse={index % 2 === 1} className="machine-gpu-fan" />
+    <Solid points={outline} depth={depth} />
+    <path className="machine-component-fill" d={pathFrom(outline)} />
+    <rect className="machine-shroud" x={front + 4} y={top + 2} width={GPU_REAR - front - 6} height={5} rx="1" />
+    <path className="machine-detail" d={lines(Math.floor((GPU_REAR - front - 40) / 18), (index) => `M${front + 20 + index * 18} ${top + 4.5}H${front + 30 + index * 18}`)} />
+    <rect className="machine-pcb-tail" x={front + 6} y={pcbTop} width={GPU_REAR - front - 10} height={3} rx=".8" />
+    <rect className="machine-heatsink" x={finStart} y={finTop} width={finEnd - finStart} height={finBottom - finTop} rx="1.5" />
+    <path className="machine-fin" d={lines(Math.floor((finEnd - finStart - 4) / 3), (index) => `M${finStart + 3 + index * 3} ${finTop + 2}V${finBottom - 2}`)} />
+    <path className="machine-shroud-trim" d={`M${front + 8} ${bandTop}H${GPU_REAR - 6}M${front + 4} ${bandBottom}H${GPU_REAR - 6}M${front + 26} ${bandTop}L${front + 38} ${bandBottom}M${GPU_REAR - 46} ${bandTop}L${GPU_REAR - 58} ${bandBottom}`} />
+    <rect className="machine-lightbar" x={front + 48} y={bandMiddle - 1.5} width={Math.min(120, GPU_REAR - front - 120)} height={3} rx="1.5" />
+    {fans.map((x) => (
+      <g key={x}>
+        <rect className="machine-chip" x={x - fanRadius} y={bottom - 6} width={fanRadius * 2} height={4} rx="1.5" />
+        <path className="machine-detail" d={`M${x - 4} ${bottom - 6}V${bottom - 2}M${x + 4} ${bottom - 6}V${bottom - 2}`} />
+      </g>
     ))}
-    <path className="machine-shroud-trim" d={`M627 ${top + 7}L641 ${top + 19}V${bottom - 18}L627 ${bottom - 7}M652 ${top + 10}L667 ${top + 21}V${bottom - 20}L655 ${bottom - 10}`} />
-    <rect className="machine-lightbar" x="643" y={middle - 6} width="10" height="12" rx="2" />
+    <rect className="machine-heatsink" x={finEnd + 4} y={finTop} width={GPU_REAR - finEnd - 8} height={bottom - finTop - 10} rx="1.5" />
+    <path className="machine-detail" d={lines(Math.floor((bottom - finTop - 16) / 5), (index) => `M${finEnd + 9} ${finTop + 5 + index * 5}H${GPU_REAR - 9}`)} />
     {power ? <>
-      <rect className="machine-chip" x="600" y={top - 8} width="30" height="9" rx="1.5" />
-      <path className="machine-detail" d={lines(6, (index) => `M${604 + index * 4.4} ${top - 5.5}V${top - 1.5}`)} />
+      <rect className="machine-chip" x={GPU_REAR - 104} y={top + 1} width={28} height={13} rx="1.5" />
+      <path className="machine-detail" d={lines(6, (index) => `M${GPU_REAR - 100 + index * 4} ${top + 4}V${top + 11}`)} />
     </> : null}
-    <Box x={682} y={top + 4} width={16} height={height - 8} radius={1.5} depth={3} className="machine-bracket" />
-    {Array.from({ length: portCount }, (_, index) => (
-      <rect key={index} className="machine-port" x="686" y={top + 8 + index * portPitch} width="8" height={portPitch - 4} rx="1" />
-    ))}
+    <Box x={GPU_REAR} y={top - 4} width={8} height={height + 6} radius={1} depth={3} className="machine-bracket" />
+    <circle className="machine-screw" cx={GPU_REAR + 4} cy={top} r="2.2" />
   </>;
 }
 
 export function GraphicsArt() {
   return <>
     {/* The secondary card sits in the lower x16 slot, so it is drawn first and the primary's depth overlaps it. */}
-    <GraphicsCard front={452} top={424} height={46} fans={[492, 536]} fanRadius={15} depth={7} />
-    <GraphicsCard front={398} top={362} height={54} fans={[442, 488, 534]} fanRadius={17} depth={8} power />
+    <GraphicsCard front={452} top={428} height={40} fans={[502, 566]} fanRadius={26} depth={7} />
+    <GraphicsCard front={398} top={362} height={56} fans={[452, 530, 608]} fanRadius={30} depth={8} power />
     <text x="534" y="482" textAnchor="middle">{server.primaryGpu.name} + {server.secondaryGpu.name} / LOCAL AI</text>
   </>;
 }
