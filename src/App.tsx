@@ -1194,7 +1194,10 @@ const homeEntryVerticalLines = Array.from({ length: 49 }, (_, index) => index);
 const homeEntryHorizontalLines = Array.from({ length: 28 }, (_, index) => index);
 let hasPlayedHomeEntryIntro = false;
 
-function HomeEntryIntro({ theme, onComplete }: { theme: ThemeMode; onComplete: () => void }) {
+// Cold-load intro on the home page. It continues the dark boot screen in index.html (same
+// wordmark and square) and draws the grid. Once the hero can be shown complete, a scan line runs
+// down the screen and wipes the dark layer and the wordmark away, revealing the page top down.
+function HomeEntryIntro({ onComplete }: { onComplete: () => void }) {
   const introRef = useRef<HTMLDivElement>(null);
   const hasCompletedRef = useRef(false);
   const finishIntro = useCallback(() => {
@@ -1205,13 +1208,30 @@ function HomeEntryIntro({ theme, onComplete }: { theme: ThemeMode; onComplete: (
   }, [onComplete]);
 
   useEffect(() => {
-    const fallback = window.setTimeout(finishIntro, 4000);
-    return () => window.clearTimeout(fallback);
+    let revealed = false;
+    const reveal = () => {
+      if (revealed || hasCompletedRef.current) return;
+      revealed = true;
+      introRef.current?.classList.add("is-revealing");
+    };
+    // Wait for the portrait and the web font, so the page never appears half-loaded and then pops,
+    // but give the grid at least 1.2 s and never hold the dark layer longer than 3.5 s.
+    const portrait = document.querySelector<HTMLImageElement>(".hero-intro .hero-portrait-image");
+    const heroReady = Promise.all([
+      document.fonts?.ready ?? Promise.resolve(),
+      portrait ? portrait.decode().catch(() => undefined) : Promise.resolve(),
+    ]);
+    const minimum = new Promise((resolve) => window.setTimeout(resolve, 1200));
+    void Promise.all([heroReady, minimum]).then(reveal);
+    const cap = window.setTimeout(reveal, 3500);
+    const fallback = window.setTimeout(finishIntro, 5200);
+    return () => {
+      revealed = true;
+      window.clearTimeout(cap);
+      window.clearTimeout(fallback);
+    };
   }, [finishIntro]);
 
-  const destination = theme === "dark" ? "#141412" : "#fbfbf8";
-  const lineDestination = theme === "dark" ? "rgba(242, 241, 235, 0.051)" : "rgba(17, 17, 15, 0.036)";
-  const blueprintDestination = theme === "dark" ? "rgba(242, 241, 235, 0.24)" : "rgba(17, 17, 15, 0.24)";
   const lineStyle = (index: number, offset: number) => ({
     "--home-entry-line-index": index,
     "--home-entry-line-delay": `${360 + ((index * 7 + offset) % 13) * 18}ms`,
@@ -1222,11 +1242,6 @@ function HomeEntryIntro({ theme, onComplete }: { theme: ThemeMode; onComplete: (
       ref={introRef}
       className="home-entry-intro"
       aria-hidden="true"
-      style={{
-        "--home-entry-destination": destination,
-        "--home-entry-line-destination": lineDestination,
-        "--home-entry-blueprint-destination": blueprintDestination,
-      } as CSSProperties}
       onAnimationEnd={(event) => {
         if (event.target === event.currentTarget && event.animationName === "home-entry-surface") {
           finishIntro();
@@ -1253,25 +1268,7 @@ function HomeEntryIntro({ theme, onComplete }: { theme: ThemeMode; onComplete: (
           />
         ))}
       </div>
-      <div className={`home-entry-blueprint is-${theme}`}>
-        <div className="home-entry-blueprint-header">
-          <i className="home-entry-blueprint-brand-frame" />
-          <div className="home-entry-blueprint-nav">
-            <i /><i /><i /><i /><i />
-          </div>
-          <div className="home-entry-blueprint-tools"><i /><i /><i /></div>
-        </div>
-        <div className="home-entry-blueprint-hero">
-          <div className="home-entry-blueprint-portrait-frame" />
-          <div className="home-entry-blueprint-copy">
-            <i className="home-entry-blueprint-meta-frame" />
-            <div className="home-entry-blueprint-title-frames"><i /><i /></div>
-            <i className="home-entry-blueprint-summary-frame" />
-            <div className="home-entry-blueprint-actions"><i /><i /></div>
-          </div>
-          <div className="home-entry-blueprint-signal" />
-        </div>
-      </div>
+      <i className="home-entry-scan" />
     </div>,
     document.body,
   );
@@ -1350,7 +1347,7 @@ function HomePage({ theme }: { theme: ThemeMode }) {
 
   return (
     <>
-      {shouldPlayEntryIntro ? <HomeEntryIntro theme={theme} onComplete={completeEntryIntro} /> : null}
+      {shouldPlayEntryIntro ? <HomeEntryIntro onComplete={completeEntryIntro} /> : null}
       <div ref={storyRef} className="home-story" aria-busy={shouldPlayEntryIntro ? true : false}>
         <Hero theme={theme} onSelectScene={selectScene} />
         <AboutScene photosRequested={aboutPhotosRequested} stickersReady={aboutStickersReady} />

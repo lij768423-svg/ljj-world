@@ -8724,7 +8724,14 @@ body.home-intro-active {
   color: #f7f7f2;
   pointer-events: auto;
   contain: strict;
-  animation: home-entry-surface 3.55s linear both;
+}
+
+/* Added by HomeEntryIntro once the hero is ready (1.2 s at the earliest, 3.5 s at the latest).
+   From here the page is usable: the clipped dark layer would otherwise still swallow wheel scrolls,
+   because scroll hit-testing ignores clip-path. */
+.home-entry-intro.is-revealing {
+  pointer-events: none;
+  animation: home-entry-surface 0.95s cubic-bezier(0.55, 0, 0.3, 1) both;
 }
 
 .home-entry-intro.is-finished {
@@ -8739,8 +8746,6 @@ body.home-intro-active {
   inset: 0;
   background: #050505;
   pointer-events: none;
-  will-change: opacity;
-  animation: home-entry-black-out 3.55s cubic-bezier(0.65, 0, 0.35, 1) both;
 }
 
 .home-entry-mark {
@@ -8755,7 +8760,7 @@ body.home-intro-active {
   font-weight: 800;
   line-height: 1;
   will-change: opacity, transform;
-  animation: home-entry-mark 1.85s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: home-entry-mark 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .home-entry-mark i {
@@ -8772,7 +8777,6 @@ body.home-intro-active {
   inset: 68px 0 0;
   overflow: hidden;
   color: rgba(247, 247, 242, 0.2);
-  animation: home-entry-grid-tone 3.55s cubic-bezier(0.76, 0, 0.24, 1) both;
 }
 
 .home-entry-grid-line {
@@ -8810,159 +8814,51 @@ body.home-intro-active {
   transform-origin: right center;
 }
 
-.home-entry-blueprint {
+/* The scan line rides the lower edge of the wipe: page above, dark grid below. */
+.home-entry-scan {
   position: absolute;
-  z-index: 3;
-  inset: 0;
-  color: rgba(247, 247, 242, 0.68);
-  pointer-events: none;
-  animation: home-entry-blueprint-tone 3.55s cubic-bezier(0.76, 0, 0.24, 1) both;
-}
-
-.home-entry-blueprint-header {
-  width: min(100% - 72px, 1480px);
-  height: 68px;
-  margin-inline: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid currentColor;
-  clip-path: inset(0 100% 0 0);
-  animation: home-entry-blueprint-draw 0.78s cubic-bezier(0.16, 1, 0.3, 1) 1.42s both;
-}
-
-.home-entry-blueprint-brand-frame {
-  width: 92px;
-  height: 22px;
-  display: block;
-  border: 1px solid currentColor;
-}
-
-.home-entry-blueprint-nav {
-  position: absolute;
-  left: 50%;
-  display: flex;
-  gap: 36px;
-  transform: translateX(-50%);
-}
-
-.home-entry-blueprint-nav i {
-  width: 42px;
-  height: 20px;
-  display: block;
-  border: 1px solid currentColor;
-}
-
-.home-entry-blueprint-tools {
-  display: flex;
-  gap: 12px;
-}
-
-.home-entry-blueprint-tools i {
-  width: 40px;
-  height: 32px;
-  display: block;
-  border: 1px solid currentColor;
-}
-
-.home-entry-blueprint-hero {
-  position: absolute;
-  top: 68px;
-  bottom: 0;
-  left: 50%;
-  width: min(100% - 64px, 1480px);
-  overflow: hidden;
-  transform: translateX(-50%);
-}
-
-.home-entry-blueprint-portrait-frame {
-  position: absolute;
-  top: 44px;
+  z-index: 4;
+  top: 0;
+  left: 0;
   right: 0;
-  bottom: 0;
-  width: 50%;
-  border: 1px solid #f06449;
-  clip-path: inset(100% 0 0);
-  animation: home-entry-frame-draw 0.82s cubic-bezier(0.16, 1, 0.3, 1) 1.56s both;
-}
-
-.home-entry-blueprint-copy {
-  position: absolute;
-  z-index: 2;
-  top: 44px;
-  left: 0;
-  width: min(100%, 650px);
-}
-
-.home-entry-blueprint-meta-frame,
-.home-entry-blueprint-title-frames i,
-.home-entry-blueprint-summary-frame {
+  height: 2px;
   display: block;
-  border: 1px solid currentColor;
-  clip-path: inset(0 100% 0 0);
-  animation: home-entry-blueprint-draw 0.72s cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: #f06449;
+  box-shadow: 0 0 14px 1px rgba(240, 100, 73, 0.55);
+  opacity: 0;
+  pointer-events: none;
 }
 
-.home-entry-blueprint-meta-frame {
-  width: 184px;
-  height: 18px;
-  margin-bottom: 28px;
-  animation-delay: 1.5s;
+.home-entry-intro.is-revealing .home-entry-scan {
+  opacity: 1;
+  animation: home-entry-scan 0.95s cubic-bezier(0.55, 0, 0.3, 1) both;
 }
 
-.home-entry-blueprint-title-frames {
-  display: grid;
-  gap: 7px;
-}
-
-.home-entry-blueprint-title-frames i {
-  width: 310px;
-  height: 52px;
-  animation-delay: 1.58s;
-}
-
-.home-entry-blueprint-title-frames i:last-child {
-  width: 594px;
-  animation-delay: 1.64s;
-}
-
-.home-entry-blueprint-summary-frame {
-  width: 544px;
-  height: 56px;
-  margin: 26px 0 0;
-  animation-delay: 1.72s;
-}
-
-.home-entry-blueprint-actions {
-  height: 48px;
-  margin-top: 30px;
-  display: flex;
-  gap: 10px;
-}
-
-.home-entry-blueprint-actions i {
-  width: 125px;
-  height: 48px;
-  display: block;
-  border: 1px solid currentColor;
-  clip-path: inset(0 100% 0 0);
-  animation: home-entry-blueprint-draw 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.home-entry-blueprint-actions i:first-child { animation-delay: 1.76s; }
-.home-entry-blueprint-actions i:last-child { width: 104px; animation-delay: 1.84s; }
-
-.home-entry-blueprint-signal {
+.home-entry-scan::after {
+  content: "";
   position: absolute;
+  top: 2px;
   left: 0;
-  bottom: 34px;
-  width: min(31vw, 460px);
-  height: 176px;
-  border-top: 1px dashed #f06449;
-  border-bottom: 1px dashed #f06449;
-  opacity: 0.72;
-  clip-path: inset(0 100% 0 0);
-  animation: home-entry-blueprint-draw 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.7s both;
+  right: 0;
+  height: 96px;
+  background: linear-gradient(rgba(240, 100, 73, 0.16), transparent);
+}
+
+@keyframes home-entry-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(100vh); }
+}
+
+/* The home boot screen already showed the wordmark, so the intro keeps it instead of fading it in again. */
+html[data-boot-shown] .home-entry-mark {
+  animation-name: home-entry-mark-continued;
+}
+
+@keyframes home-entry-mark-continued {
+  from, to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes home-entry-line-draw {
@@ -8978,66 +8874,21 @@ body.home-intro-active {
   }
 }
 
+/* No fade-out: the wordmark stays until the scan line wipes it away with the dark layer. */
 @keyframes home-entry-mark {
   0% {
     opacity: 0;
     transform: scale(0.965);
   }
-  38%, 68% {
+  100% {
     opacity: 1;
     transform: scale(1);
   }
-  87%, 100% {
-    opacity: 0;
-    transform: scale(1.012);
-  }
-}
-
-@keyframes home-entry-grid-tone {
-  0%, 58% {
-    color: rgba(247, 247, 242, 0.2);
-    opacity: 1;
-  }
-  78% {
-    color: var(--home-entry-line-destination);
-    opacity: 1;
-  }
-  100% {
-    color: var(--home-entry-line-destination);
-    opacity: 0;
-  }
-}
-
-@keyframes home-entry-blueprint-tone {
-  0%, 58% {
-    color: rgba(247, 247, 242, 0.68);
-    opacity: 1;
-  }
-  68% {
-    color: var(--home-entry-blueprint-destination);
-    opacity: 0.28;
-  }
-  72%, 100% {
-    color: var(--home-entry-blueprint-destination);
-    opacity: 0;
-  }
-}
-
-@keyframes home-entry-blueprint-draw {
-  to { clip-path: inset(0); }
-}
-
-@keyframes home-entry-frame-draw {
-  to { clip-path: inset(0); }
 }
 
 @keyframes home-entry-surface {
-  from, to { opacity: 1; }
-}
-
-@keyframes home-entry-black-out {
-  0%, 58% { opacity: 1; }
-  100% { opacity: 0; }
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(100% 0 0 0); }
 }
 
 /* Home story: one continuous column. Scenes follow in document order. */

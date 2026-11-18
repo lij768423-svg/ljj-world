@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("portfolio-language", "zh"));
 });
 
-test("home entry draws the technical grid before revealing the first scene", async ({ page }, testInfo) => {
+test("home entry draws the grid, then a scan line wipes the page in", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "The home entry choreography is desktop-first.");
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -16,18 +16,20 @@ test("home entry draws the technical grid before revealing the first scene", asy
 
   const intro = page.locator(".home-entry-intro");
   await expect(intro).toHaveCount(1);
-  await expect(intro).toHaveCSS("animation-name", "home-entry-surface");
   await expect(intro.locator(".home-entry-mark span")).toHaveText("ljj.world");
   await expect(intro.locator(".home-entry-grid-line.is-vertical")).toHaveCount(49);
   await expect(intro.locator(".home-entry-grid-line.is-horizontal")).toHaveCount(28);
   await expect(intro.locator(".home-entry-grid-line").first()).toHaveCSS("animation-name", "home-entry-line-draw");
-  await expect(intro.locator(".home-entry-blueprint")).toHaveCount(1);
-  await expect(intro.locator(".home-entry-blueprint-portrait-frame")).toHaveCSS("animation-name", "home-entry-frame-draw");
-  await expect(intro.locator(".home-entry-blueprint-portrait, .home-entry-filter-defs")).toHaveCount(0);
-  expect(await intro.locator(".home-entry-blueprint-portrait-frame").evaluate((frame) => (
-    getComputedStyle(frame, "::before").content
-  ))).toBe("none");
+  await expect(intro.locator("[class*='home-entry-blueprint']")).toHaveCount(0);
   await expect(page.locator(".home-story")).toHaveAttribute("aria-busy", "true");
+
+  // The scan starts once the portrait and font are in (between 1.2 s and 3.5 s), and the dark
+  // layer leaves from the top down: partway through, the top is clipped away.
+  await expect(intro).toHaveClass(/is-revealing/, { timeout: 4000 });
+  await expect(intro).toHaveCSS("animation-name", "home-entry-surface");
+  await expect(intro.locator(".home-entry-scan")).toHaveCSS("animation-name", "home-entry-scan");
+  await expect.poll(() => intro.evaluate((node) => getComputedStyle(node).clipPath), { timeout: 2600 })
+    .toMatch(/^inset\((?!0px)/);
 
   await expect(intro).toHaveClass(/is-finished/, { timeout: 4500 });
   await expect(intro).toHaveCSS("visibility", "hidden");
@@ -39,6 +41,20 @@ test("home entry draws the technical grid before revealing the first scene", asy
   await primaryNav.getByRole("link", { name: "项目" }).click();
   await primaryNav.getByRole("link", { name: "首页" }).click();
   await expect(page.locator(".home-entry-intro:visible")).toHaveCount(0);
+});
+
+test("the portrait still stays until the blink loop fully covers it", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The blink loop only runs on wide screens.");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const still = page.locator(".hero-intro .hero-portrait-image");
+  await expect(still).toBeVisible();
+  // Hiding the still at once while the loop faded in left the portrait see-through for 350 ms.
+  const delay = await still.evaluate((node) => {
+    node.classList.add("is-loop-source");
+    return getComputedStyle(node).transitionDelay.split(",")[0].trim();
+  });
+  expect(delay).toBe("0.38s");
 });
 
 test("React Bits kinetic layers render and respond to pointer input", async ({ page }, testInfo) => {

@@ -106,6 +106,10 @@ function renderRoute(html, route) {
 
   const lang = route.language === "en" ? "en" : "zh-CN";
   let output = replaceOne(html, /<html lang="[^"]*">/, `<html lang="${lang}">`, "<html lang>");
+  if (route.path === "/" || route.path === "/en/") {
+    // The home boot screen doubles as the first frame of the home intro (see index.html).
+    output = replaceOne(output, /<div class="boot-loader"/, `<div class="boot-loader is-home"`, "boot screen");
+  }
   output = replaceOne(output, metaPattern("property", "og:locale"), `<meta property="og:locale" content="${route.language === "en" ? "en_US" : "zh_CN"}" />`, "og:locale meta");
   output = replaceOne(output, /<title>[^<]*<\/title>/, `<title>${title}</title>`, "<title>");
   output = replaceOne(output, metaPattern("name", "description"), `<meta name="description" content="${description}" />`, "description meta");

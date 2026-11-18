@@ -95,6 +95,15 @@ test.describe("SEO build output", () => {
     expect(meta(read("projects/index.html"), "property", "og:image:width")).toBeUndefined();
   });
 
+  test("only the home pages boot on the dark first frame of the home intro", () => {
+    expect(read("index.html")).toContain('<div class="boot-loader is-home"');
+    expect(read("en/index.html")).toContain('<div class="boot-loader is-home"');
+    for (const page of ["systems/index.html", "blog/index.html", "en/systems/index.html", "404.html", "en/404.html"]) {
+      expect(read(page)).toContain('<div class="boot-loader"');
+      expect(read(page)).not.toContain('<div class="boot-loader is-home"');
+    }
+  });
+
   test("404.html is noindex and keeps the app shell", () => {
     const notFound = read("404.html");
     expect(meta(notFound, "name", "robots")).toBe("noindex");

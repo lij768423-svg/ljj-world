@@ -49,6 +49,15 @@
       @keyframes boot-bar { from { transform: translateX(-100%); } to { transform: translateX(265%); } }
       @media (prefers-color-scheme: dark) { .boot-loader { background: #171815; color: #ecebe6; } .boot-loader-bar { background: rgba(236, 235, 230, 0.14); } }
       @media (prefers-reduced-motion: reduce) { .boot-loader { animation: none; opacity: 1; } .boot-loader i { animation: none; } }
+      /* Home (scripts/generate-seo.mjs adds .is-home to / and /en/): the boot screen is the first frame of
+         the home intro, so a cold load is dark from the first paint and the intro picks up the same wordmark.
+         Keep it in step with .home-entry-mark in src/styles.css. With reduced motion there is no intro. */
+      @media (prefers-reduced-motion: no-preference) {
+        .boot-loader.is-home { display: flex; align-items: center; justify-content: center; background: #050505; color: #f7f7f2; font: 800 clamp(2.35rem, 3.3vw, 3.35rem)/1 "Manrope Variable", "Manrope", system-ui, sans-serif; letter-spacing: normal; opacity: 1; animation: none; }
+        .boot-loader.is-home .boot-loader-mark { display: flex; align-items: center; opacity: 0; animation: boot-in 0.5s 0.25s ease forwards; }
+        .boot-loader.is-home .boot-loader-mark i { display: block; width: 0.18em; height: 0.18em; margin: 0 0 0.08em 0.2em; background: #f06449; }
+        .boot-loader.is-home .boot-loader-bar { display: none; }
+      }
     </style>
   </head>
   <body>

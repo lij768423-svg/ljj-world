@@ -18,6 +18,10 @@ if (savedLanguage === "en" && (!languageFromPath(pathname) || pathname === ENGLI
   window.history.replaceState(window.history.state, "", `${withLanguagePrefix(pathname, "en")}${search}${hash}`);
 }
 document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+// The home boot screen is the intro's first frame. If its wordmark is already showing, the intro
+// keeps it on screen instead of fading it in a second time.
+const bootMark = document.querySelector<HTMLElement>(".boot-loader.is-home .boot-loader-mark");
+if (bootMark && Number.parseFloat(getComputedStyle(bootMark).opacity) > 0.05) document.documentElement.dataset.bootShown = "true";
 document.documentElement.dataset.language = savedLanguage;
 document.documentElement.lang = savedLanguage === "en" ? "en" : "zh-CN";
 window.localStorage.removeItem("portfolio-theme");

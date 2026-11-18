@@ -1,5 +1,11 @@
 .hero-intro .hero-portrait-image { transition: opacity 350ms ease; }
-.hero-intro .hero-portrait-image.is-loop-source { opacity: 0; }
+/* The loop fades in on top of the still; the still only goes once the loop fully covers it. Hiding it
+   at once (styles.css gives this image no opacity transition) left the portrait nearly transparent for
+   350 ms, which showed as a flicker whenever the loop arrived after the page was on screen. */
+.hero-intro .hero-portrait-image.is-loop-source {
+  opacity: 0;
+  transition: opacity 0s linear 380ms, transform 180ms cubic-bezier(0.16, 1, 0.3, 1), filter 240ms ease;
+}
 .hero-intro .hero-portrait-loop {
   position: absolute;
   inset: 0;
