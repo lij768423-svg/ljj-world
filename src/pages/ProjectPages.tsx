@@ -4,8 +4,8 @@ import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
 import { GithubLogo } from "@phosphor-icons/react/GithubLogo";
 import { GlobeHemisphereWest } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { LockKey } from "@phosphor-icons/react/LockKey";
-import { animate, AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { animate, AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useParams } from "wouter";
 import { ProjectHelix, type ProjectPreview, type Project, projects, ExternalLink, usePhoneLayout, NotFoundPage } from "../App";
 
@@ -451,6 +451,76 @@ const projectDossierTabs: Array<{ id: ProjectDossierTab; label: string }> = [
   { id: "result", label: "成果" },
   { id: "live", label: "在线体验" },
 ];
+
+// The underline's two ends ride separate springs: the end facing the move is
+// stiff and the trailing end is soft, so the line stretches toward the new tab
+// and then pulls its tail in.
+const tabEdgeLead = { type: "spring", stiffness: 620, damping: 40 } as const;
+const tabEdgeTrail = { type: "spring", stiffness: 170, damping: 19 } as const;
+const tabIndicatorInset = 8;
+
+function tabEdges(tab: HTMLElement) {
+  return [tab.offsetLeft + tabIndicatorInset, tab.offsetLeft + tab.offsetWidth - tabIndicatorInset] as const;
+}
+
+function DossierTabIndicator({ activeTab }: { activeTab: ProjectDossierTab }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const reduceMotion = useReducedMotion();
+  const left = useMotionValue(0);
+  const right = useMotionValue(0);
+  const width = useMotionValue(0);
+  const placed = useRef(false);
+
+  // Subscribe before the first placement below runs, so the width follows the
+  // very first jump too (useTransform subscribes too late for that).
+  useLayoutEffect(() => {
+    const sync = () => width.set(Math.max(0, right.get() - left.get()));
+    const stopLeft = left.on("change", sync);
+    const stopRight = right.on("change", sync);
+    sync();
+    return () => {
+      stopLeft();
+      stopRight();
+    };
+  }, [left, right, width]);
+
+  useLayoutEffect(() => {
+    const tab = ref.current?.parentElement?.querySelector<HTMLElement>(`#project-tab-${activeTab}`);
+    if (!tab) return;
+    const [start, end] = tabEdges(tab);
+    if (!placed.current || reduceMotion) {
+      left.jump(start);
+      right.jump(end);
+      placed.current = true;
+      return;
+    }
+    const forward = start >= left.get();
+    const leftAnimation = animate(left, start, forward ? tabEdgeTrail : tabEdgeLead);
+    const rightAnimation = animate(right, end, forward ? tabEdgeLead : tabEdgeTrail);
+    return () => {
+      leftAnimation.stop();
+      rightAnimation.stop();
+    };
+  }, [activeTab, reduceMotion, left, right]);
+
+  // Font loading and resizing move the tabs; snap the line back under the active one.
+  useEffect(() => {
+    const list = ref.current?.parentElement;
+    if (!list || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const tab = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+      if (!tab) return;
+      const [start, end] = tabEdges(tab);
+      if (Math.abs(left.get() - start) < 0.5 && Math.abs(right.get() - end) < 0.5) return;
+      left.jump(start);
+      right.jump(end);
+    });
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [left, right]);
+
+  return <motion.span ref={ref} className="project-dossier-tab-indicator" aria-hidden="true" style={{ x: left, width }} />;
+}
 
 function projectHref(project: Project) {
   return project.detail ?? `/projects/${project.id}`;
@@ -992,6 +1062,7 @@ export function ProjectDossierPage({ projectId: fixedProjectId }: { projectId?: 
                 {tab.label}
               </button>
             ))}
+            <DossierTabIndicator activeTab={activeTab} />
           </div>
 
           <div className="project-dossier-panel-frame">

@@ -25,8 +25,15 @@ function shortDate(date: string) {
   return parts.length >= 3 ? `${parts[1]}.${parts[2]}` : date;
 }
 
+// The copy icon shrinks and turns away while the check pops in on a bouncy spring.
+const copyIconSpring = { type: "spring", stiffness: 420, damping: 18 } as const;
+
 function CodeBlock({ block }: { block: Extract<BlogBlock, { type: "code" }> }) {
   const [copied, setCopied] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const iconTransition = (opacityDelay: number) => (
+    reduceMotion ? { duration: 0 } : { ...copyIconSpring, opacity: { duration: 0.12, delay: opacityDelay } }
+  );
   useEffect(() => {
     if (!copied) return;
     const reset = window.setTimeout(() => setCopied(false), 1600);
@@ -47,7 +54,24 @@ function CodeBlock({ block }: { block: Extract<BlogBlock, { type: "code" }> }) {
           aria-label={copied ? "已复制" : "复制代码"}
           title={copied ? "已复制" : "复制代码"}
         >
-          {copied ? <Check size={15} weight="bold" aria-hidden="true" /> : <Copy size={15} weight="bold" aria-hidden="true" />}
+          <motion.span
+            className="blog-code-copy-icon"
+            aria-hidden="true"
+            initial={false}
+            animate={copied ? { opacity: 0, scale: 0.5, rotate: -40 } : { opacity: 1, scale: 1, rotate: 0 }}
+            transition={iconTransition(0)}
+          >
+            <Copy size={15} weight="bold" />
+          </motion.span>
+          <motion.span
+            className="blog-code-copy-icon"
+            aria-hidden="true"
+            initial={false}
+            animate={copied ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.4 }}
+            transition={iconTransition(copied ? 0.04 : 0)}
+          >
+            <Check size={15} weight="bold" />
+          </motion.span>
         </button>
       </figcaption>
       <pre tabIndex={0} data-no-translate><code>{block.code}</code></pre>
