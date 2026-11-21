@@ -54,13 +54,14 @@ async function imageToWebp(source, quality = 0.86, targetWidth, mimeType = "imag
   return Buffer.from(webp, "base64");
 }
 
-async function newContext() {
+async function newContext(overrides = {}) {
   return browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: 2,
     colorScheme: "light",
     reducedMotion: "reduce",
     ignoreHTTPSErrors: true,
+    ...overrides,
   });
 }
 
@@ -710,16 +711,36 @@ async function captureHardware() {
 
 async function captureTravelAgent() {
   const origin = requiredEnv("TRAVEL_AGENT_CAPTURE_ORIGIN");
-  await capture({
-    name: "travel-agent",
-    url: `${origin}/`,
-    waitFor: "main",
-    prepare: async (page) => {
-      await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0));
-    },
-    settle: 1500,
-    widthVariants: [800, 1600],
-  });
+  // Xingji's reduced-motion stylesheet sets `transform: none !important` on everything
+  // in the page, which also strips the transform that places each city card on the
+  // helix, so every card piles up in the top-left corner. Capture with motion on.
+  const context = await newContext({ reducedMotion: "no-preference" });
+  try {
+    await capture({
+      name: "travel-agent",
+      url: `${origin}/`,
+      context,
+      waitFor: "main",
+      prepare: async (page) => {
+        await page.waitForFunction(() => Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0));
+        // Only shoot once the helix has fully opened and every city card sits on its own spot.
+        await page.waitForFunction(() => {
+          const stage = document.querySelector(".project-helix");
+          const cards = Array.from(document.querySelectorAll(".project-helix .helix-node"));
+          if (stage?.getAttribute("data-helix-expanded") !== "true" || cards.length === 0) return false;
+          const spots = new Set(cards.map((card) => {
+            const box = card.getBoundingClientRect();
+            return `${Math.round(box.left)},${Math.round(box.top)}`;
+          }));
+          return spots.size === cards.length && cards.every((card) => Number(getComputedStyle(card).opacity) > 0.99);
+        }, null, { timeout: 15_000 });
+      },
+      settle: 1500,
+      widthVariants: [800, 1600],
+    });
+  } finally {
+    await context.close();
+  }
 }
 
 async function captureTailscaleLatency() {
