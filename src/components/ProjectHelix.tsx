@@ -214,13 +214,6 @@ function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection;
             </div>
           </div>
         </motion.div>
-        <motion.div
-          className="project-paper-fold-lines"
-          aria-hidden="true"
-          initial={reduceMotion ? false : { opacity: 0.7 }}
-          animate={{ opacity: 0 }}
-          transition={{ duration: reduceMotion ? 0 : 0.42, delay: reduceMotion ? 0 : 0.56 }}
-        />
       </motion.article>
     </motion.div>,
     document.body,

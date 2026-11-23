@@ -852,8 +852,7 @@ body.project-transition-active {
   transform: translateY(1px);
 }
 
-.project-paper-layout,
-.project-paper-fold-lines {
+.project-paper-layout {
   position: absolute;
   inset: 0;
 }
@@ -988,31 +987,6 @@ body.project-transition-active {
 .project-paper-links a:hover svg:last-child,
 .project-paper-links a:focus-visible svg:last-child {
   transform: translate(2px, -2px);
-}
-
-.project-paper-fold-lines {
-  z-index: 3;
-  pointer-events: none;
-  border-inline: calc(33.333% - 1px) solid transparent;
-}
-
-.project-paper-fold-lines::before,
-.project-paper-fold-lines::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--line-strong);
-  box-shadow: 0 0 24px var(--shadow-strong);
-}
-
-.project-paper-fold-lines::before {
-  left: 33.333%;
-}
-
-.project-paper-fold-lines::after {
-  right: 33.333%;
 }
 
 @keyframes screenshot-scan {
