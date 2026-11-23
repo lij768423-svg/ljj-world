@@ -82,8 +82,12 @@ test("home story has three usable scenes with separated artwork", async ({ page 
     images.every((image) => !image.getAttribute("src"))
   ))).toBe(true);
   await expect(page.locator("[data-featured-project]")).toHaveCount(2);
-  await expect(page.locator('[data-featured-project="grok-register-panel"] a')).toHaveAttribute("href", "https://github.com/lij768423-svg/grok-register-panel");
-  await expect(page.locator('[data-featured-project="law-site"] a')).toHaveAttribute("href", "https://lawweb.hermesjj.com/");
+  const featured = await page.locator("[data-featured-project]").evaluateAll((cards) => cards.map((card) => ({
+    id: card.getAttribute("data-featured-project"),
+    links: [...card.querySelectorAll("a")].map((link) => link.getAttribute("href")),
+  })));
+  expect(new Set(featured.map(({ id }) => id)).size).toBe(2);
+  for (const { links } of featured) expect(links).toEqual([expect.stringMatching(/^https:\/\//)]);
   await expect(page.locator(".favorite-follow")).toHaveCount(0);
 
   const stackedEntry = await page.locator(".home-story").evaluate((story) => {
@@ -151,9 +155,8 @@ test("home story has three usable scenes with separated artwork", async ({ page 
   const favoriteLinks = page.locator(".favorite-project-link");
   await expect(favoriteLinks).toHaveCount(2);
   for (const link of await favoriteLinks.all()) await expect(link).toBeVisible();
-  await expect(favoriteLinks.nth(0)).toHaveAttribute("href", "https://github.com/lij768423-svg/grok-register-panel");
-  await expect(favoriteLinks.nth(1)).toHaveAttribute("href", "https://lawweb.hermesjj.com/");
   for (const link of await favoriteLinks.all()) {
+    await expect(link).toHaveAttribute("href", /^https:\/\//);
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", "noreferrer");
   }
@@ -166,6 +169,33 @@ test("home story has three usable scenes with separated artwork", async ({ page 
   }));
   expect(favoriteCovers).toHaveLength(2);
   expect(favoriteCovers.every(({ path, loaded }) => path.startsWith("/assets/project-covers/") && loaded)).toBe(true);
+});
+
+test("featured projects swap one slot at a time and hold while hovered", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The featured rotation is checked on the desktop layout.");
+  test.setTimeout(45_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".home-entry-intro")).toHaveClass(/is-finished/, { timeout: 6_000 });
+  await page.locator("#featured-projects").evaluate((element) => element.scrollIntoView());
+  const ids = () => page.locator("[data-featured-project]").evaluateAll((cards) => cards.map((card) => card.getAttribute("data-featured-project")));
+
+  const first = await ids();
+  await expect.poll(ids, { timeout: 8_000 }).not.toEqual(first);
+  const second = await ids();
+  expect(second[1]).toBe(first[1]);
+  expect(second[0]).not.toBe(second[1]);
+  // The outgoing project fades under the incoming one, then leaves the DOM.
+  await expect(page.locator(".favorite-project-link")).toHaveCount(2, { timeout: 2_000 });
+
+  await page.locator(".favorite-project").first().hover();
+  await page.waitForTimeout(7_000);
+  expect(await ids()).toEqual(second);
+  await page.mouse.move(4, 4);
+  await expect.poll(ids, { timeout: 8_000 }).not.toEqual(second);
+  const third = await ids();
+  expect(third[0]).toBe(second[0]);
 });
 
 test("home story keeps small wheel gestures continuous in both directions", async ({ page }, testInfo) => {

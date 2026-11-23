@@ -17,7 +17,7 @@ import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { Sun } from "@phosphor-icons/react/Sun";
 import { Translate } from "@phosphor-icons/react/Translate";
 import { X } from "@phosphor-icons/react/X";
-import { animate, AnimatePresence, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { animate, AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation } from "wouter";
@@ -1092,13 +1092,66 @@ function AboutScene({
   );
 }
 
+// The two featured slots show projects in a fresh random order on every visit and swap one slot
+// at a time, so each card stays up for two swaps. Swaps pause while the section is off screen,
+// while a pointer or keyboard focus is on a card, and while the tab is hidden.
+const featuredSwapMs = 6000;
+const featuredCardSizes = "(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 50vw, 60vw";
+
+type FeaturedRotation = { slots: [number, number]; next: number; turn: number };
+
+function shuffledProjects() {
+  const order = [...projects];
+  for (let index = order.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(Math.random() * (index + 1));
+    [order[index], order[swap]] = [order[swap], order[index]];
+  }
+  return order;
+}
+
+// Pure, so StrictMode's double-invoked state updaters cannot skip a project.
+function advanceFeatured({ slots, next, turn }: FeaturedRotation, count: number): FeaturedRotation {
+  const slot = turn % 2;
+  let incoming = next % count;
+  for (let tries = 0; tries < count && slots.includes(incoming); tries += 1) incoming = (incoming + 1) % count;
+  const updated: [number, number] = slot === 0 ? [incoming, slots[1]] : [slots[0], incoming];
+  return { slots: updated, next: (incoming + 1) % count, turn: turn + 1 };
+}
+
+function preloadCardImage(project: Project) {
+  const image = new Image();
+  image.decoding = "async";
+  image.sizes = featuredCardSizes;
+  if (project.cardPreview.srcSet) image.srcset = project.cardPreview.srcSet;
+  image.src = project.cardPreview.image;
+}
+
 function FavoriteProjectsScene() {
   const isPhone = usePhoneLayout();
-  const favoriteIds = ["grok-register-panel", "law-site"] as const;
-  const favorites = favoriteIds
-    .map((id) => projects.find((project) => project.id === id))
-    .filter((project): project is Project => Boolean(project));
   const reduceMotion = useReducedMotion();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const gridInView = useInView(gridRef, { amount: 0.4 });
+  const [order] = useState(shuffledProjects);
+  const [rotation, setRotation] = useState<FeaturedRotation>({ slots: [0, 1], next: 2, turn: 0 });
+  const [pointerHeld, setPointerHeld] = useState(false);
+  const [focusHeld, setFocusHeld] = useState(false);
+  const canRotate = !reduceMotion && order.length > 2;
+  const rotating = canRotate && gridInView && !pointerHeld && !focusHeld;
+
+  useEffect(() => {
+    if (!rotating) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setRotation((current) => advanceFeatured(current, order.length));
+    }, featuredSwapMs);
+    return () => window.clearInterval(timer);
+  }, [order.length, rotating]);
+
+  // Fetch the next cover ahead of its swap, so the wipe never uncovers an empty frame.
+  useEffect(() => {
+    if (!canRotate) return;
+    const upcoming = advanceFeatured(rotation, order.length);
+    preloadCardImage(order[upcoming.slots[rotation.turn % 2]]);
+  }, [canRotate, order, rotation]);
 
   return (
     <section
@@ -1128,43 +1181,67 @@ function FavoriteProjectsScene() {
           <Link to="/projects">查看全部 <ArrowRight size={17} weight="bold" /></Link>
         </motion.div>
 
-        <div className="favorite-projects-grid">
-          {favorites.map((project, index) => (
-            <motion.article
-              key={project.id}
-              className={`favorite-project favorite-project-${project.id}`}
-              data-featured-project={project.id}
-              initial={reduceMotion ? false : { opacity: 0, y: 42, rotate: index === 0 ? -1.6 : 1.6 }}
-              whileInView={{ opacity: 1, y: 0, rotate: 0 }}
-              viewport={{ once: true, amount: 0.28 }}
-              transition={{ duration: 0.72, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <ExternalLink
-                className="favorite-project-link"
-                href={project.repo ?? project.site ?? "https://github.com/lij768423-svg"}
+        <div
+          ref={gridRef}
+          className="favorite-projects-grid"
+          onPointerEnter={(event) => {
+            if (event.pointerType === "mouse") setPointerHeld(true);
+          }}
+          onPointerLeave={() => setPointerHeld(false)}
+          onFocus={() => setFocusHeld(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusHeld(false);
+          }}
+        >
+          {rotation.slots.map((projectIndex, slot) => {
+            const project = order[projectIndex];
+            return (
+              <motion.article
+                key={slot}
+                className="favorite-project"
+                data-featured-project={project.id}
+                initial={reduceMotion ? false : { opacity: 0, y: 42, rotate: slot === 0 ? -1.6 : 1.6 }}
+                whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+                viewport={{ once: true, amount: 0.28 }}
+                transition={{ duration: 0.72, delay: slot * 0.1, ease: [0.16, 1, 0.3, 1] }}
               >
-                <div className="favorite-project-media">
-                  <img
-                    className={project.cardPreview.fit === "contain" ? "is-contain" : ""}
-                    src={project.cardPreview.image}
-                    srcSet={project.cardPreview.srcSet}
-                    sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 50vw, 60vw"
-                    alt={project.cardPreview.alt}
-                    width={project.cardPreview.width}
-                    height={project.cardPreview.height}
-                    loading={isPhone ? "eager" : "lazy"}
-                    decoding="async"
-                    style={{ objectPosition: project.cardPreview.position }}
-                  />
-                </div>
-                <div className="favorite-project-copy">
-                  <span>{project.kind}</span>
-                  <h3>{project.title}</h3>
-                  <p>{project.description}</p>
-                </div>
-              </ExternalLink>
-            </motion.article>
-          ))}
+                {/* The incoming project wipes down over the outgoing one, like the home intro's scan. */}
+                <AnimatePresence initial={false}>
+                  <motion.a
+                    key={project.id}
+                    className="favorite-project-link"
+                    href={project.repo ?? project.site ?? "https://github.com/lij768423-svg"}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ zIndex: rotation.turn + 1 }}
+                    initial={{ clipPath: "inset(0% 0% 100% 0%)" }}
+                    animate={{ clipPath: "inset(0% 0% 0% 0%)", transition: { duration: 0.78, ease: [0.65, 0, 0.35, 1] } }}
+                    exit={{ opacity: 0, transition: { duration: 0.3, delay: 0.5 } }}
+                  >
+                    <div className="favorite-project-media">
+                      <img
+                        className={project.cardPreview.fit === "contain" ? "is-contain" : ""}
+                        src={project.cardPreview.image}
+                        srcSet={project.cardPreview.srcSet}
+                        sizes={featuredCardSizes}
+                        alt={project.cardPreview.alt}
+                        width={project.cardPreview.width}
+                        height={project.cardPreview.height}
+                        loading={isPhone ? "eager" : "lazy"}
+                        decoding="async"
+                        style={{ objectPosition: project.cardPreview.position }}
+                      />
+                    </div>
+                    <div className="favorite-project-copy">
+                      <span>{project.kind}</span>
+                      <h3>{project.title}</h3>
+                      <p>{project.description}</p>
+                    </div>
+                  </motion.a>
+                </AnimatePresence>
+              </motion.article>
+            );
+          })}
         </div>
       </div>
     </section>
