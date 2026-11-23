@@ -9305,6 +9305,9 @@ html[data-language-transitioning="true"] .about-sticker-breather {
   position: relative;
   min-width: 0;
   min-height: 0;
+  /* One cell: during a swap the incoming project sits on top of the outgoing one. */
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--line-strong);
   background: var(--surface-raised);
@@ -9321,10 +9324,12 @@ html[data-language-transitioning="true"] .about-sticker-breather {
 
 .favorite-project-link {
   position: relative;
+  grid-area: 1 / 1;
   width: 100%;
   height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--surface-raised);
 }
 
 .favorite-project-media {
