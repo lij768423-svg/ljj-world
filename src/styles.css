@@ -3509,6 +3509,43 @@ html[data-theme="dark"] .machine-real-image {
   width: 100%;
 }
 
+/* WeightWave (src/components/effects/WeightWave.tsx): per-letter variable weight around a moving focus. */
+.weight-wave {
+  position: relative;
+  margin: 0;
+  color: var(--text);
+  font-family: "Geist Variable", system-ui, sans-serif;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.weight-wave-line {
+  display: inline-block;
+  /* A taller hover strip than the letters themselves, without moving the layout. */
+  margin-block: -0.35em;
+  padding-block: 0.35em;
+  /* Containers such as the /systems overview copy let clicks through; the line still needs hover. Clicks bubble on as before. */
+  pointer-events: auto;
+}
+
+.weight-wave-letter {
+  display: inline-block;
+  font-weight: 300;
+  opacity: 0.42;
+  white-space: pre;
+}
+
+.weight-wave.is-static .weight-wave-letter {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.server-story-overview-wave {
+  margin-bottom: 12px;
+  font-size: clamp(1.35rem, 1.95vw, 2.15rem);
+}
+
 .server-story-overview-heading h2,
 .server-story-focus-heading h2 {
   margin: 0;

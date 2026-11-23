@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { BlurText } from "./effects/BlurText";
 import { SceneLineOrnaments } from "./effects/SceneLineOrnaments";
+import { WeightWave } from "./effects/WeightWave";
 import { ServerServiceArt } from "./ServerServiceArt";
 import { serverPartImages } from "../assets/serverParts";
 import { BoardArt, ChassisArt, FanTrayArt, GraphicsArt, MachineBackdrop, MachineDefinitions, MemoryArt, NetworkArt, ProcessorArt, StorageArt } from "./ServerMachineParts";
@@ -592,6 +593,7 @@ export function ServerExplodedStory({ categories, facts, capturedAt, visualOnly 
                   : { duration: returningToOverview ? 0.42 : 0.58, delay: returningToOverview ? 0.12 : 0.22, ease: [0.16, 1, 0.3, 1] }}
               >
                 <div className="server-story-overview-heading">
+                  <WeightWave className="server-story-overview-wave" text="home-serve" />
                   <h2>{returningToOverview ? "我的服务器" : <BlurText text="我的服务器" delay={0.18} />}</h2>
                   <p>自己组装、自己维护，也真正承载项目与生活的 Linux 主机。</p>
                 </div>
