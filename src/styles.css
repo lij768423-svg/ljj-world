@@ -8973,6 +8973,9 @@ html[data-boot-shown] .home-entry-mark {
   .favorite-project-media {
     aspect-ratio: 16 / 10;
     max-height: min(42vh, 390px);
+    /* Fill the row when the other card's media sets a taller one; an item with an aspect ratio
+       would otherwise sit at the top and leave a blank band above the copy. */
+    align-self: stretch;
   }
 }
 
