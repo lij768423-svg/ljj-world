@@ -17819,6 +17819,9 @@ body:has(.blog-index) {
 }
 
 .blog-console-visual {
+  /* Above the list column, so a sheet pulled or thrown past the cover passes over it, not under its text. */
+  position: relative;
+  z-index: 2;
   height: 100%;
   padding: 72px clamp(18px, 2vw, 32px) 16px;
   display: grid;
@@ -17829,6 +17832,7 @@ body:has(.blog-index) {
   border-right: 1px solid var(--line);
 }
 
+/* No frame: the paper pile lies straight on the page grid, and sheets can be pulled or thrown past its box. */
 .blog-console-portrait {
   position: relative;
   width: 100%;
@@ -17836,44 +17840,101 @@ body:has(.blog-index) {
   min-height: 0;
   min-width: 0;
   justify-self: stretch;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: var(--surface-deep);
+  overflow: visible;
 }
 
-.blog-console-portrait::before,
-.blog-console-portrait::after {
-  content: "";
+/* The cover is the top sheet of a small paper pile lying in the frame (BlogCoverStack.tsx fans it, pulls sheets out of
+   it and lets the top one be thrown). Every sheet shares one box, inset so the pile's edges and the caption bar both
+   have room, and turns around its bottom edge like a hand of cards. */
+.blog-console-portrait figure,
+.blog-cover-sheet {
   position: absolute;
-  z-index: 2;
-  pointer-events: none;
-  background: var(--accent);
-}
-
-.blog-console-portrait::before {
-  top: 0;
-  left: -22%;
-  width: 22%;
-  height: 2px;
-}
-
-.blog-console-portrait::after {
-  top: -18%;
-  right: 0;
-  width: 2px;
-  height: 18%;
-}
-
-.blog-console-portrait figure {
-  position: absolute;
-  inset: 0;
+  inset: 5% 7% calc(30px + 6%) 4%;
   margin: 0;
   pointer-events: none;
+  transform-origin: 50% 100%;
+  /* Each sheet on its own layer: moving one shouldn't repaint its shadow and photo every frame. */
+  will-change: transform;
 }
 
-.blog-console-portrait figure.is-active {
-  z-index: 1;
+/* Holds the whole pile; it shrinks while fanned (FAN_SHRINK in BlogCoverStack.tsx). Isolated so the sheets'
+   z-indexes stay inside it, under the skeleton and the caption. */
+.blog-cover-pile {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  transform-origin: 50% 58%;
 }
+
+.blog-cover-paper {
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: var(--cover-paper, var(--surface-raised));
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--text) 6%, transparent),
+    0 16px 28px -18px color-mix(in srgb, #000 60%, transparent);
+}
+
+.blog-cover-paper {
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The top sheet opens its article on a tap (and is thrown when dragged), through its paper, which moves with the drag.
+   The sheets fanned out beside it are picked through the sheet's own box, which stays put while the paper slides out
+   on hover, so the pointer never loses it. */
+.blog-cover-sheet.is-active .blog-cover-paper {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.blog-cover-sheet.is-open {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Thrown sideways; vertical swipes still scroll the page on a phone. */
+.blog-cover-paper.is-draggable {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.blog-cover-paper.is-dragging {
+  cursor: grabbing;
+}
+
+.blog-cover-sheet {
+  display: block;
+}
+
+/* Pictures on the lower sheets load only once the pile is handled; they fade in rather than pop. */
+.blog-cover-sheet img {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+.blog-cover-sheet img.is-loaded {
+  opacity: 1;
+}
+
+/* In dark mode the raised surface is darker than the frame, so the pile would vanish; lift the paper toward the text colour. */
+:root[data-theme="dark"] .blog-console-portrait {
+  --cover-paper: color-mix(in srgb, var(--surface-deep) 80%, var(--text));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .blog-console-portrait {
+    --cover-paper: color-mix(in srgb, var(--surface-deep) 80%, var(--text));
+  }
+}
+
 
 .blog-console-portrait img {
   width: 100%;
@@ -17942,19 +18003,26 @@ body:has(.blog-index) {
 
 .blog-console-caption {
   position: absolute;
-  z-index: 2;
+  z-index: 6;
   right: 0;
   bottom: 0;
   left: 0;
   margin: 0;
-  padding: 8px 10px;
+  /* Lines up with the pile's left edge (the sheet inset below). */
+  padding: 8px 7% 6px 4%;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 0.6rem;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+}
+
+/* Fanned out, the pile shrinks and moves left (FAN_SHRINK 0.1 and FAN_SHIFT 13% in BlogCoverStack.tsx), which puts the
+   cover's left edge at 50% + (4% - 50%) x 0.9 - 13% = -4.4% of the frame; the caption starts there with it. */
+.blog-console-portrait[data-fanned="true"] .blog-console-caption {
+  left: -4.4%;
+  padding-left: 0;
 }
 
 .blog-console-caption span:first-child {
@@ -18077,13 +18145,99 @@ body:has(.blog-index) {
   font-size: 0.6rem;
 }
 
+/* The looping wheel (BlogWheel.tsx, desktop console only). Rows are stacked on the band and placed by the deck's
+   focus; the band row is the post on the cover, the others fade and step back with distance. Two rows of room sit
+   above the band; below it the wheel runs on to the bottom of the column (BlogWheel measures --blog-wheel-extra). */
+.blog-index-list[data-wheel="true"] {
+  --blog-wheel-row: 76px; /* ROW in BlogWheel.tsx */
+  --blog-wheel-band: calc(var(--blog-wheel-row) * 2); /* BAND_ROWS_ABOVE in BlogWheel.tsx */
+  position: relative;
+  flex: none;
+  height: calc(var(--blog-wheel-row) * 5 + var(--blog-wheel-extra, 0px));
+  margin-top: 18px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Fade out toward the top and bottom edges. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 calc(var(--blog-wheel-row) * 0.5),
+    #000 calc(100% - var(--blog-wheel-row) * 1.1),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 calc(var(--blog-wheel-row) * 0.5),
+    #000 calc(100% - var(--blog-wheel-row) * 1.1),
+    transparent
+  );
+}
+
+/* The wheel's band is placed from the top of the column (a centred column would move it as the wheel grows). */
+.blog-console-detail:has(> .blog-index-list[data-wheel="true"]) {
+  justify-content: flex-start;
+}
+
+.blog-index-list[data-wheel="true"]:active {
+  cursor: grabbing;
+}
+
+/* BlogWheel shifts the column's content (heading and wheel) so the middle band lines up with the middle of the cover. */
+.blog-console-detail[data-wheel-host="true"] > * {
+  transform: translateY(var(--blog-wheel-shift, 0px));
+}
+
+/* The selection band around the middle row. */
+.blog-index-list[data-wheel="true"]::before {
+  content: "";
+  position: absolute;
+  inset: var(--blog-wheel-band) 0 auto;
+  height: var(--blog-wheel-row);
+  border-block: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
+  pointer-events: none;
+}
+
+.blog-index-list[data-wheel="true"] .blog-wheel-row {
+  position: absolute;
+  top: var(--blog-wheel-band);
+  left: 0;
+  right: 0;
+  height: var(--blog-wheel-row);
+  border-bottom: 0;
+  transform-origin: 0 50%;
+  will-change: transform, opacity;
+}
+
+.blog-index-list[data-wheel="true"] a {
+  height: 100%;
+  min-height: 0;
+  padding: 10px 8px 10px 0;
+  align-content: center;
+  background: transparent;
+  -webkit-user-drag: none;
+}
+
+.blog-index-list[data-wheel="true"] a:hover,
+.blog-index-list[data-wheel="true"] a.is-active {
+  background: transparent;
+}
+
+/* Two lines at most, so every title fits its row. */
+.blog-index-list[data-wheel="true"] strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .blog-field-pulse-top {
     animation: blog-field-pulse-right 7.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-  }
-
-  .blog-console-portrait::before {
-    animation: blog-frame-scan-x 6.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
   }
 
   .blog-signal-pulse-a {
@@ -18098,11 +18252,6 @@ body:has(.blog-index) {
 @keyframes blog-field-pulse-right {
   from { transform: translateX(0); }
   to { transform: translateX(140%); }
-}
-
-@keyframes blog-frame-scan-x {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(560%); }
 }
 
 @keyframes blog-signal-sweep-right {
@@ -18338,7 +18487,6 @@ body:has(.blog-index) {
   }
 
   .blog-field-pulse,
-  .blog-console-portrait::before,
   .blog-signal-pulse {
     animation: none !important;
   }
@@ -19347,10 +19495,12 @@ body:has(.blog-index) {
   transform-origin: left center;
 }
 
+/* Sheet-shaped placeholder until the first cover has decoded (same box as the sheets). */
 .blog-console-skeleton {
   position: absolute;
-  inset: 0;
-  z-index: 0;
+  inset: 5% 7% calc(30px + 6%) 4%;
+  z-index: 5;
+  pointer-events: none;
   overflow: hidden;
   background: color-mix(in srgb, var(--surface-deep) 88%, var(--text));
   transition: opacity 420ms ease;

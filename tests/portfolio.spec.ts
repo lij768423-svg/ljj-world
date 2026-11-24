@@ -384,17 +384,23 @@ test("blog index previews articles and opens a readable article route", async ({
 
   const posts = page.locator(".blog-index-list a");
   await expect(posts).toHaveCount(blogPosts.length);
-  const previewImages = page.locator(".blog-console-portrait img");
-  await expect(previewImages).toHaveCount(1);
-  await expect.poll(() => previewImages.evaluateAll((images) => images.every((image) => (
+  // The cover on top of the deck has loaded (the fanned sheets beside it load their own covers after it).
+  const cover = page.locator(".blog-console-portrait figure.is-active img");
+  await expect(cover).toHaveCount(1);
+  await expect.poll(() => cover.evaluate((image) => (
     (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
-  )))).toBe(true);
+  ))).toBe(true);
 
-  await posts.nth(2).hover();
+  // The list is a wheel here: focus brings a post to the middle and onto the cover.
+  await posts.nth(2).focus();
   await expect(posts.nth(2)).toHaveClass(/is-active/);
   await expect(page.locator(".blog-console-story strong")).toHaveText(blogPosts[2].title);
   await expect(page.locator(".blog-console-portrait figure.is-active img")).toHaveAttribute("alt", blogPosts[2].imageAlt);
 
+  // Clicking the post above the middle brings it to the middle; clicking the middle one opens it.
+  await posts.nth(1).click();
+  await expect(posts.nth(1)).toHaveClass(/is-active/);
+  await expect(page).toHaveURL(/\/blog$/);
   await posts.nth(1).click();
   await expect(page).toHaveURL(new RegExp(`/blog/${blogPosts[1].slug}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(blogPosts[1].title);

@@ -4,16 +4,23 @@ import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
 import { Check } from "@phosphor-icons/react/Check";
 import { Copy } from "@phosphor-icons/react/Copy";
 import {
+  AnimatePresence,
   motion,
   useReducedMotion,
   useScroll,
   useSpring,
 } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "wouter";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useParams } from "wouter";
 import { blogPosts, blogSectionText, getBlogPost, type BlogBlock, type BlogContent, type BlogPost } from "../blog";
+import { BlogCoverStack, prefersSavingData } from "./BlogCoverStack";
+import { useBlogDeck } from "./blogDeck";
+import { BlogWheel } from "./BlogWheel";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
+// How long the pointer must rest on a post in the list before the cover switches: long enough to ignore a pointer just
+// passing over, short enough that the cover seems to follow it.
+const HOVER_INTENT_MS = 40;
 const previewSizes = "(max-width: 760px) calc(100vw - 32px), (max-width: 980px) max(44vw, 640px), max(32vw, calc(160vh - 420px))";
 
 function sectionId(slug: string, title: string) {
@@ -156,56 +163,50 @@ function ArticleCover({ post, reduceMotion }: { post: BlogPost; reduceMotion: bo
 
 export function BlogPage() {
   const reduceMotion = useReducedMotion();
-  const [requestedSlug, setRequestedSlug] = useState(blogPosts[0].slug);
-  const [activeSlug, setActiveSlug] = useState(blogPosts[0].slug);
-  const [previousSlug, setPreviousSlug] = useState<string | null>(null);
+  // The one moving value behind the cover deck and the list wheel (blogDeck.ts).
+  const deck = useBlogDeck(blogPosts.length, Boolean(reduceMotion));
+  const activePost = blogPosts[deck.active] ?? blogPosts[0];
+  // The words about the post (the summary on the left, the caption under the cover) follow the post the deck has come
+  // to rest on, not every post it passes, so a fast scroll doesn't flicker them.
+  const shownPost = blogPosts[deck.resting] ?? blogPosts[0];
   const [readySlugs, setReadySlugs] = useState<Set<string>>(() => new Set());
-  const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activePost = useMemo(
-    () => getBlogPost(activeSlug) ?? blogPosts[0],
-    [activeSlug],
-  );
-  const previousPost = previousSlug ? getBlogPost(previousSlug) : null;
-  const previewPosts = previousPost ? [previousPost, activePost] : [activePost];
+  const [, navigate] = useLocation();
 
+  // Decodes a cover once. Sheets show their picture as soon as it has loaded, and plain paper until then; this keeps
+  // the skeleton up until the first cover is ready and fetches the others ahead of the reader.
+  const mounted = useRef(true);
+  const loadingCovers = useRef(new Set<string>());
   useEffect(() => {
-    let mounted = true;
-    const post = getBlogPost(requestedSlug) ?? blogPosts[0];
+    // Set on every mount: React's development double-mount runs the cleanup once in between.
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const prepareCover = useCallback((slug: string) => {
+    if (loadingCovers.current.has(slug)) return;
+    const post = getBlogPost(slug);
+    if (!post) return;
+    loadingCovers.current.add(slug);
     const image = new Image();
     image.fetchPriority = "high";
     if (post.srcSet) image.srcset = post.srcSet;
     image.sizes = previewSizes;
     image.src = post.image;
     void image.decode().then(() => {
-      if (mounted) setReadySlugs((ready) => new Set(ready).add(post.slug));
-    }).catch(() => undefined);
-    return () => {
-      mounted = false;
-    };
-  }, [requestedSlug]);
-
-  useEffect(() => () => {
-    if (hoverTimeout.current !== null) clearTimeout(hoverTimeout.current);
+      if (mounted.current) setReadySlugs((ready) => new Set(ready).add(post.slug));
+    }).catch(() => {
+      loadingCovers.current.delete(slug); // let a later request try again
+    });
   }, []);
+  // Someone browsing the list will move through several posts: fetch the (small) covers now, unless data saver is on.
+  const prepareAllCovers = useCallback(() => {
+    if (!prefersSavingData()) blogPosts.forEach((post) => prepareCover(post.slug));
+  }, [prepareCover]);
 
   useEffect(() => {
-    if (previousSlug || requestedSlug === activeSlug || !readySlugs.has(requestedSlug)) return;
-    setPreviousSlug(reduceMotion ? null : activeSlug);
-    setActiveSlug(requestedSlug);
-  }, [activeSlug, previousSlug, readySlugs, reduceMotion, requestedSlug]);
-
-  function cancelHoverPreview() {
-    if (hoverTimeout.current !== null) clearTimeout(hoverTimeout.current);
-    hoverTimeout.current = null;
-  }
-
-  function requestHoverPreview(slug: string) {
-    cancelHoverPreview();
-    hoverTimeout.current = setTimeout(() => {
-      hoverTimeout.current = null;
-      setRequestedSlug(slug);
-    }, 100);
-  }
+    prepareCover(activePost.slug);
+  }, [activePost.slug, prepareCover]);
 
   const reveal = reduceMotion ? false : { opacity: 0, y: 14 };
   const introStagger = { hidden: {}, shown: { transition: { staggerChildren: 0.075, delayChildren: 0.06 } } };
@@ -213,7 +214,13 @@ export function BlogPage() {
     hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
     shown: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.62, ease: easeOut } },
   };
-  const coverReady = readySlugs.has(activeSlug);
+  // The skeleton is for the first cover only; later covers fade in on their sheet as they arrive.
+  const coverReady = readySlugs.has(blogPosts[0].slug) || readySlugs.has(activePost.slug);
+  // When the deck comes to rest on another post, its words fade out and the new ones fade up in their place (not on
+  // first load: AnimatePresence's initial={false}).
+  const textSwap = reduceMotion ? false : { opacity: 0, y: 6 };
+  const textSwapTransition = { duration: reduceMotion ? 0 : 0.34, ease: easeOut };
+  const textLeave = { opacity: 0, transition: { duration: reduceMotion ? 0 : 0.16, ease: [0.4, 0, 1, 1] as const } };
   const noteCount = blogPosts.length;
   const latestYear = blogPosts[0]?.date.slice(0, 4) ?? "2026";
 
@@ -255,10 +262,17 @@ export function BlogPage() {
           </motion.p>
 
           <motion.div className="blog-console-story" variants={introItem}>
-            <span>{activePost.category}</span>
-            <strong>{activePost.title}</strong>
-            <p>{activePost.excerpt}</p>
-            <Link className="blog-console-read" to={`/blog/${activePost.slug}`}>
+            {/* Keyed by post: the old words fade out, then the new ones fade up instead of jumping. */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span key={`${shownPost.slug}-category`} initial={textSwap} animate={{ opacity: 1, y: 0 }} exit={textLeave} transition={textSwapTransition}>{shownPost.category}</motion.span>
+            </AnimatePresence>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.strong key={`${shownPost.slug}-title`} initial={textSwap} animate={{ opacity: 1, y: 0 }} exit={textLeave} transition={{ ...textSwapTransition, delay: reduceMotion ? 0 : 0.04 }}>{shownPost.title}</motion.strong>
+            </AnimatePresence>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p key={`${shownPost.slug}-excerpt`} initial={textSwap} animate={{ opacity: 1, y: 0 }} exit={textLeave} transition={{ ...textSwapTransition, delay: reduceMotion ? 0 : 0.08 }}>{shownPost.excerpt}</motion.p>
+            </AnimatePresence>
+            <Link className="blog-console-read" to={`/blog/${shownPost.slug}`}>
               <span>阅读这篇文章</span>
               <ArrowRight size={16} weight="bold" aria-hidden="true" />
             </Link>
@@ -271,40 +285,25 @@ export function BlogPage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: reduceMotion ? 0 : 0.64, delay: 0.06, ease: easeOut }}
         >
-          <div className="blog-console-portrait" data-cover-ready={coverReady}>
-            <span className="blog-console-skeleton" aria-hidden="true" />
-            {previewPosts.map((post) => (
-              <motion.figure
-                className={post.slug === activePost.slug ? "is-active" : undefined}
-                key={post.slug}
-                aria-hidden={post.slug !== activePost.slug}
-                initial={!reduceMotion && previousPost && post.slug === activePost.slug ? { opacity: 0 } : false}
-                animate={{ opacity: 1 }}
-                transition={{ duration: reduceMotion ? 0 : 0.36, ease: [0.4, 0, 0.2, 1] }}
-                onAnimationComplete={post.slug === activePost.slug ? () => setPreviousSlug(null) : undefined}
-              >
-                <img
-                  src={post.image}
-                  srcSet={post.srcSet}
-                  sizes={previewSizes}
-                  alt={post.slug === activePost.slug ? post.imageAlt : ""}
-                  width={1600}
-                  height={1000}
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority={post.slug === blogPosts[0].slug ? "high" : "low"}
-                  style={{ objectPosition: post.imagePosition ?? "center center" }}
-                />
-              </motion.figure>
-            ))}
-            <p className="blog-console-caption">
-              <span>{activePost.category}</span>
-              <span aria-hidden="true">/</span>
-              <time dateTime={activePost.date.replaceAll(".", "-")}>{activePost.date}</time>
-              <span aria-hidden="true">/</span>
-              <span>{activePost.readingTime}</span>
-            </p>
-          </div>
+          <BlogCoverStack
+            posts={blogPosts}
+            deck={deck}
+            coverReady={coverReady}
+            reduceMotion={Boolean(reduceMotion)}
+            sizes={previewSizes}
+            onPrepare={prepareCover}
+            onOpen={(slug) => navigate(`/blog/${slug}`)}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p className="blog-console-caption" key={shownPost.slug} initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={textLeave} transition={{ duration: reduceMotion ? 0 : 0.32 }}>
+                <span>{shownPost.category}</span>
+                <span aria-hidden="true">/</span>
+                <time dateTime={shownPost.date.replaceAll(".", "-")}>{shownPost.date}</time>
+                <span aria-hidden="true">/</span>
+                <span>{shownPost.readingTime}</span>
+              </motion.p>
+            </AnimatePresence>
+          </BlogCoverStack>
           <div className="blog-console-signal" aria-hidden="true">
             <span className="blog-signal-rail blog-signal-rail-top" />
             <span className="blog-signal-rail blog-signal-rail-middle" />
@@ -328,35 +327,14 @@ export function BlogPage() {
             <span className="blog-count"><b>{noteCount}</b>篇笔记</span>
           </div>
 
-          <ol className="blog-index-list" aria-labelledby="blog-index-heading">
-            {blogPosts.map((post, index) => (
-              <motion.li
-                key={post.slug}
-                initial={reduceMotion ? false : { opacity: 0, x: 18 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.2 + index * 0.06, ease: easeOut }}
-              >
-                <Link
-                  className={post.slug === activePost.slug ? "is-active" : undefined}
-                  to={`/blog/${post.slug}`}
-                  data-blog-slug={post.slug}
-                  onPointerEnter={(event) => {
-                    if (event.pointerType !== "touch") requestHoverPreview(post.slug);
-                  }}
-                  onPointerLeave={cancelHoverPreview}
-                  onPointerCancel={cancelHoverPreview}
-                  onFocus={() => {
-                    cancelHoverPreview();
-                    setRequestedSlug(post.slug);
-                  }}
-                >
-                  <time dateTime={post.date.replaceAll(".", "-")}>{shortDate(post.date)}</time>
-                  <strong>{post.title}</strong>
-                  <span>{post.category}</span>
-                </Link>
-              </motion.li>
-            ))}
-          </ol>
+          <BlogWheel
+            posts={blogPosts}
+            deck={deck}
+            reduceMotion={Boolean(reduceMotion)}
+            formatDate={shortDate}
+            onEngage={prepareAllCovers}
+            introDelay={(index) => (reduceMotion ? 0 : 0.2 + index * 0.06)}
+          />
         </motion.div>
       </div>
     </section>
