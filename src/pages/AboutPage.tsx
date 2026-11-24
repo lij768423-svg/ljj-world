@@ -6,13 +6,15 @@ import { Database } from "@phosphor-icons/react/Database";
 import { HardDrives } from "@phosphor-icons/react/HardDrives";
 import { Robot } from "@phosphor-icons/react/Robot";
 import { animate, motion, useReducedMotion } from "motion/react";
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "wouter";
+import { DynamicText } from "../components/effects/DynamicText";
+import { usePortfolioLanguage } from "../i18n/PortfolioLanguage";
 
-function AboutBlurText({ text, delay = 0 }: { text: string; delay?: number }) {
+function AboutBlurText({ text, delay = 0, children }: { text?: string; delay?: number; children?: ReactNode }) {
   const reduceMotion = useReducedMotion();
 
-  if (reduceMotion) return <span>{text}</span>;
+  if (reduceMotion) return <span>{children ?? text}</span>;
 
   const revealDelay = Math.min(0.66, 0.05 + delay * 0.22);
   return (
@@ -20,13 +22,21 @@ function AboutBlurText({ text, delay = 0 }: { text: string; delay?: number }) {
       className="about-blur-text"
       style={{ "--about-reveal-delay": `${revealDelay}s` } as CSSProperties}
     >
-      {text}
+      {children ?? text}
     </span>
   );
 }
 
+// The kicker cycles through what I do. DynamicText sits outside the DOM translator, so it gets words in the page's language.
+// Each word stays on one line, so the English ones are kept short enough for a 320 px phone (see .about-console-kicker).
+const kickerRoles = {
+  zh: ["考研中的个人开发者", "产品设计", "全栈开发", "自托管运维"],
+  en: ["Indie developer", "Product design", "Full-stack development", "Self-hosted operations"],
+};
+
 export function AboutPage() {
   const reduceMotion = useReducedMotion();
+  const { language } = usePortfolioLanguage();
   const [portraitReady, setPortraitReady] = useState(false);
   const reveal = reduceMotion ? false : { opacity: 0 };
 
@@ -52,7 +62,7 @@ export function AboutPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="about-console-kicker"><AboutBlurText text="考研中的个人开发者" delay={0.08} /></p>
+          <p className="about-console-kicker"><AboutBlurText delay={0.08}><DynamicText words={kickerRoles[language]} /></AboutBlurText></p>
           <h1 id="page-title"><AboutBlurText text="关于我" delay={0.16} /></h1>
           <p className="about-console-lead"><AboutBlurText text="一边准备研究生考试，一边把真实需求做成能长期运行的产品。" delay={0.32} /></p>
           <p className="about-console-summary"><AboutBlurText text="我从具体问题开始，自己完成界面、开发、部署和维护。比起短暂演示，我更在意产品能否真正被使用，并在几个月后依然稳定。" delay={0.64} /></p>

@@ -3546,6 +3546,41 @@ html[data-theme="dark"] .machine-real-image {
   font-size: clamp(1.35rem, 1.95vw, 2.15rem);
 }
 
+/* DynamicText (src/components/effects/DynamicText.tsx): letters travel, fall and drop in between words.
+   The script sets each glyph's transform and the morph box's width; the font and colour come from the parent. */
+.dynamic-text {
+  display: inline-block;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+.dynamic-text-morph {
+  position: relative;
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+.dynamic-text-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Zero-width space that keeps the line box and baseline while the glyphs are absolutely placed. */
+.dynamic-text-strut {
+  display: inline-block;
+  width: 0;
+}
+
+.dynamic-text-glyph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 50% 80%;
+}
+
 .server-story-overview-heading h2,
 .server-story-focus-heading h2 {
   margin: 0;
@@ -10705,12 +10740,15 @@ body:has(.about-page) {
   justify-content: center;
 }
 
+/* Holds the DynamicText role line. Sized so the widest role (22 mono characters at ~0.6em each) stays on one line
+   down to a 320 px phone; the letters' travel and fall are in em, so a larger size makes the motion read. */
 .about-console-kicker {
-  margin: 0 0 15px;
+  margin: 0 0 18px;
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: clamp(1.1rem, 0.85rem + 0.8vw, 1.4rem);
   font-weight: 650;
+  line-height: 1.2;
 }
 
 .about-console-intro h1 {
@@ -11295,6 +11333,7 @@ body:has(.about-page) {
 
   .about-console-kicker {
     margin-bottom: 10px;
+    font-size: 1.15rem;
   }
 
   .about-console-lead {
