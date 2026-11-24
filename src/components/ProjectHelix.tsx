@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "re
 import { createPortal } from "react-dom";
 import { Link } from "wouter";
 import * as THREE from "three";
+import { playDust, preloadDust, snapshotForDust } from "./effects/DustDissolve";
 
 type HelixPreview = {
   image: string;
@@ -44,6 +45,12 @@ const HELIX_PHASE_SPEED = 0.34;
 const HELIX_VERTICAL_LIMIT = 4.2;
 const HELIX_AXIS_MS = 460;
 const HELIX_BLOOM_MS = 1040;
+// How long the page behind a closed sheet takes to come back (veil, blur and dimmed cards), so it clears with the dust
+// instead of snapping. Matches the .is-releasing transition in effects.css.
+const PAPER_RELEASE_MS = 900;
+const PAPER_RELEASE_EASE = [0.37, 0, 0.63, 1] as const; // ease-in-out sine: an even fade, no sudden middle
+// Longest a close waits for the dust picture before falling back to a plain fade.
+const DUST_WAIT_MS = 400;
 
 async function waitForProjectImages(stage: HTMLElement) {
   const images = Array.from(stage.querySelectorAll<HTMLImageElement>(".project-card-media img"));
@@ -76,6 +83,7 @@ function readThemeColor(name: string, fallback: string) {
 function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection; onClose: () => void }) {
   const { project, rect, direction } = selection;
   const reduceMotion = useReducedMotion();
+  const flightRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const targetWidth = Math.min(window.innerWidth - 96, 1120);
@@ -85,14 +93,55 @@ function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection;
   const startX = rect.left + rect.width / 2 - (targetLeft + targetWidth / 2);
   const startY = rect.top + rect.height / 2 - (targetTop + targetHeight / 2);
 
+  // The picture the dust is made from. It is taken as soon as the sheet opens (not after it lands), so it is
+  // ready within a few hundred milliseconds; a close that comes sooner waits a little for it (DUST_WAIT_MS).
+  const snapshotRef = useRef<Promise<HTMLCanvasElement | null> | null>(null);
+  const closingRef = useRef(false);
+
   useEffect(() => {
     closeRef.current?.focus({ preventScroll: true });
   }, []);
 
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (reduceMotion || !sheet || snapshotRef.current) return;
+    snapshotRef.current = (async () => {
+      const image = sheet.querySelector("img");
+      if (image && !image.complete) {
+        await new Promise((resolve) => {
+          image.addEventListener("load", resolve, { once: true });
+          image.addEventListener("error", resolve, { once: true });
+        });
+      }
+      await image?.decode().catch(() => undefined);
+      const snapshot = await snapshotForDust(sheet);
+      // Lets tests (and anyone debugging) see whether closing will turn to dust.
+      sheet.dataset.dustReady = snapshot ? "true" : "failed";
+      return snapshot;
+    })();
+  }, [reduceMotion]);
+
+  // Turns the sheet into dust (a circle from a new spot each time), then closes. The veil keeps fading for
+  // PAPER_RELEASE_MS and stops catching clicks right away.
+  const closeAsDust = async () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    if (flightRef.current) flightRef.current.style.pointerEvents = "none";
+    const pending = snapshotRef.current;
+    const snapshot = pending
+      ? await Promise.race([pending, new Promise<null>((resolve) => window.setTimeout(() => resolve(null), DUST_WAIT_MS))])
+      : null;
+    const sheet = sheetRef.current;
+    if (sheet && snapshot && playDust(snapshot, sheet.getBoundingClientRect(), getComputedStyle(sheet).color)) {
+      sheet.style.visibility = "hidden";
+    }
+    onClose();
+  };
+
   const keepFocusInside = (event: React.KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      onClose();
+      closeAsDust();
       return;
     }
     if (event.key !== "Tab" || !sheetRef.current) return;
@@ -112,6 +161,7 @@ function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection;
 
   return createPortal(
     <motion.div
+      ref={flightRef}
       className="project-paper-flight"
       data-project-paper={project.id}
       role="dialog"
@@ -120,10 +170,10 @@ function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection;
       aria-describedby="project-paper-description"
       initial={reduceMotion ? false : { opacity: 0.72 }}
       animate={{ opacity: 1 }}
-      exit={reduceMotion ? undefined : { opacity: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: PAPER_RELEASE_MS / 1000, ease: PAPER_RELEASE_EASE } }}
       transition={{ duration: reduceMotion ? 0 : 0.2 }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) closeAsDust();
       }}
       onKeyDown={keepFocusInside}
     >
@@ -154,14 +204,15 @@ function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection;
           rotateY: 0,
           borderRadius: 2,
         }}
-        exit={reduceMotion ? undefined : { opacity: 0, scaleX: 0.97, scaleY: 0.97 }}
+        // Only seen when there is no dust (no WebGL, or the picture failed): an even fade, not the opening's fast curve.
+        exit={reduceMotion ? undefined : { opacity: 0, scaleX: 0.97, scaleY: 0.97, transition: { duration: 0.45, ease: PAPER_RELEASE_EASE } }}
         transition={{ duration: reduceMotion ? 0 : 0.74, ease: [0.16, 1, 0.3, 1] }}
       >
         <button
           ref={closeRef}
           className="project-paper-close"
           type="button"
-          onClick={onClose}
+          onClick={() => closeAsDust()}
           aria-label="关闭项目预览"
           title="关闭项目预览"
         >
@@ -228,6 +279,17 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
   const pausedRef = useRef(false);
   const selectedRef = useRef(false);
   const [selection, setSelection] = useState<PaperSelection | null>(null);
+  // True for PAPER_RELEASE_MS after a sheet closes: the dimmed, blurred cards ease back instead of snapping.
+  const [releasing, setReleasing] = useState(false);
+  const releaseTimerRef = useRef(0);
+  useEffect(() => () => window.clearTimeout(releaseTimerRef.current), []);
+
+  // Fetch the dust snapshot code once the page has settled, so the first close doesn't wait for it.
+  useEffect(() => {
+    if (reduceMotion || window.matchMedia("(max-width: 767px)").matches) return;
+    const timer = window.setTimeout(preloadDust, 1500);
+    return () => window.clearTimeout(timer);
+  }, [reduceMotion]);
   const [animationReady, setAnimationReady] = useState(Boolean(reduceMotion));
   const [axisSeedExpired, setAxisSeedExpired] = useState(Boolean(reduceMotion));
 
@@ -545,6 +607,8 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
     const rect = event.currentTarget.getBoundingClientRect();
     selectedRef.current = true;
     pausedRef.current = false;
+    window.clearTimeout(releaseTimerRef.current);
+    setReleasing(false);
     setSelection({ project, rect, direction: index % 2 === 0 ? -1 : 1, trigger: event.currentTarget });
   };
 
@@ -553,13 +617,18 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
     selectedRef.current = false;
     pausedRef.current = false;
     setSelection(null);
+    if (!reduceMotion) {
+      setReleasing(true);
+      window.clearTimeout(releaseTimerRef.current);
+      releaseTimerRef.current = window.setTimeout(() => setReleasing(false), PAPER_RELEASE_MS);
+    }
     window.requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
   };
 
   return (
     <div
       ref={stageRef}
-      className={`index-items project-cloud project-helix project-cloud-count-${projects.length}${selection ? " is-transitioning" : ""}`}
+      className={`index-items project-cloud project-helix project-cloud-count-${projects.length}${selection ? " is-transitioning" : ""}${releasing ? " is-releasing" : ""}`}
       data-reduced-motion={reduceMotion ? "true" : "false"}
       data-helix-entry="line-to-dna"
       data-helix-sequence="axis-bloom-live"
