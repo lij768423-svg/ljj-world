@@ -89,17 +89,25 @@ export function BlogWheel({ posts, deck, reduceMotion, formatDate, onEngage, int
     const pile = document.querySelector<HTMLElement>(".blog-console-portrait");
     if (!wheel || !list || !column || !pile) return;
     column.dataset.wheelHost = "true";
+    // The page's entrance motion moves both sides for a moment (this column rises 14px into place, the cover's column
+    // eases in from a slight zoom). Measure with those transforms set aside, so the first measurement is already the
+    // final one and nothing has to be corrected (and jump) once the entrance ends.
+    const entering = [column, pile.closest<HTMLElement>(".blog-console-visual")].filter((el): el is HTMLElement => Boolean(el));
     const align = () => {
       column.style.setProperty("--blog-wheel-shift", "0px");
       list.style.setProperty("--blog-wheel-extra", "0px");
       const cover = pile.querySelector<HTMLElement>(".blog-cover-sheet.is-active");
       const first = column.firstElementChild;
       if (!cover || !first) return;
+      const moving = entering.map((el) => el.style.transform);
+      entering.forEach((el) => (el.style.transform = "none"));
       const coverBox = cover.getBoundingClientRect();
       const listBox = list.getBoundingClientRect();
       const columnBox = column.getBoundingClientRect();
+      const firstTop = first.getBoundingClientRect().top;
+      entering.forEach((el, i) => (el.style.transform = moving[i]));
       const band = listBox.top + BAND_ROWS_ABOVE * ROW + ROW / 2;
-      const room = first.getBoundingClientRect().top - (columnBox.top + 24);
+      const room = firstTop - (columnBox.top + 24);
       const shift = Math.round(Math.max(coverBox.top + coverBox.height / 2 - band, -room));
       const floor = columnBox.bottom - parseFloat(getComputedStyle(column).paddingBottom || "0");
       // Neither the shifted wheel nor its unshifted box may run past the column's bottom.
@@ -107,16 +115,19 @@ export function BlogWheel({ posts, deck, reduceMotion, formatDate, onEngage, int
       column.style.setProperty("--blog-wheel-shift", `${shift}px`);
       list.style.setProperty("--blog-wheel-extra", `${extra}px`);
     };
-    // Measured at rest: now, again once the page's entrance motion (the cover column eases in from a slight zoom) has
-    // finished, and whenever the frame or the column changes size.
+    // Measured now, again once the web fonts are in (the heading above the wheel may change height), and whenever the
+    // frame or the column changes size.
     const frame = window.requestAnimationFrame(align);
-    const afterIntro = window.setTimeout(align, 900);
+    let live = true;
+    void document.fonts?.ready.then(() => {
+      if (live) align();
+    });
     const observer = new ResizeObserver(align);
     observer.observe(pile);
     observer.observe(column);
     return () => {
       window.cancelAnimationFrame(frame);
-      window.clearTimeout(afterIntro);
+      live = false;
       observer.disconnect();
       delete column.dataset.wheelHost;
       column.style.removeProperty("--blog-wheel-shift");
