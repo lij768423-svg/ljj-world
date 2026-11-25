@@ -1163,4 +1163,6 @@ export const portfolioTranslations: Record<string, string> = {
   "双 GPU": "Dual GPU",
   "显卡": "GPUs",
   "操作系统": "OS",
+  "相关链接": "Related links",
+  "（在新标签页打开）": " (opens in a new tab)",
 };

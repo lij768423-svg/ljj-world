@@ -8562,6 +8562,14 @@ body.systems-page {
   pointer-events: none;
 }
 
+/* The jacket runs off the figure's right edge; a short fade there instead of a straight cut. */
+@media (min-width: 1081px) {
+  .hero-intro .hero-portrait {
+    -webkit-mask-image: linear-gradient(to left, transparent 0, rgba(0, 0, 0, 0.3) 9px, rgba(0, 0, 0, 0.78) 22px, #000 32px);
+    mask-image: linear-gradient(to left, transparent 0, rgba(0, 0, 0, 0.3) 9px, rgba(0, 0, 0, 0.78) 22px, #000 32px);
+  }
+}
+
 .hero-intro .hero-portrait-image {
   width: 100%;
   height: 100%;
@@ -10656,7 +10664,7 @@ body:has(.about-page) {
 
 .about-console-topline {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   top: 20px;
   right: 0;
   left: 0;
@@ -10670,6 +10678,7 @@ body:has(.about-page) {
   font-family: var(--mono);
   font-size: 0.58rem;
   letter-spacing: 0;
+  pointer-events: none;
 }
 
 .about-topline-index {
@@ -10689,20 +10698,77 @@ body:has(.about-page) {
 }
 
 .about-topline-status {
+  position: relative;
   margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+/* A comfortable target without making the row taller. */
+.about-topline-status::before {
+  content: "";
+  position: absolute;
+  inset: -11px -6px;
+}
+
+.about-topline-status-line,
+.about-topline-status-line > span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--muted);
+  line-height: 14px;
 }
 
-.about-topline-status i {
+.about-topline-dot {
   width: 6px;
   height: 6px;
   display: inline-block;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .about-topline-status:hover {
+    color: var(--text);
+  }
+}
+
+.about-roll {
+  display: inline-flex;
+}
+
+/* Whole pixels, so every digit of a small number settles on the same baseline. */
+.about-roll > span {
+  height: 14px;
+  line-height: 14px;
+}
+
+.about-roll-digit {
+  overflow: hidden;
+}
+
+.about-roll-digit > span {
+  display: block;
+  transform: translateY(calc((var(--roll-rows) - 1) * -14px));
+}
+
+.about-roll-digit i {
+  height: 14px;
+  display: block;
+  font-style: normal;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .about-roll-digit > span {
+    animation: about-roll-up 640ms var(--roll-delay) cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+}
+
+@keyframes about-roll-up {
+  from { transform: translateY(0); }
 }
 
 .about-console-intro,
@@ -10760,6 +10826,7 @@ body:has(.about-page) {
 }
 
 .about-console-lead {
+  position: relative;
   max-width: 17em;
   margin: 26px 0 0;
   color: var(--text);
@@ -10767,6 +10834,29 @@ body:has(.about-page) {
   font-size: 1.48rem;
   font-weight: 620;
   line-height: 1.34;
+}
+
+.about-lead-underline i {
+  position: absolute;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--accent);
+  pointer-events: none;
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .about-lead-underline i {
+    animation: about-lead-draw var(--draw-time) var(--draw-delay) linear backwards;
+  }
+
+  .about-lead-underline i:only-child {
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+}
+
+@keyframes about-lead-draw {
+  from { transform: scaleX(0); }
 }
 
 .about-console-summary {
@@ -10813,6 +10903,45 @@ body:has(.about-page) {
   color: var(--muted-strong);
   font-family: var(--mono);
   font-size: 0.66rem;
+}
+
+.about-desk-link-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.about-desk-link-index,
+.about-desk-link-arrow {
+  color: var(--accent);
+}
+
+.about-desk-link-arrow {
+  display: inline-flex;
+}
+
+.about-roll-word {
+  display: inline-flex;
+}
+
+.about-roll-letter {
+  height: 1.4em;
+  overflow: hidden;
+}
+
+.about-roll-letter > span,
+.about-roll-letter > span > span {
+  display: block;
+}
+
+.about-roll-letter > span > span {
+  height: 1.4em;
+  white-space: pre;
+}
+
+.about-roll-letter > span > span:last-child {
+  color: var(--accent);
 }
 
 .about-column-trace {
@@ -10938,10 +11067,38 @@ body:has(.about-page) {
 }
 
 .about-console-portrait img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
+}
+
+:root[data-theme="dark"] .about-console-portrait[data-portrait="dark"] {
+  background: var(--surface);
+}
+
+/* Switching theme fades only the painting's paper: the cut-out is on at once above it, and goes once the painting
+   is back underneath. */
+.about-console-portrait img.is-light {
+  transition: opacity 320ms ease;
+}
+
+.about-console-portrait img.is-dark {
+  transition: opacity 0s linear 320ms;
+}
+
+.about-console-portrait[data-portrait="dark"] img.is-light {
+  opacity: 0;
+}
+
+.about-console-portrait[data-portrait="dark"] img.is-dark {
+  transition-delay: 0s;
+}
+
+.about-console-portrait[data-portrait="light"] img.is-dark {
+  opacity: 0;
 }
 
 .about-console-signal {
@@ -11157,7 +11314,8 @@ body:has(.about-page) {
     font-size: 0.52rem;
   }
 
-  .about-topline-copy {
+  .about-topline-copy,
+  .about-topline-status-line > .about-topline-more {
     display: none;
   }
 
@@ -11233,6 +11391,68 @@ body:has(.about-page) {
   color: var(--accent);
 }
 
+/* The red line through the three steps. Each step draws its own halves (into the icon, out of it), so it follows steps
+   of any height; together they run 0 - 1.1 s and the last icon is lit by 1.35 s. */
+.about-console-method li {
+  position: relative;
+}
+
+.about-console-method li:not(:first-child)::before,
+.about-console-method li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  width: 2px;
+  background: var(--accent);
+  transform-origin: center top;
+}
+
+.about-console-method li:not(:first-child)::before {
+  top: 0;
+  bottom: calc(50% + 16px);
+}
+
+.about-console-method li:not(:last-child)::after {
+  top: calc(50% + 16px);
+  bottom: -1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .about-console-method ol[data-drawn="false"] li::before,
+  .about-console-method ol[data-drawn="false"] li::after {
+    transform: scaleY(0);
+  }
+
+  .about-console-method ol[data-drawn="false"] li > svg {
+    opacity: 0.3;
+  }
+
+  .about-console-method ol[data-drawn="true"] li::before,
+  .about-console-method ol[data-drawn="true"] li::after {
+    animation: about-step-draw 260ms linear backwards;
+  }
+
+  .about-console-method ol[data-drawn="true"] li:nth-child(1)::after { animation-delay: 60ms; }
+  .about-console-method ol[data-drawn="true"] li:nth-child(2)::before { animation-delay: 320ms; }
+  .about-console-method ol[data-drawn="true"] li:nth-child(2)::after { animation-delay: 580ms; }
+  .about-console-method ol[data-drawn="true"] li:nth-child(3)::before { animation-delay: 840ms; }
+
+  .about-console-method ol[data-drawn="true"] li > svg {
+    animation: about-step-light 250ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .about-console-method ol[data-drawn="true"] li:nth-child(2) > svg { animation-delay: 560ms; }
+  .about-console-method ol[data-drawn="true"] li:nth-child(3) > svg { animation-delay: 1080ms; }
+}
+
+@keyframes about-step-draw {
+  from { transform: scaleY(0); }
+}
+
+@keyframes about-step-light {
+  from { opacity: 0.3; transform: scale(0.88); }
+}
+
 .about-console-method strong {
   display: block;
   font-size: 0.82rem;
@@ -11280,6 +11500,7 @@ body:has(.about-page) {
 }
 
 .about-console-capability-grid > div {
+  position: relative;
   min-width: 0;
   min-height: 92px;
   padding: 12px 11px;
@@ -11311,6 +11532,200 @@ body:has(.about-page) {
 .about-console-capability-grid > div > strong {
   font-size: 0.7rem;
   line-height: 1.35;
+}
+
+.about-capability-host {
+  position: relative;
+}
+
+.about-capability-hit {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.about-capability-hit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.about-console-capability-grid > div[data-active="true"] .about-capability-hit::before {
+  opacity: 0.07;
+}
+
+.about-capability-hit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+/* MAX_WIDTH and MAX_HEIGHT in AboutCapabilities.tsx. */
+.about-capability-panel {
+  position: fixed;
+  z-index: 53; /* over the global flowing lights (52), under the header (60) */
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 220px;
+  pointer-events: none;
+}
+
+.about-capability-fill,
+.about-capability-edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: left top;
+}
+
+.about-capability-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-raised);
+}
+
+.about-capability-edge {
+  background: var(--accent);
+}
+
+.about-capability-edge.is-top,
+.about-capability-edge.is-bottom {
+  width: 100%;
+  height: 1px;
+}
+
+.about-capability-edge.is-left,
+.about-capability-edge.is-right {
+  width: 1px;
+  height: 100%;
+}
+
+.about-capability-panel[data-open="true"] .about-capability-fill,
+.about-capability-panel[data-open="true"] .about-capability-layer[data-current="true"] {
+  pointer-events: auto;
+}
+
+/* Transparent, and only as deep as the gap (GAP in AboutCapabilities.tsx), so the pointer stays in the panel while it
+   crosses from the cell at any speed and no cell is covered. */
+.about-capability-bridge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  transform-origin: left top;
+}
+
+.about-capability-bridge.is-top {
+  top: -8px;
+}
+
+.about-capability-panel[data-open="true"][data-bridge="top"] .about-capability-bridge.is-top,
+.about-capability-panel[data-open="true"][data-bridge="bottom"] .about-capability-bridge.is-bottom {
+  pointer-events: auto;
+}
+
+.about-capability-clip,
+.about-capability-content {
+  position: absolute;
+  inset: 0;
+}
+
+.about-capability-clip {
+  overflow: hidden;
+}
+
+.about-capability-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: 300px;
+  padding: 6px;
+}
+
+.about-capability-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-capability-list a {
+  position: relative;
+  min-height: 45px;
+  padding: 4px 14px 4px 5px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  font-size: 0.74rem;
+  font-weight: 620;
+  line-height: 1.3;
+}
+
+.about-capability-list a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.about-capability-list a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.about-capability-list a:focus-visible::before {
+  opacity: 0.1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .about-capability-list a:hover::before {
+    opacity: 0.1;
+  }
+}
+
+.about-capability-list img {
+  width: 56px;
+  height: 35px;
+  flex: none;
+  object-fit: cover;
+  background: var(--surface-deep);
+}
+
+.about-capability-arrow {
+  margin-left: auto;
+  flex: none;
+  color: var(--accent);
+}
+
+/* Touch: every list shares one slot under the grid, so the slot never shrinks between cells. */
+.about-capability-inline {
+  margin-top: 10px;
+  display: grid;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+}
+
+.about-capability-inline[hidden] {
+  display: none;
+}
+
+.about-capability-inline > div {
+  grid-area: 1 / 1;
+  padding: 6px;
+}
+
+.about-capability-inline > div[inert] {
+  pointer-events: none;
 }
 
 @media (max-height: 760px) and (min-width: 1081px) {
@@ -11398,6 +11813,42 @@ body:has(.about-page) {
   .about-console-capability-grid > div {
     min-height: 76px;
     padding-block: 8px;
+  }
+}
+
+/* English runs longer: on short, narrower desktops the intro column would grow into the top line, so it takes the sizes
+   the shortest screens already use. */
+@media (min-width: 1081px) and (max-width: 1439px) and (max-height: 899px) {
+  :root[data-language="en"] .about-console-intro {
+    padding-block: 8px;
+  }
+
+  :root[data-language="en"] .about-console-intro h1 {
+    font-size: 3.55rem;
+  }
+
+  :root[data-language="en"] .about-console-kicker {
+    margin-bottom: 10px;
+    font-size: 1.15rem;
+  }
+
+  :root[data-language="en"] .about-console-lead {
+    margin-top: 18px;
+    font-size: 1.2rem;
+  }
+
+  :root[data-language="en"] .about-console-summary {
+    margin-top: 12px;
+    font-size: 0.78rem;
+  }
+
+  :root[data-language="en"] .about-console-story {
+    margin-top: 16px;
+    padding-top: 12px;
+  }
+
+  :root[data-language="en"] .about-console-interests {
+    margin-top: 12px;
   }
 }
 
@@ -13457,13 +13908,14 @@ body:has(.about-page) {
     flex-direction: column;
   }
 
+  /* Below the dashed track at the top of the page (8px), which used to run through the words. */
   .about-console-topline {
-    top: 0;
+    top: 18px;
   }
 
   .about-console-intro {
     order: 1;
-    padding: 64px 0 38px;
+    padding: 70px 0 38px;
   }
 
   .about-console-intro h1 {
@@ -13483,6 +13935,10 @@ body:has(.about-page) {
 
   .about-console-story {
     margin-top: 24px;
+  }
+
+  .about-capability-list a {
+    min-height: 52px;
   }
 
   .about-console-interests li {

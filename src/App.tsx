@@ -1835,7 +1835,7 @@ function PortfolioRoutes({
               <Route path="/projects/harmonyos"><ProjectDossierPage projectId="408-harmony" /></Route>
               <Route path="/projects/:projectId"><ProjectDossierPage /></Route>
               <Route path="/systems"><SystemsPage /></Route>
-              <Route path="/about"><AboutPage /></Route>
+              <Route path="/about"><AboutPage theme={theme} /></Route>
               <Route path="/desk"><DeskArchivePage theme={theme} /></Route>
               <Route path="/blog/:slug"><BlogArticlePage /></Route>
               <Route path="/blog"><BlogPage /></Route>
