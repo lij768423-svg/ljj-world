@@ -1,5 +1,6 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ThemeMode } from "../App";
+import { registerThemePreparer } from "../lib/themeTransition";
 
 // One picture per theme: the light one is the full painting, the dark one is the same painting cut out of its paper.
 // A theme's picture is only requested once that theme is used, and it only takes over once it has decoded. The cut-out
@@ -29,6 +30,31 @@ export function AboutPortrait({ theme, onReady }: { theme: ThemeMode; onReady: (
   useLayoutEffect(() => {
     if (decoded.includes(theme)) setShown(theme);
   }, [decoded, theme]);
+
+  // Before the theme toggle's circle reveal starts, fetch and decode the next theme's picture so it is already in
+  // place inside the circle instead of swapping in afterwards. The toggle waits for this at most 300ms.
+  const decodedRef = useRef(decoded);
+  const waiting = useRef<{ mode: ThemeMode; resolve: () => void }[]>([]);
+  useLayoutEffect(() => {
+    decodedRef.current = decoded;
+    const settled = waiting.current.filter((entry) => decoded.includes(entry.mode));
+    if (settled.length === 0) return;
+    waiting.current = waiting.current.filter((entry) => !decoded.includes(entry.mode));
+    settled.forEach((entry) => entry.resolve());
+  }, [decoded]);
+
+  useEffect(() => registerThemePreparer((next) => {
+    if (decodedRef.current.includes(next)) return;
+    return new Promise<void>((resolve) => {
+      waiting.current.push({ mode: next, resolve });
+      setRequested((current) => current.includes(next) ? current : [...current, next]);
+    });
+  }), []);
+
+  useEffect(() => () => {
+    waiting.current.forEach((entry) => entry.resolve());
+    waiting.current = [];
+  }, []);
 
   const markDecoded = (mode: ThemeMode, image: HTMLImageElement) => {
     void image.decode().catch(() => undefined).then(() => {

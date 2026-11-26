@@ -19,7 +19,7 @@ import { Translate } from "@phosphor-icons/react/Translate";
 import { X } from "@phosphor-icons/react/X";
 import { animate, AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { Link, Redirect, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation } from "wouter";
 import { BlurText } from "./components/effects/BlurText";
 import { DecryptedText } from "./components/effects/DecryptedText";
@@ -28,6 +28,7 @@ import { GlobalPixelTrail } from "./components/effects/GlobalPixelTrail";
 import { Magnetic } from "./components/effects/Magnetic";
 import { SceneLineOrnaments } from "./components/effects/SceneLineOrnaments";
 import { InteractivePortrait } from "./components/InteractivePortrait";
+import { switchThemeWithCircle } from "./lib/themeTransition";
 import type { CircularGalleryItem } from "./components/CircularGallery";
 import type { FlowingMenuItemData } from "./components/FlowingMenu";
 import { ENGLISH_PREFIX, withLanguagePrefix } from "./i18n/languageRouting";
@@ -1616,8 +1617,17 @@ function App() {
     };
   }, []);
 
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+
   function toggleTheme() {
-    setTheme((current) => current === "light" ? "dark" : "light");
+    const next: ThemeMode = themeRef.current === "light" ? "dark" : "light";
+    switchThemeWithCircle(next, () => {
+      // The circle reveal snapshots the page right after this runs, so the new theme has to be on the page by then.
+      flushSync(() => setTheme(next));
+      themeRef.current = next;
+      document.documentElement.dataset.theme = next;
+    });
   }
 
   function toggleTrail() {

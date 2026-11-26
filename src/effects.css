@@ -1511,3 +1511,38 @@ html:has(body.project-transition-active .project-paper-flight.is-sheet) {
 .server-story-stage {
   background-color: transparent;
 }
+
+/* Theme toggle: the new theme opens as a circle from the middle of the viewport (src/lib/themeTransition.ts).
+   The old page stays still underneath; only the new snapshot is clipped. Colour transitions are held off while it
+   runs so the area inside the circle is already the finished new theme rather than fading into it. */
+html.theme-circle-switching,
+html.theme-circle-switching *,
+html.theme-circle-switching *::before,
+html.theme-circle-switching *::after {
+  transition: none !important;
+}
+
+html.theme-circle-switching::view-transition-group(root) {
+  animation: none;
+}
+
+html.theme-circle-switching::view-transition-old(root),
+html.theme-circle-switching::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-circle-switching::view-transition-old(root) {
+  z-index: 0;
+}
+
+html.theme-circle-switching::view-transition-new(root) {
+  z-index: 1;
+  clip-path: circle(0 at 50% 50%);
+  animation: theme-circle-reveal 680ms cubic-bezier(0.3, 0.1, 0.18, 1) both;
+}
+
+@keyframes theme-circle-reveal {
+  from { clip-path: circle(0 at 50% 50%); }
+  to { clip-path: circle(var(--theme-circle-radius, 150vmax) at 50% 50%); }
+}
