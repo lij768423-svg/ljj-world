@@ -9,11 +9,6 @@ const QA_DIR = process.env.MOBILE_QA_DIR
 const PUBLIC_ROUTES = [
   { path: "/", heading: "你好，我是 ljj", shot: "home" },
   { path: "/projects", heading: "项目索引", shot: "projects" },
-  { path: "/projects/408", heading: "408 刷题库", shot: "project-408" },
-  { path: "/projects/hermes-ios", heading: "Hermes for iOS", shot: "project-hermes-ios" },
-  { path: "/projects/law-site", heading: "根旺律所数字站", shot: "project-law-site" },
-  { path: "/projects/harmonyos", heading: "408 for HarmonyOS", shot: "project-harmonyos" },
-  { path: "/projects/mineradio", heading: "Mineradio Web 适配", shot: "project-mineradio" },
   { path: "/systems", heading: "我的服务器", shot: "systems" },
   { path: "/about", heading: "关于我", shot: "about" },
   { path: "/desk", heading: "我的桌搭", shot: "desk" },
@@ -216,14 +211,100 @@ test("every public route is a phone layout without horizontal overflow", async (
   expect(await page.locator("#favorite-projects-title").evaluate((node) => node.getBoundingClientRect().top)).toBeGreaterThanOrEqual(64);
 });
 
-test("project cards navigate directly on touch", async ({ page }) => {
+test("project cards open their paper on touch", async ({ page }) => {
   await page.goto("/projects", { waitUntil: "networkidle" });
   const cards = page.locator(".project-card-link");
   await cards.first().waitFor();
   await expect(cards).toHaveCount(12);
-  await cards.first().click();
-  await expect(page).toHaveURL(/\/projects\/408$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("408 刷题库");
+  await cards.first().tap();
+  await expect(page).toHaveURL(/\/projects$/);
+  const paper = page.getByRole("dialog");
+  await expect(paper.getByRole("heading", { name: "408 刷题库" })).toBeVisible();
+  await expect(page.locator("html")).toHaveCSS("overflow-y", "hidden");
+
+  const geometry = await page.evaluate(() => {
+    const sheet = document.querySelector(".project-paper-sheet")!.getBoundingClientRect();
+    const close = document.querySelector(".project-paper-close")!.getBoundingClientRect();
+    return {
+      left: sheet.left, right: sheet.right, top: sheet.top, bottom: sheet.bottom,
+      closeWidth: close.width, closeHeight: close.height,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+  });
+  expect(geometry.left).toBe(0);
+  expect(geometry.right).toBe(geometry.viewport.width);
+  expect(geometry.bottom).toBeCloseTo(geometry.viewport.height, 0);
+  expect(geometry.top).toBeGreaterThanOrEqual(44);
+  expect(geometry.closeWidth).toBeGreaterThanOrEqual(44);
+  expect(geometry.closeHeight).toBeGreaterThanOrEqual(44);
+  expect((await layoutAudit(page)).overflow).toBeLessThanOrEqual(1);
+  // No dust on phones.
+  await expect(page.locator(".project-paper-sheet")).not.toHaveAttribute("data-dust-ready", /.*/);
+
+  // The empty strip above the sheet closes it.
+  await page.touchscreen.tap(geometry.viewport.width / 2, 20);
+  await expect(paper).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveCSS("overflow-y", "hidden");
+});
+
+test("the phone paper takes the keyboard and gives focus back to its card", async ({ page }) => {
+  await page.goto("/projects", { waitUntil: "networkidle" });
+  const card = page.locator('.index-item[data-project-id="travel-agent"] .project-card-link');
+  await card.scrollIntoViewIfNeeded();
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await card.focus();
+  await page.keyboard.press("Enter");
+  const paper = page.getByRole("dialog");
+  const close = paper.getByRole("button", { name: "关闭项目预览" });
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(paper.getByRole("link", { name: /相关文章/ })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(close).toBeFocused();
+  // Touching the text moves focus out of the paper; Escape still closes it.
+  await paper.locator("#project-paper-description").click();
+  await page.keyboard.press("Escape");
+  await expect(paper).toHaveCount(0);
+  await expect(card).toBeFocused();
+
+  await page.keyboard.press("Enter");
+  await expect(close).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(paper).toHaveCount(0);
+  await expect(card).toBeFocused();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
+});
+
+test("the phone paper turns around mid-way without a jump", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/projects", { waitUntil: "networkidle" });
+  await page.locator(".project-card-link").first().focus();
+  // Sample the sheet every frame: open, close after 120 ms, reopen 120 ms later.
+  await page.evaluate(() => {
+    const samples: number[] = [];
+    Object.assign(window, { sheetSamples: samples });
+    const read = () => {
+      const sheets = document.querySelectorAll(".project-paper-sheet");
+      if (sheets.length === 1) samples.push(sheets[0].getBoundingClientRect().top);
+      requestAnimationFrame(read);
+    };
+    requestAnimationFrame(read);
+  });
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(120);
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(120);
+  await page.locator(".project-card-link").first().focus();
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(900);
+  const { samples, height } = await page.evaluate(() => ({
+    samples: (window as unknown as { sheetSamples: number[] }).sheetSamples,
+    height: window.innerHeight,
+  }));
+  expect(samples.length).toBeGreaterThan(10);
+  const largest = Math.max(...samples.slice(1).map((top, index) => Math.abs(top - samples[index])));
+  expect(largest, JSON.stringify(samples.map(Math.round))).toBeLessThan(height * 0.3);
+  await expect(page.getByRole("dialog").getByRole("button", { name: "关闭项目预览" })).toBeFocused();
 });
 
 test("server categories and service details are touch-operable", async ({ page }) => {

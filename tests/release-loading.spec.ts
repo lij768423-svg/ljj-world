@@ -42,10 +42,15 @@ test("blog cold entry loads only its responsive current cover", async ({ page },
 
 test("homepage does not speculatively download other pages", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Explicit cold start request inspection.");
+  // The featured projects are shuffled on every visit, and the two shown plus the next one load their covers.
+  // Pin the shuffle so Egress Quality Guard is not among them; otherwise its cover loads by design about one
+  // visit in four and this test fails at random.
+  await page.addInitScript(() => { Math.random = () => 0.5; });
   const images: string[] = [];
   page.on("request", request => { if (request.resourceType() === "image") images.push(new URL(request.url()).pathname); });
   await page.goto("/", { waitUntil: "networkidle" });
   await page.waitForTimeout(1800);
+  await expect(page.locator('[data-featured-project="grok2api-egress-enhancements"]')).toHaveCount(0);
   expect(images.some(image => image.includes("grok2api-egress") || image.includes("desk-setup"))).toBe(false);
   expect(images.some(image => /virtual-developer-avatar-\d/.test(image))).toBe(false);
   expect(images.some(image => image.includes("virtual-developer-avatar-dark"))).toBe(true);

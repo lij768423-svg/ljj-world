@@ -96,7 +96,8 @@ This repository is easiest to adapt by replacing content first, then assets, the
 | Blog posts: paragraphs plus code, list and figure blocks | [`src/blog.ts`](./src/blog.ts) |
 | Server numbers on /systems (snapshot, refreshed by `npm run snapshot:server`) | [`src/data/serverSnapshot.json`](./src/data/serverSnapshot.json) |
 | English/Chinese text mapping and global transition | [`src/i18n`](./src/i18n) |
-| Project DNA and paper-style project detail | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
+| Project DNA index | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
+| Project paper, shared by desktop and phone | [`src/components/ProjectPaper.tsx`](./src/components/ProjectPaper.tsx) |
 | Server machine and service expansion | [`src/components/ServerExplodedStory.tsx`](./src/components/ServerExplodedStory.tsx) |
 | Desk arcs and full-screen image viewer | [`src/components/CircularGallery.tsx`](./src/components/CircularGallery.tsx) |
 | Visual system and page layout | [`src/styles.css`](./src/styles.css) |

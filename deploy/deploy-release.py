@@ -93,11 +93,17 @@ if os.readlink(current) != expected_previous:
     raise RuntimeError("Public release changed before activation")
 swap("releases/" + release_id)
 try:
-    routes = ["/", "/projects", "/projects/travel-agent", "/systems", "/about", "/desk", "/blog", "/en/", "/en/projects", "/en/blog"]
+    routes = ["/", "/projects", "/systems", "/about", "/desk", "/blog", "/en/", "/en/projects", "/en/blog"]
     routes += sorted("/" + str(path.parent.relative_to(release)) for path in (release / "blog").glob("*/index.html"))
     for route in routes:
         expected = release / route.strip("/") / "index.html" if route.strip("/") else release / "index.html"
         assert hashlib.sha256(fetch(route)).hexdigest() == digest(expected), route
+    # Retired project pages are static redirects to the project index.
+    for route, target in [("/projects/travel-agent", "/projects"), ("/en/projects/travel-agent", "/en/projects")]:
+        body = fetch(route)
+        expected = release / route.strip("/") / "index.html"
+        assert hashlib.sha256(body).hexdigest() == digest(expected), route
+        assert f'http-equiv="refresh" content="0; url={target}"'.encode() in body, route
     for static in ["/sitemap.xml", "/rss.xml", "/robots.txt"]:
         assert hashlib.sha256(fetch(static)).hexdigest() == digest(release / static.lstrip("/")), static
     missing = fetch(f"/__missing-{uuid.uuid4().hex}", expect_status=404)

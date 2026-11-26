@@ -783,7 +783,7 @@ body.desk-route .global-pixel-trail {
   transition: opacity 100ms ease 90ms;
 }
 
-/* After a sheet closes the cards come back with the fading veil and the dust (PAPER_RELEASE_MS in ProjectHelix.tsx).
+/* After a sheet closes the cards come back with the fading veil and the dust (PAPER_RELEASE_MS in ProjectPaper.tsx).
    !important because the stage-title node rule sets a 180 ms transition with higher specificity. */
 .project-helix.is-releasing .helix-node {
   transition:
@@ -879,6 +879,7 @@ body.project-transition-active {
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.8fr);
+  grid-template-rows: minmax(0, 1fr);
   background: var(--surface-raised);
   transform-origin: center;
 }
@@ -914,8 +915,10 @@ body.project-transition-active {
   height: 116px;
 }
 
+/* Scrolls only in small windows, where the links would otherwise be cut off. */
 .project-paper-copy {
   min-width: 0;
+  overflow-y: auto;
   padding: 44px 38px 36px;
   display: flex;
   flex-direction: column;
@@ -936,7 +939,7 @@ body.project-transition-active {
 }
 
 .project-paper-copy p {
-  margin: 24px 0 0;
+  margin: 24px 0 20px;
   color: var(--muted-strong);
   font-size: 0.96rem;
   line-height: 1.75;
@@ -1005,6 +1008,118 @@ body.project-transition-active {
 .project-paper-links a:hover svg:last-child,
 .project-paper-links a:focus-visible svg:last-child {
   transform: translate(2px, -2px);
+}
+
+.project-paper-private {
+  min-height: 48px;
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted-strong);
+}
+
+.project-paper-private > span {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+}
+
+/* Phone: the same paper as a full-width sheet from the bottom edge. The page locks on html, which is the scroller. */
+html:has(body.project-transition-active .project-paper-flight.is-sheet) {
+  overflow: hidden;
+}
+
+.project-paper-flight.is-sheet {
+  perspective: none;
+  backdrop-filter: none;
+}
+
+.is-sheet .project-paper-sheet {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-height: calc(100vh - 56px);
+  max-height: calc(100dvh - 56px);
+  display: flex;
+  border-width: 1px 0 0;
+}
+
+.is-sheet .project-paper-close {
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+}
+
+.is-sheet .project-paper-layout {
+  position: static;
+  min-width: 0;
+  flex: 1;
+  display: block;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.is-sheet .project-paper-visual {
+  aspect-ratio: 16 / 10;
+  max-height: 38vh;
+  width: 100%;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.is-sheet .project-paper-copy {
+  overflow-y: visible;
+  padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+}
+
+.is-sheet .project-paper-copy h2 {
+  margin-top: 10px;
+  font-size: 2rem;
+  line-height: 1.08;
+}
+
+.is-sheet .project-paper-copy p {
+  margin: 14px 0 0;
+  line-height: 1.7;
+}
+
+.is-sheet .project-paper-tags {
+  margin-top: 22px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 18px;
+}
+
+.is-sheet .project-paper-tags span {
+  border-bottom: 0;
+}
+
+.is-sheet .project-paper-links {
+  margin-top: 8px;
+  border-top: 0;
+}
+
+.is-sheet .project-paper-links a,
+.is-sheet .project-paper-private {
+  min-height: 52px;
+  grid-template-columns: 20px 72px minmax(0, 1fr) 18px;
+}
+
+.is-sheet .project-paper-links a > span,
+.is-sheet .project-paper-private > span {
+  font-size: 0.7rem;
+}
+
+.is-sheet .project-paper-links a > strong {
+  font-size: 0.72rem;
+}
+
+.is-sheet .project-paper-private {
+  grid-template-columns: 20px minmax(0, 1fr);
 }
 
 @keyframes screenshot-scan {

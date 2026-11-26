@@ -1,56 +1,16 @@
 import { ArrowUpRight } from "@phosphor-icons/react/ArrowUpRight";
-import { GithubLogo } from "@phosphor-icons/react/GithubLogo";
-import { GlobeHemisphereWest } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { X } from "@phosphor-icons/react/X";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { Link } from "wouter";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { PAPER_RELEASE_MS, ProjectCardLink, ProjectPaper, type PaperProject } from "./ProjectPaper";
 import { playDust, preloadDust, snapshotForDust } from "./effects/DustDissolve";
-
-type HelixPreview = {
-  image: string;
-  alt: string;
-  width: number;
-  height: number;
-  srcSet?: string;
-  fit?: "cover" | "contain";
-  position?: string;
-};
-
-export type HelixProject = {
-  id: string;
-  title: string;
-  description: string;
-  category: "product" | "ai" | "system";
-  kind: string;
-  status: string;
-  tags: string[];
-  href: string;
-  repo?: string;
-  site?: string;
-  icon: ReactNode;
-  preview?: HelixPreview;
-};
-
-type PaperSelection = {
-  project: HelixProject;
-  rect: DOMRect;
-  direction: number;
-  trigger: HTMLAnchorElement;
-};
 
 const HELIX_PHASE_SPEED = 0.34;
 const HELIX_VERTICAL_LIMIT = 4.2;
 const HELIX_AXIS_MS = 460;
 const HELIX_BLOOM_MS = 1040;
-// How long the page behind a closed sheet takes to come back (veil, blur and dimmed cards), so it clears with the dust
-// instead of snapping. Matches the .is-releasing transition in effects.css.
-const PAPER_RELEASE_MS = 900;
-const PAPER_RELEASE_EASE = [0.37, 0, 0.63, 1] as const; // ease-in-out sine: an even fade, no sudden middle
-// Longest a close waits for the dust picture before falling back to a plain fade.
-const DUST_WAIT_MS = 400;
+// How the paper reaches three.js: passed in, so the phone layout never loads it.
+const paperDust = { snapshot: snapshotForDust, play: playDust };
 
 async function waitForProjectImages(stage: HTMLElement) {
   const images = Array.from(stage.querySelectorAll<HTMLImageElement>(".project-card-media img"));
@@ -80,198 +40,14 @@ function readThemeColor(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-function ProjectPaperFlight({ selection, onClose }: { selection: PaperSelection; onClose: () => void }) {
-  const { project, rect, direction } = selection;
-  const reduceMotion = useReducedMotion();
-  const flightRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const targetWidth = Math.min(window.innerWidth - 96, 1120);
-  const targetHeight = Math.min(window.innerHeight - 104, 680);
-  const targetLeft = (window.innerWidth - targetWidth) / 2;
-  const targetTop = (window.innerHeight - targetHeight) / 2;
-  const startX = rect.left + rect.width / 2 - (targetLeft + targetWidth / 2);
-  const startY = rect.top + rect.height / 2 - (targetTop + targetHeight / 2);
+type PaperSelection = {
+  project: PaperProject;
+  rect: DOMRect;
+  direction: number;
+  trigger: HTMLAnchorElement;
+};
 
-  // The picture the dust is made from. It is taken as soon as the sheet opens (not after it lands), so it is
-  // ready within a few hundred milliseconds; a close that comes sooner waits a little for it (DUST_WAIT_MS).
-  const snapshotRef = useRef<Promise<HTMLCanvasElement | null> | null>(null);
-  const closingRef = useRef(false);
-
-  useEffect(() => {
-    closeRef.current?.focus({ preventScroll: true });
-  }, []);
-
-  useEffect(() => {
-    const sheet = sheetRef.current;
-    if (reduceMotion || !sheet || snapshotRef.current) return;
-    snapshotRef.current = (async () => {
-      const image = sheet.querySelector("img");
-      if (image && !image.complete) {
-        await new Promise((resolve) => {
-          image.addEventListener("load", resolve, { once: true });
-          image.addEventListener("error", resolve, { once: true });
-        });
-      }
-      await image?.decode().catch(() => undefined);
-      const snapshot = await snapshotForDust(sheet);
-      // Lets tests (and anyone debugging) see whether closing will turn to dust.
-      sheet.dataset.dustReady = snapshot ? "true" : "failed";
-      return snapshot;
-    })();
-  }, [reduceMotion]);
-
-  // Turns the sheet into dust (a circle from a new spot each time), then closes. The veil keeps fading for
-  // PAPER_RELEASE_MS and stops catching clicks right away.
-  const closeAsDust = async () => {
-    if (closingRef.current) return;
-    closingRef.current = true;
-    if (flightRef.current) flightRef.current.style.pointerEvents = "none";
-    const pending = snapshotRef.current;
-    const snapshot = pending
-      ? await Promise.race([pending, new Promise<null>((resolve) => window.setTimeout(() => resolve(null), DUST_WAIT_MS))])
-      : null;
-    const sheet = sheetRef.current;
-    if (sheet && snapshot && playDust(snapshot, sheet.getBoundingClientRect(), getComputedStyle(sheet).color)) {
-      sheet.style.visibility = "hidden";
-    }
-    onClose();
-  };
-
-  const keepFocusInside = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closeAsDust();
-      return;
-    }
-    if (event.key !== "Tab" || !sheetRef.current) return;
-
-    const focusable = Array.from(sheetRef.current.querySelectorAll<HTMLElement>("button:not([disabled]), a[href]"));
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
-  return createPortal(
-    <motion.div
-      ref={flightRef}
-      className="project-paper-flight"
-      data-project-paper={project.id}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="project-paper-title"
-      aria-describedby="project-paper-description"
-      initial={reduceMotion ? false : { opacity: 0.72 }}
-      animate={{ opacity: 1 }}
-      exit={reduceMotion ? undefined : { opacity: 0, transition: { duration: PAPER_RELEASE_MS / 1000, ease: PAPER_RELEASE_EASE } }}
-      transition={{ duration: reduceMotion ? 0 : 0.2 }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) closeAsDust();
-      }}
-      onKeyDown={keepFocusInside}
-    >
-      <motion.article
-        ref={sheetRef}
-        className={`project-paper-sheet project-paper-${project.category}`}
-        style={{
-          left: targetLeft,
-          top: targetTop,
-          width: targetWidth,
-          height: targetHeight,
-        }}
-        initial={reduceMotion ? false : {
-          x: startX,
-          y: startY,
-          scaleX: Math.max(0.12, rect.width / targetWidth),
-          scaleY: Math.max(0.12, rect.height / targetHeight),
-          rotateX: -5,
-          rotateY: direction * 9,
-          borderRadius: 8,
-        }}
-        animate={{
-          x: 0,
-          y: 0,
-          scaleX: 1,
-          scaleY: 1,
-          rotateX: 0,
-          rotateY: 0,
-          borderRadius: 2,
-        }}
-        // Only seen when there is no dust (no WebGL, or the picture failed): an even fade, not the opening's fast curve.
-        exit={reduceMotion ? undefined : { opacity: 0, scaleX: 0.97, scaleY: 0.97, transition: { duration: 0.45, ease: PAPER_RELEASE_EASE } }}
-        transition={{ duration: reduceMotion ? 0 : 0.74, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <button
-          ref={closeRef}
-          className="project-paper-close"
-          type="button"
-          onClick={() => closeAsDust()}
-          aria-label="关闭项目预览"
-          title="关闭项目预览"
-        >
-          <X size={18} weight="bold" aria-hidden="true" />
-        </button>
-
-        <motion.div
-          className="project-paper-layout"
-          initial={false}
-          animate={{ opacity: 1 }}
-        >
-          <div className="project-paper-visual">
-            {project.preview ? (
-              <img
-                className={project.preview.fit === "contain" ? "is-contain" : ""}
-                src={project.preview.image}
-                srcSet={project.preview.srcSet}
-                sizes="min(64vw, 720px)"
-                alt={project.preview.alt}
-                width={project.preview.width}
-                height={project.preview.height}
-                style={{ objectPosition: project.preview.position }}
-              />
-            ) : (
-              <div className="project-paper-mark" aria-hidden="true">{project.icon}</div>
-            )}
-          </div>
-          <div className="project-paper-copy">
-            <span>{project.kind}</span>
-            <h2 id="project-paper-title">{project.title}</h2>
-            <p id="project-paper-description">{project.description}</p>
-            <div className="project-paper-tags">{project.tags.slice(0, 3).map((tag) => <span key={tag}>{tag}</span>)}</div>
-            <div className="project-paper-links" aria-label={`${project.title} 项目地址`}>
-              {project.repo ? (
-                <a href={project.repo} target="_blank" rel="noreferrer">
-                  <GithubLogo size={17} weight="fill" aria-hidden="true" />
-                  <span>GitHub</span>
-                  <strong>{project.repo.replace(/^https?:\/\//, "")}</strong>
-                  <ArrowUpRight size={16} weight="bold" aria-hidden="true" />
-                </a>
-              ) : null}
-              {project.site ? (
-                <a href={project.site} target="_blank" rel="noreferrer">
-                  <GlobeHemisphereWest size={17} weight="bold" aria-hidden="true" />
-                  <span>在线地址</span>
-                  <strong>{project.site.replace(/^https?:\/\//, "").replace(/\/$/, "")}</strong>
-                  <ArrowUpRight size={16} weight="bold" aria-hidden="true" />
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </motion.div>
-      </motion.article>
-    </motion.div>,
-    document.body,
-  );
-}
-
-export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
+export function ProjectHelix({ projects }: { projects: PaperProject[] }) {
   const reduceMotion = useReducedMotion();
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -599,17 +375,14 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
     };
   }, [projects, reduceMotion]);
 
-  const openProject = (event: MouseEvent<HTMLAnchorElement>, project: HelixProject, index: number) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if (window.matchMedia("(max-width: 767px)").matches) return;
-    event.preventDefault();
+  const openProject = (trigger: HTMLAnchorElement, project: PaperProject, index: number) => {
     if (selectedRef.current) return;
-    const rect = event.currentTarget.getBoundingClientRect();
+    const rect = trigger.getBoundingClientRect();
     selectedRef.current = true;
     pausedRef.current = false;
     window.clearTimeout(releaseTimerRef.current);
     setReleasing(false);
-    setSelection({ project, rect, direction: index % 2 === 0 ? -1 : 1, trigger: event.currentTarget });
+    setSelection({ project, rect, direction: index % 2 === 0 ? -1 : 1, trigger });
   };
 
   const closeProject = () => {
@@ -662,11 +435,7 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
             role="listitem"
             key={project.id}
           >
-            <Link
-              className="project-card-link"
-              to={project.href}
-              onClick={(event) => openProject(event, project, index)}
-            >
+            <ProjectCardLink project={project} onOpen={(trigger) => openProject(trigger, project, index)}>
               <div className="project-card-kinetic">
                 <div className="project-card-float">
                   <div className={`project-card-surface helix-poster-card project-card-${project.category}`}>
@@ -700,12 +469,20 @@ export function ProjectHelix({ projects }: { projects: HelixProject[] }) {
                   </div>
                 </div>
               </div>
-            </Link>
+            </ProjectCardLink>
           </article>
         ))}
       </div>
       <AnimatePresence>
-        {selection ? <ProjectPaperFlight key={selection.project.id} selection={selection} onClose={closeProject} /> : null}
+        {selection ? (
+          <ProjectPaper
+            key={selection.project.id}
+            project={selection.project}
+            entry={{ from: "card", rect: selection.rect, direction: selection.direction }}
+            dust={paperDust}
+            onClose={closeProject}
+          />
+        ) : null}
       </AnimatePresence>
     </div>
   );

@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { blogPosts } from "../src/blog";
+import { retiredProjectPaths } from "../src/seo/retiredProjects";
 
 // Checks the files `npm run build` (vite build + scripts/generate-seo.mjs) leaves in dist/.
 // CI builds before running the suite; locally run `npm run build` first.
@@ -16,7 +17,7 @@ test.describe("SEO build output", () => {
   test("every route gets its own HTML entry with route-specific metadata", () => {
     const home = read("index.html");
     const article = read("blog/grok-register-panel/index.html");
-    const project = read("projects/408/index.html");
+    const project = read("projects/index.html");
     const systems = read("systems/index.html");
 
     expect(home).toContain('<link rel="canonical" href="https://ljj.world/" />');
@@ -31,7 +32,7 @@ test.describe("SEO build output", () => {
     expect(article).toContain('"@type": "BlogPosting"');
     expect(article).not.toContain('"@type": "Person",\n        "name"');
 
-    expect(project).toMatch(/<title>408 刷题库[^<]*\| lij768423-svg<\/title>/);
+    expect(project).toMatch(/<title>项目索引 \| lij768423-svg<\/title>/);
     expect(meta(project, "name", "description")).not.toBe(meta(home, "name", "description"));
     expect(meta(systems, "property", "og:url")).toBe("https://ljj.world/systems");
 
@@ -127,7 +128,9 @@ test.describe("SEO build output", () => {
     const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
     expect(new Set(locs).size).toBe(locs.length);
     expect(locs).toContain("https://ljj.world/");
-    expect(locs).toContain("https://ljj.world/projects/hermes-ios");
+    expect(locs).toContain("https://ljj.world/projects");
+    expect(locs).toHaveLength(26);
+    expect(sitemap).not.toContain("/projects/");
     expect(locs).toContain("https://ljj.world/blog/grok-register-panel");
     expect(locs).toContain("https://ljj.world/en/");
     expect(locs).toContain("https://ljj.world/en/blog/grok-register-panel");
@@ -138,6 +141,20 @@ test.describe("SEO build output", () => {
       const relative = loc.replace("https://ljj.world", "");
       expect(existsSync(path.join(dist, ...relative.split("/").filter(Boolean), "index.html")), loc).toBe(true);
     }
+  });
+
+  test("retired project addresses are static redirects to the index", () => {
+    expect(retiredProjectPaths).toHaveLength(12);
+    for (const prefix of ["", "/en"]) {
+      for (const retired of retiredProjectPaths) {
+        const html = read(path.join(prefix, retired, "index.html").replace(/^\//, ""));
+        expect(html).toContain(`<meta http-equiv="refresh" content="0; url=${prefix}/projects">`);
+        expect(html).toContain(`<link rel="canonical" href="https://ljj.world${prefix}/projects">`);
+        expect(html).toContain('<meta name="robots" content="noindex">');
+        expect(html).not.toContain("<script");
+      }
+    }
+    expect(read("rss.xml")).not.toContain("ljj.world/projects/");
   });
 
   test("rss.xml carries the blog posts with full content", () => {

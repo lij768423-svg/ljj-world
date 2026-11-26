@@ -20,7 +20,7 @@ import { X } from "@phosphor-icons/react/X";
 import { animate, AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Link, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation } from "wouter";
+import { Link, Redirect, Route, Router as BrowserRouter, Switch as Routes, useLocation as useWouterLocation } from "wouter";
 import { BlurText } from "./components/effects/BlurText";
 import { DecryptedText } from "./components/effects/DecryptedText";
 import { GlobalFlowingLights } from "./components/effects/GlobalFlowingLights";
@@ -46,8 +46,6 @@ const loadAboutPage = () => import("./pages/AboutPage");
 const loadDeskArchivePage = () => import("./pages/DeskArchivePage");
 const loadBlogPages = () => import("./components/BlogPages");
 const ProjectsPage = lazy(() => loadProjectPages().then((module) => ({ default: module.ProjectsPage })));
-const FlagshipCaseStudyPage = lazy(() => loadProjectPages().then((module) => ({ default: module.FlagshipCaseStudyPage })));
-const ProjectDossierPage = lazy(() => loadProjectPages().then((module) => ({ default: module.ProjectDossierPage })));
 const SystemsPage = lazy(() => loadSystemsPage().then((module) => ({ default: module.SystemsPage })));
 const AboutPage = lazy(() => loadAboutPage().then((module) => ({ default: module.AboutPage })));
 const DeskArchivePage = lazy(() => loadDeskArchivePage().then((module) => ({ default: module.DeskArchivePage })));
@@ -193,33 +191,19 @@ export type ProjectPreview = {
   position?: string;
 };
 
-type ProjectStory = {
-  problem: string;
-  approach: string;
-  outcome: string;
-  highlights: Array<{
-    title: string;
-    description: string;
-  }>;
-};
-
 export type Project = {
   id: string;
   title: string;
   description: string;
   category: Category;
   kind: string;
-  status: string;
-  year: string;
   tags: string[];
   site?: string;
   repo?: string;
-  detail?: string;
+  /** Slug of the blog post about this project, linked from its paper. */
+  article?: string;
   icon: ReactNode;
   cardPreview: ProjectPreview;
-  preview?: ProjectPreview;
-  story: ProjectStory;
-  liveDemo?: { url: string; label: string };
 };
 
 function projectCardPreview(id: string, title: string): ProjectPreview {
@@ -240,33 +224,12 @@ export const projects: Project[] = [
     description: "把刷题、错题复盘、间隔复习、AI 讲题和 Markdown 知识库串成一条学习路径。",
     category: "product",
     kind: "学习产品",
-    status: "开源 / 在线",
-    year: "2026",
     tags: ["JavaScript", "Local-first", "AI"],
-    story: {
-      problem: "备考者往往在不同页面间做题、查解析、记错题，复习节奏也容易断开。",
-      approach: "以本地优先网页应用连接四科题库、即时判分、间隔复习、AI 追问和 Markdown 笔记，并保留可选账号同步。",
-      outcome: "形成可直接静态部署的 408 学习产品，题库、复习、统计与知识沉淀在同一工作流中运行。",
-      highlights: [
-        { title: "多模式答题", description: "顺序、随机、错题、收藏和今日复习共享同一套作答与反馈界面。" },
-        { title: "间隔复习", description: "根据连续答题结果延长复习周期，把错题状态变成可执行的日程。" },
-        { title: "AI 与知识库", description: "流式追问连接 Markdown 笔记，让一次讲题可以继续沉淀和检索。" },
-      ],
-    },
     site: "https://quiz.hermesjj.com/",
     repo: "https://github.com/lij768423-svg/408-",
-    detail: "/projects/408",
+    article: "ai-study-workflow",
     icon: <Books size={22} weight="duotone" />,
     cardPreview: projectCardPreview("408-web", "408 刷题库"),
-    preview: {
-      image: "/assets/408-quiz.webp",
-      alt: "408 刷题库桌面答题真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/408-quiz-800.webp 800w, /assets/408-quiz-1600.webp 1600w, /assets/408-quiz.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
-    },
   },
   {
     id: "408-harmony",
@@ -274,32 +237,10 @@ export const projects: Project[] = [
     description: "面向 HarmonyOS NEXT 的原生刷题端，支持离线题库、手势答题、KaTeX 与可选 AI 讲题。",
     category: "product",
     kind: "原生应用",
-    status: "开源",
-    year: "2026",
     tags: ["ArkTS", "HarmonyOS NEXT", "Offline"],
-    story: {
-      problem: "移动端备考需要在断网时仍能刷题、看解析，并保持与桌面端相同的复习节奏。",
-      approach: "用 ArkTS 与 ArkUI 重做交互，题库、公式渲染和进度保存全部本地化，AI 仅作为可选能力。",
-      outcome: "得到可构建安装的 HarmonyOS NEXT 原生端，基础刷题不依赖账号或网络。",
-      highlights: [
-        { title: "连续手势切题", description: "Swiper 与 LazyForEach 让用户在题目任意区域自然滑动切换。" },
-        { title: "本地富文本", description: "Markdown、表格与 KaTeX 公式均在设备侧完成解析和渲染。" },
-        { title: "隐私与迁移", description: "进度支持导入导出，不配置 AI 也不会影响核心刷题流程。" },
-      ],
-    },
     repo: "https://github.com/lij768423-svg/408-for-harmony",
-    detail: "/projects/harmonyos",
     icon: <DeviceMobile size={22} weight="duotone" />,
     cardPreview: projectCardPreview("408-harmony", "408 for HarmonyOS"),
-    preview: {
-      image: "/assets/408-harmony.webp",
-      alt: "408 for HarmonyOS 沉浸式刷题真实界面",
-      width: 1920,
-      height: 1080,
-      srcSet: "/assets/408-harmony-800.webp 800w, /assets/408-harmony-1600.webp 1600w, /assets/408-harmony.webp 1920w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      fit: "contain",
-    },
   },
   {
     id: "ioschat",
@@ -307,32 +248,10 @@ export const projects: Project[] = [
     description: "从 ArkTS 迁移到 SwiftUI 的个人 AI 客户端，补齐 SSE、多会话、附件、Markdown 与公式。",
     category: "ai",
     kind: "AI 客户端",
-    status: "开源 / 真机运行",
-    year: "2026",
     tags: ["SwiftUI", "UIKit", "SSE"],
-    story: {
-      problem: "已有 ArkTS 客户端无法直接迁移到 iOS，中文输入、流式消息与公式渲染都需要原生重做。",
-      approach: "以 SwiftUI 重建会话界面，用 UIKit 补齐输入法边界，URLSession 处理 SSE，Keychain 与本地存储管理状态。",
-      outcome: "完成真机运行版本，消息、附件、引用、Markdown 与公式链路均通过定向测试。",
-      highlights: [
-        { title: "中文输入法", description: "读取真实 marked text，修复候选词确认时吞字和重复提交。" },
-        { title: "流式会话", description: "URLSession.bytes 接收 SSE，并处理会话、消息与中断状态。" },
-        { title: "富内容消息", description: "图片、附件、引用、Markdown 与 MathJax 进入统一消息模型。" },
-      ],
-    },
     repo: "https://github.com/lij768423-svg/ioschat",
-    detail: "/projects/hermes-ios",
     icon: <ChatCircleDots size={22} weight="duotone" />,
     cardPreview: projectCardPreview("ioschat", "Hermes for iOS"),
-    preview: {
-      image: "/assets/ioschat-drawer.webp",
-      alt: "Hermes iOS 会话抽屉真实界面",
-      width: 1206,
-      height: 2622,
-      srcSet: "/assets/ioschat-drawer-603.webp 603w, /assets/ioschat-drawer.webp 1206w",
-      sizes: "(max-width: 680px) 210px, 250px",
-      fit: "contain",
-    },
   },
   {
     id: "law-site",
@@ -340,32 +259,10 @@ export const projects: Project[] = [
     description: "机构官网、在线咨询、AI 摘要、人工接管与 CMS 后台组成的真实客户交付。",
     category: "product",
     kind: "客户项目",
-    status: "在线 / 私有源码",
-    year: "2026",
     tags: ["Next.js", "Payload CMS", "Playwright"],
-    story: {
-      problem: "律所公开内容分散，咨询入口、案例展示与后台维护缺少统一且可信的数字载体。",
-      approach: "用 Next.js 与 Payload CMS 重建内容体系，将团队、服务、脱敏案例、咨询和隐私流程接入同一后台。",
-      outcome: "正式站已上线，机构内容、咨询提交、后台维护和生产部署形成一套可持续交付。",
-      highlights: [
-        { title: "真实内容迁移", description: "团队资料、服务说明、脱敏案例和 PDF 被整理成可维护结构。" },
-        { title: "咨询与隐私", description: "提交数据加密保存、定期清理，并为人工通知和接管留出接口。" },
-        { title: "生产部署", description: "PostgreSQL、Valkey 与媒体卷经 Tailscale 和 Caddy 对外服务。" },
-      ],
-    },
     site: "https://lawweb.hermesjj.com/",
-    detail: "/projects/law-site",
     icon: <Browser size={22} weight="duotone" />,
     cardPreview: projectCardPreview("law-site", "根旺律所数字站"),
-    preview: {
-      image: "/assets/law-home.webp",
-      alt: "根旺律所数字站首页真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/law-home-800.webp 800w, /assets/law-home-1600.webp 1600w, /assets/law-home.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
-    },
   },
   {
     id: "mineradio",
@@ -373,33 +270,11 @@ export const projects: Project[] = [
     description: "参与沉浸式音乐播放器的视觉与工程迭代，并完成 Web 迁移、访问保护与发布链路重建。",
     category: "product",
     kind: "协作项目",
-    status: "公开仓库 / 受限演示",
-    year: "2026",
     tags: ["React", "Three.js", "Electron"],
-    story: {
-      problem: "天气、电台、搜索播放、歌词和视觉效果分散在不同模式，沉浸感容易被操作流程打断。",
-      approach: "在 Electron 与 Web 壳之间统一播放状态，接入天气与音乐搜索，并把歌词、粒子、节奏和 3D 歌单架组成同一舞台。",
-      outcome: "协作迭代到可发布的桌面版本，并保留受限 Web 预览与公开仓库。",
-      highlights: [
-        { title: "天气情绪队列", description: "天气信息参与电台选择，让环境状态直接影响播放内容。" },
-        { title: "多层视觉舞台", description: "歌词、粒子、节奏和电影镜头根据播放模式切换。" },
-        { title: "桌面与 Web", description: "桌面安装包保留完整能力，Web 版本承担访问和展示入口。" },
-      ],
-    },
     site: "https://mineradio.hermesjj.com/",
     repo: "https://github.com/English-worse/Mineradio",
-    detail: "/projects/mineradio",
     icon: <GlobeHemisphereWest size={22} weight="duotone" />,
     cardPreview: projectCardPreview("mineradio", "Mineradio Web 适配"),
-    preview: {
-      image: "/assets/mineradio-app.webp",
-      alt: "Mineradio 现代 Web 外壳真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/mineradio-app-800.webp 800w, /assets/mineradio-app-1600.webp 1600w, /assets/mineradio-app.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
-    },
   },
   {
     id: "grok-register-panel",
@@ -407,21 +282,9 @@ export const projects: Project[] = [
     description: "把长链路浏览器任务、邮箱与代理池、失败恢复和运行统计收进一个实时控制面板。",
     category: "ai",
     kind: "自动化运维",
-    status: "开源",
-    year: "2026",
     tags: ["Python", "Camoufox", "Operations"],
-    story: {
-      problem: "浏览器自动化任务横跨邮箱验证码、代理出口和多阶段授权，单靠日志难以判断卡点和恢复进度。",
-      approach: "以 Camoufox 执行任务，将代理预检、邮箱后端、批次编排、失败补录和时段统计连接到受令牌保护的 Web 面板。",
-      outcome: "形成可启停、可观测、可恢复的长链路自动化控制面，并为代理与邮箱域名池保留独立状态。",
-      highlights: [
-        { title: "实时运行面板", description: "启停、并发、批次进度、时段成功率和账号补录集中在同一控制面。" },
-        { title: "出口与域名治理", description: "代理池、ASN 预检、邮箱后端和域名轮换各自维护健康与冷却状态。" },
-        { title: "失败恢复", description: "待处理授权可以补录并自动出队，编排器也会对卡死任务做有限重建。" },
-      ],
-    },
     repo: "https://github.com/lij768423-svg/grok-register-panel",
-    detail: "/projects/grok-register-panel",
+    article: "grok-register-panel",
     icon: <Browser size={22} weight="duotone" />,
     cardPreview: {
       ...optimizedCovers["grok-register-panel"],
@@ -435,22 +298,9 @@ export const projects: Project[] = [
     description: "Tailscale tailnet 的实时地图：每台机器在哪、走直连还是中继、上面跑着什么，一屏看完。",
     category: "system",
     kind: "网络可视化",
-    status: "开源 / 在线演示",
-    year: "2026",
     tags: ["Python", "Tailscale", "D3"],
-    story: {
-      problem: "Tailscale 后台只列出有哪些机器，看不出节点之间走直连、DERP 还是 peer relay，也看不到每台机器上跑着什么。",
-      approach: "一个零依赖的 Python 进程读取 tailscale status、DERP 地图和 tailscale ping，再经 SSH 运行一段只读脚本采集容器、systemd 服务和资源占用，历史写入 SQLite。",
-      outcome: "节点按位置落在世界地图上，每条连线标出路径和实测延迟，配合延迟矩阵、节点详情和事件日志；数据不出 tailnet，另有在浏览器里现场生成数据的在线演示。",
-      highlights: [
-        { title: "看路径，不只是 ping", description: "每条连线标出直连、经过哪个 DERP 区域或 peer relay，路径一变就写进事件日志。" },
-        { title: "无 agent 只读采集", description: "SSH 只执行一段只读脚本，远端不落文件，也不读环境变量和 docker inspect。" },
-        { title: "零依赖", description: "Python 3.11 起只用标准库，前端是原生 JavaScript 加 D3，没有构建步骤。" },
-      ],
-    },
     site: "https://lij768423-svg.github.io/meshatlas/",
     repo: "https://github.com/lij768423-svg/meshatlas",
-    detail: "/projects/meshatlas",
     icon: <GlobeHemisphereEast size={22} weight="duotone" />,
     cardPreview: projectCardPreview("meshatlas", "MeshAtlas"),
   },
@@ -460,21 +310,8 @@ export const projects: Project[] = [
     description: "为 Grok2API 与 CPA 增加出口质量探测、隔离、迁移和自动恢复，避免异常节点继续承载请求。",
     category: "system",
     kind: "网络可靠性",
-    status: "开源增强",
-    year: "2026",
     tags: ["Go", "Proxy", "Observability"],
-    story: {
-      problem: "多账号、多出口服务遇到连接故障或质量异常时，单纯重试会继续把请求送往问题节点，也难以区分账号与网络故障。",
-      approach: "为 Grok2API 发布可审计补丁，并提供独立 CPA 原生插件，用主动探针、质量阈值和状态机管理摘流、迁移与恢复。",
-      outcome: "固定代理具备快速复测，异常出口能够隔离并迁移账号，恢复前还会经过真实质量验证。",
-      highlights: [
-        { title: "快速复测", description: "并发连接故障只触发一个共享探针，健康后重新读取状态并恢复节点。" },
-        { title: "质量熔断", description: "被动指标与固定 Prompt 主动复测共同决定隔离，避免短时流式突增造成误判。" },
-        { title: "CPA 原生插件", description: "独立插件提供节点管理、批量导入、质量检测、隔离迁号和策略热加载。" },
-      ],
-    },
     repo: "https://github.com/lij768423-svg/grok2api-egress-enhancements",
-    detail: "/projects/grok2api-egress-enhancements",
     icon: <ShareNetwork size={22} weight="duotone" />,
     cardPreview: {
       ...optimizedCovers["grok2api-egress-enhancements"],
@@ -490,32 +327,10 @@ export const projects: Project[] = [
     description: "把调研、选题确认、大纲、审校、配图和归档组织成有门禁的内容生产线。",
     category: "ai",
     kind: "内容工作流",
-    status: "开源",
-    year: "2026",
     tags: ["JavaScript", "Markdown", "AI Workflow"],
-    story: {
-      problem: "多平台长文每次都从零组织调研、审校和配图，过程难以复用，也容易留下明显 AI 痕迹。",
-      approach: "把选题、调研、写作、三遍审校、配图和归档做成带门禁的状态化工作区。",
-      outcome: "形成 fast、standard 与 strict 三种执行路径，可重复产出 Markdown 和明暗双版 PDF。",
-      highlights: [
-        { title: "状态门禁", description: "初始化、校验和归档脚本让每一步都有输入、输出与完成条件。" },
-        { title: "资料核查", description: "Tavily 与 last30days 负责补充来源和近期讨论，再进入正文。" },
-        { title: "三遍审校", description: "内容、风格和细节分开检查，最后由 pandoc 与浏览器生成成品。" },
-      ],
-    },
     repo: "https://github.com/lij768423-svg/writing-studio",
-    detail: "/projects/writing-studio",
     icon: <Code size={22} weight="duotone" />,
     cardPreview: projectCardPreview("writing-studio", "Writing Studio"),
-    preview: {
-      image: "/assets/writing-studio-github.webp",
-      alt: "Writing Studio 公开仓库与工作流文件真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/writing-studio-github-800.webp 800w, /assets/writing-studio-github-1600.webp 1600w, /assets/writing-studio-github.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
-    },
   },
   {
     id: "travel-agent",
@@ -523,32 +338,11 @@ export const projects: Project[] = [
     description: "可插拔城市的大模型旅行规划 Agent：一条命令接入新城市，网页端与 MCP 服务共用同一套排程与校验。",
     category: "ai",
     kind: "旅行规划 Agent",
-    status: "开源 / 毕业设计",
-    year: "2026",
     tags: ["LangGraph", "OR-Tools", "MCP"],
-    story: {
-      problem: "大模型直接生成的行程看起来合理，但时间、路线和营业约束经常对不上，换一座城市又要重写规则。",
-      approach: "大模型只负责理解需求和选点，OR-Tools 负责分天与日内排序，规则校验器负责兜底；城市配置、数据和资产全部外置，一条命令即可接入新城市。",
-      outcome: "同一套代码已接入 10 座城市，网页端和 MCP 工具共用同一个账号与行程数据，通过校验的行程附带真实路径、餐饮备选和可解释的推荐理由。",
-      highlights: [
-        { title: "可插拔城市", description: "onboard_city 一条命令完成配置、数据、标定、片区聚类与评测，不改代码。" },
-        { title: "确定性排程", description: "片区分天后由 OR-Tools VRPTW 排序，单段乘车、步行量和活动时间都是硬约束。" },
-        { title: "MCP 入口", description: "Claude、Codex 等聊天 AI 自己选点，服务端只做排程、餐饮与校验，换餐需确认后才写入。" },
-      ],
-    },
     repo: "https://github.com/lij768423-svg/pluggable-city-travel-agent",
+    article: "pluggable-city-travel-agent",
     icon: <MapTrifold size={22} weight="duotone" />,
-    detail: "/projects/travel-agent",
     cardPreview: projectCardPreview("travel-agent", "行记 旅行规划 Agent"),
-    preview: {
-      image: "/assets/travel-agent.webp",
-      alt: "行记网页端的城市选择首页真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/travel-agent-800.webp 800w, /assets/travel-agent-1600.webp 1600w, /assets/travel-agent.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
-    },
   },
   {
     id: "tailscale-latency",
@@ -556,31 +350,9 @@ export const projects: Project[] = [
     description: "把 Tailnet 节点间延迟、直连或 DERP 路径与探针状态汇总成可切换的网络拓扑。",
     category: "system",
     kind: "网络诊断工具",
-    status: "Tailnet 内运行",
-    year: "2026",
     tags: ["Python", "Tailscale", "Three.js"],
-    story: {
-      problem: "Tailnet 节点是否直连、经过哪个 DERP，以及延迟是否稳定，原始命令输出不适合持续比较。",
-      approach: "Python 服务解析 tailscale status 与 ping JSON，并发采集多次样本后映射到可视化拓扑。",
-      outcome: "形成内网可访问的只读诊断页，可以快速比较节点延迟、路径类型和探针状态。",
-      highlights: [
-        { title: "路径识别", description: "根据 ping 返回明确区分点对点直连与 DERP 中继。" },
-        { title: "并发采样", description: "限制并发与超时，同时计算多次探测的平均、最低和最高值。" },
-        { title: "容器收口", description: "只读挂载 Tailscale socket，并移除额外 Linux capabilities。" },
-      ],
-    },
-    detail: "/projects/tailscale-latency",
     icon: <ShareNetwork size={22} weight="duotone" />,
     cardPreview: projectCardPreview("tailscale-latency", "Tailscale 延迟测试"),
-    preview: {
-      image: "/assets/tailscale-latency.webp",
-      alt: "Tailscale 延迟测试多节点网络拓扑真实界面",
-      width: 3200,
-      height: 2000,
-      srcSet: "/assets/tailscale-latency-800.webp 800w, /assets/tailscale-latency-1600.webp 1600w, /assets/tailscale-latency.webp 3200w",
-      sizes: "(max-width: 680px) calc(100vw - 76px), 408px",
-      position: "left top",
-    },
   },
   {
     id: "home-lab",
@@ -588,20 +360,8 @@ export const projects: Project[] = [
     description: "围绕 Docker、Tailscale、Cloudflare、对象存储、监控与备份维护个人服务底座。",
     category: "system",
     kind: "自托管系统",
-    status: "长期运行",
-    year: "持续",
     tags: ["Docker", "Tailscale", "MinIO"],
-    story: {
-      problem: "持续增加的自建服务如果缺少统一入口、监控和备份，很快会变成难以判断状态的容器集合。",
-      approach: "以 Docker 统一运行方式，Tailscale 管理私网连接，再用 Homepage、监控和备份工具组织日常维护。",
-      outcome: "形成长期运行的个人服务底座，公开服务、内网工具、存储和恢复流程拥有清晰边界。",
-      highlights: [
-        { title: "统一服务入口", description: "Homepage 汇总应用、日志、存储、可用性和硬件观察入口。" },
-        { title: "网络边界", description: "Tailscale 负责私网互联，公开域名再经过独立反向代理路径。" },
-        { title: "观察与恢复", description: "Uptime Kuma、Beszel、Netdata 与备份任务覆盖日常状态和故障恢复。" },
-      ],
-    },
-    detail: "/projects/home-lab",
+    article: "home-server-as-a-product",
     icon: <HardDrives size={22} weight="duotone" />,
     cardPreview: projectCardPreview("home-lab", "Home Lab 基础设施"),
   },
@@ -1622,26 +1382,6 @@ const pageMetadata: Record<string, { title: string; description: string; image: 
     description: "查看公开产品、客户交付、开发者工具与自托管系统。",
     image: "/assets/agent-console-branches.webp",
   },
-  "/projects/408": {
-    title: "408 刷题库案例 | lij768423-svg",
-    description: "从作答、错题到间隔复习与知识沉淀的完整学习产品案例。",
-    image: "/assets/408-dashboard.webp",
-  },
-  "/projects/hermes-ios": {
-    title: "Hermes for iOS 案例 | lij768423-svg",
-    description: "从 ArkTS 到 SwiftUI 的个人 AI 客户端迁移与体验重构。",
-    image: "/assets/ioschat.webp",
-  },
-  "/projects/law-site": {
-    title: "根旺律所数字站案例 | lij768423-svg",
-    description: "机构官网、在线咨询、AI 摘要、人工接管与 CMS 后台的真实交付。",
-    image: "/assets/law-home.webp",
-  },
-  "/projects/harmonyos": {
-    title: "408 for HarmonyOS 案例 | lij768423-svg",
-    description: "面向 HarmonyOS NEXT 的离线原生刷题体验。",
-    image: "/assets/408-harmony.webp",
-  },
   "/systems": {
     title: "我的服务器 | lij768423-svg",
     description: "了解我的自建 Linux 服务器如何承载开发、AI、个人数据、公开服务、监控与备份。",
@@ -1677,15 +1417,6 @@ export function getPageMetadata(pathname: string) {
         image: post.image,
       };
     }
-  }
-
-  const project = projects.find((item) => item.detail === pathname || `/projects/${item.id}` === pathname);
-  if (project) {
-    return {
-      title: `${project.title} | lij768423-svg`,
-      description: project.description,
-      image: project.preview?.image ?? "/assets/408-quiz.webp",
-    };
   }
 
   return {
@@ -1760,7 +1491,10 @@ function PortfolioRoutes({
   onThemeChange: () => void;
   onTrailChange: () => void;
 }) {
-  const location = useLocation();
+  const { pathname } = useLocation();
+  // Projects had a page each until their papers replaced them; old links land on the index.
+  const isRetiredProject = /^\/projects\/[^/]+\/?$/.test(pathname);
+  const location = { pathname: isRetiredProject ? "/projects" : pathname };
   const reduceMotion = useReducedMotion();
   const isAbout = location.pathname === "/about";
   const isDesk = location.pathname === "/desk";
@@ -1776,6 +1510,7 @@ function PortfolioRoutes({
 
   return (
     <>
+      {isRetiredProject ? <Redirect to="/projects" replace /> : null}
       <PageMeta />
       <GlobalPixelTrail enabled={trailEnabled} />
       <GlobalFlowingLights key={location.pathname} deferred={isAbout} />
@@ -1829,11 +1564,6 @@ function PortfolioRoutes({
             <Routes location={location.pathname}>
               <Route path="/"><HomePage theme={theme} /></Route>
               <Route path="/projects"><ProjectsPage /></Route>
-              <Route path="/projects/408"><FlagshipCaseStudyPage projectId="408-web" /></Route>
-              <Route path="/projects/hermes-ios"><ProjectDossierPage projectId="ioschat" /></Route>
-              <Route path="/projects/law-site"><FlagshipCaseStudyPage projectId="law-site" /></Route>
-              <Route path="/projects/harmonyos"><ProjectDossierPage projectId="408-harmony" /></Route>
-              <Route path="/projects/:projectId"><ProjectDossierPage /></Route>
               <Route path="/systems"><SystemsPage /></Route>
               <Route path="/about"><AboutPage theme={theme} /></Route>
               <Route path="/desk"><DeskArchivePage theme={theme} /></Route>

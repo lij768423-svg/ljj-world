@@ -74,12 +74,10 @@ test("capture multi-page desktop visual QA states", async ({ browser }, testInfo
   await desktop.page.getByRole("button", { name: "关闭导航" }).click();
 
   await captureRoute(desktop.page, "/projects", ".qa/final-projects.png");
-  await captureRoute(desktop.page, "/projects/408", ".qa/final-study-case.png");
-  await captureRoute(desktop.page, "/projects/hermes-ios", ".qa/final-ios-case.png");
-  await captureRoute(desktop.page, "/projects/law-site", ".qa/final-law-case.png");
-  await captureRoute(desktop.page, "/projects/harmonyos", ".qa/final-harmony-case.png");
-  await captureRoute(desktop.page, "/projects/grok-register-panel", ".qa/final-grok-register-panel-case.png");
-  await captureRoute(desktop.page, "/projects/meshatlas", ".qa/final-meshatlas-case.png");
+  await desktop.page.locator('[data-project-id="408-web"] .project-card-link').focus();
+  await desktop.page.keyboard.press("Enter");
+  await expect(desktop.page.getByRole("dialog")).toBeVisible();
+  await desktop.page.screenshot({ path: ".qa/final-project-paper.png", fullPage: false });
   await captureRoute(desktop.page, "/systems", ".qa/final-systems.png");
 
   const topology = desktop.page.locator(".server-story");

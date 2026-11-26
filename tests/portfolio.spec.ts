@@ -1,60 +1,17 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, readFile, stat } from "node:fs/promises";
-import { blogPosts } from "../src/blog";
+import { blogPosts, getBlogPost } from "../src/blog";
+import { retiredProjectPaths } from "../src/seo/retiredProjects";
 import { serverSnapshot } from "../src/data/server";
 
 const routes = [
   { path: "/", heading: "你好，我是 ljj", title: "lij768423-svg | 独立开发者" },
   { path: "/projects", heading: "项目索引", title: "项目索引 | lij768423-svg" },
-  { path: "/projects/408", heading: "408 刷题库", title: "408 刷题库案例 | lij768423-svg" },
-  { path: "/projects/hermes-ios", heading: "Hermes for iOS", title: "Hermes for iOS 案例 | lij768423-svg" },
-  { path: "/projects/law-site", heading: "根旺律所数字站", title: "根旺律所数字站案例 | lij768423-svg" },
-  { path: "/projects/harmonyos", heading: "408 for HarmonyOS", title: "408 for HarmonyOS 案例 | lij768423-svg" },
-  { path: "/projects/mineradio", heading: "Mineradio Web 适配", title: "Mineradio Web 适配 | lij768423-svg" },
-  { path: "/projects/grok-register-panel", heading: "Grok Register Panel", title: "Grok Register Panel | lij768423-svg" },
-  { path: "/projects/meshatlas", heading: "MeshAtlas", title: "MeshAtlas | lij768423-svg" },
-  { path: "/projects/grok2api-egress-enhancements", heading: "Egress Quality Guard", title: "Egress Quality Guard | lij768423-svg" },
-  { path: "/projects/writing-studio", heading: "Writing Studio", title: "Writing Studio | lij768423-svg" },
-  { path: "/projects/travel-agent", heading: "行记 旅行规划 Agent", title: "行记 旅行规划 Agent | lij768423-svg" },
-  { path: "/projects/tailscale-latency", heading: "Tailscale 延迟测试", title: "Tailscale 延迟测试 | lij768423-svg" },
-  { path: "/projects/home-lab", heading: "Home Lab 基础设施", title: "Home Lab 基础设施 | lij768423-svg" },
   { path: "/systems", heading: "我的服务器", title: "我的服务器 | lij768423-svg" },
   { path: "/blog", heading: "文章与笔记", title: "文章与笔记 | lij768423-svg" },
   { path: "/about", heading: "关于我", title: "关于 | lij768423-svg" },
   { path: "/desk", heading: "我的桌搭", title: "我的桌搭 | lij768423-svg" },
 ] as const;
-
-const flagshipRoutes = [
-  {
-    path: "/projects/408",
-    heading: "408 刷题库",
-    heroImage: "/assets/408-review-flow.webp",
-    tourImages: [
-      "/assets/408-quiz.webp",
-      "/assets/408-feedback.webp",
-      "/assets/408-ai.webp",
-      "/assets/408-search.webp",
-      "/assets/408-wiki.webp",
-    ],
-  },
-  {
-    path: "/projects/law-site",
-    heading: "根旺律所数字站",
-    heroImage: "/assets/law-home.webp",
-    tourImages: [
-      "/assets/law-services.webp",
-      "/assets/law-cases.webp",
-      "/assets/law-insights.webp",
-      "/assets/law-article.webp",
-      "/assets/law-consultation.webp",
-    ],
-  },
-] as const;
-
-const dossierRoutes = routes.filter((route) => (
-  route.path.startsWith("/projects/")
-  && !flagshipRoutes.some((flagship) => flagship.path === route.path)
-));
 
 test.beforeAll(async () => {
   await mkdir(".qa", { recursive: true });
@@ -342,7 +299,7 @@ test("navigation, metadata, and browser history work across pages", async ({ pag
   );
 
   const quizRow = page.locator(".index-item").filter({ hasText: "408 刷题库" });
-  const quizLink = quizRow.locator('a[href="/projects/408"]');
+  const quizLink = quizRow.locator('a[href="https://quiz.hermesjj.com/"]');
   await quizLink.focus();
   await page.keyboard.press("Enter");
   const quizPreview = page.getByRole("dialog");
@@ -524,7 +481,12 @@ test("project DNA helix expands, keeps moving on hover, and unfolds into project
   const cardLinks = projectIndex.locator(".project-card-link");
   const destinations = await cardLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")));
   expect(destinations).toHaveLength(12);
-  expect(destinations.every((href) => href?.startsWith("/projects/"))).toBe(true);
+  expect(destinations.filter((href) => href?.startsWith("https://"))).toHaveLength(10);
+  expect(destinations.filter((href) => href === "/projects")).toHaveLength(2);
+  expect(await cardLinks.evaluateAll((links) => links.every((link) => (
+    !link.getAttribute("href")!.startsWith("https://")
+    || (link.getAttribute("target") === "_blank" && link.getAttribute("rel") === "noreferrer")
+  )))).toBe(true);
 
   if (testInfo.project.name !== "desktop") {
     const mobileCoverSources = await projectIndex.locator(".project-card-media img").evaluateAll((images) => (
@@ -534,8 +496,8 @@ test("project DNA helix expands, keeps moving on hover, and unfolds into project
     expect(mobileCoverSources.every((source) => source?.startsWith("/assets/project-covers/"))).toBe(true);
     const mobileRegisterPanelLink = projectIndex.locator(".index-item").filter({ hasText: "Grok Register Panel" }).getByRole("link");
     await mobileRegisterPanelLink.click();
-    await expect(page).toHaveURL(/\/projects\/grok-register-panel$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Grok Register Panel");
+    await expect(page).toHaveURL(/\/projects$/);
+    await expect(page.getByRole("dialog").getByRole("heading", { name: "Grok Register Panel" })).toBeVisible();
     return;
   }
 
@@ -679,235 +641,107 @@ test("project DNA helix expands, keeps moving on hover, and unfolds into project
   expect(Math.abs(Number(await helix.getAttribute("data-helix-phase")) - hoverPhase)).toBeGreaterThan(0.04);
 });
 
-test("project dossiers stay complete and readable inside one desktop viewport", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "Project dossiers are designed around a desktop viewport.");
+const papersWithArticles = [
+  { id: "408-web", slug: "ai-study-workflow" },
+  { id: "travel-agent", slug: "pluggable-city-travel-agent" },
+  { id: "grok-register-panel", slug: "grok-register-panel" },
+  { id: "home-lab", slug: "home-server-as-a-product" },
+];
+const papersWithoutLinks = ["tailscale-latency", "home-lab"];
+
+test("every paper carries its public links, and only four carry a related post", async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.setViewportSize({ width: 1280, height: 720 });
+  if (testInfo.project.name === "desktop") await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/projects", { waitUntil: "networkidle" });
+  const cards = page.locator(".index-item");
+  await expect(cards).toHaveCount(12);
+  const ids = await cards.evaluateAll((items) => items.map((item) => item.getAttribute("data-project-id")!));
 
-  for (const route of dossierRoutes) {
-    await page.goto(route.path, { waitUntil: "networkidle" });
-    const dossier = page.locator("[data-project-dossier]");
-    await expect(dossier, `${route.path} should render the unified project dossier`).toBeVisible();
-    await expect(dossier.getByRole("heading", { level: 1 })).toContainText(route.heading);
-    await expect(dossier.getByRole("link", { name: "项目索引" })).toHaveAttribute("href", "/projects");
+  for (const id of ids) {
+    const link = page.locator(`.index-item[data-project-id="${id}"] .project-card-link`);
+    await link.focus();
+    await page.keyboard.press("Enter");
+    const paper = page.getByRole("dialog");
+    await expect(paper, id).toHaveAttribute("data-project-paper", id);
 
-    const image = dossier.locator(".project-dossier-media img");
-    const imageState = await image.evaluate(async (node) => {
-      const target = node as HTMLImageElement;
-      await target.decode();
-      return { complete: target.complete, naturalWidth: target.naturalWidth };
-    });
-    expect(imageState.complete, `${route.path} image should finish loading`).toBe(true);
-    expect(imageState.naturalWidth, `${route.path} image should decode`).toBeGreaterThan(0);
-
-    const tablist = dossier.getByRole("tablist", { name: "项目说明视图" });
-    const tabs = tablist.getByRole("tab");
-    await expect(tabs).toHaveCount(3);
-    await expect(tabs).toHaveText(["概览", "实现", "成果"]);
-    const overviewTab = tablist.getByRole("tab", { name: "概览" });
-    const buildTab = tablist.getByRole("tab", { name: "实现" });
-    const resultTab = tablist.getByRole("tab", { name: "成果" });
-    await expect(overviewTab).toHaveAttribute("aria-selected", "true");
-
-    const overviewSections = dossier.locator(".project-dossier-overview section");
-    await expect(overviewSections).toHaveCount(3);
-    const overviewCopy = await overviewSections.locator("p").allTextContents();
-    expect(
-      overviewCopy.every((copy) => copy.trim().length >= 20),
-      `${route.path} overview should contain substantive problem, approach, and result copy`,
-    ).toBe(true);
-
-    await overviewTab.focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(buildTab).toBeFocused();
-    await expect(buildTab).toHaveAttribute("aria-selected", "true");
-    await expect(dossier.locator(".project-dossier-build li")).toHaveCount(3);
-
-    await page.keyboard.press("ArrowRight");
-    await expect(resultTab).toBeFocused();
-    await expect(resultTab).toHaveAttribute("aria-selected", "true");
-    await expect(dossier.locator(".project-dossier-result dl > div")).toHaveCount(3);
-    expect(await dossier.locator(".project-dossier-result-links").locator(":scope > *").count()).toBeGreaterThan(0);
-
-    const adjacentLinks = dossier.getByRole("navigation", { name: "相邻项目" }).getByRole("link");
-    await expect(adjacentLinks).toHaveCount(2);
-    const adjacentDestinations = await adjacentLinks.evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-    expect(adjacentDestinations.every((href) => href?.startsWith("/projects/"))).toBe(true);
-
-    const geometry = await page.evaluate(() => {
-      const panelFrame = document.querySelector<HTMLElement>(".project-dossier-panel-frame")!;
-      return {
-        horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        documentOverflow: document.documentElement.scrollHeight - document.documentElement.clientHeight,
-        bodyOverflow: document.body.scrollHeight - window.innerHeight,
-        panelOverflow: panelFrame.scrollHeight - panelFrame.clientHeight,
-      };
-    });
-    expect(geometry.horizontalOverflow, `${route.path} should not overflow horizontally`).toBeLessThanOrEqual(1);
-    expect(geometry.documentOverflow, `${route.path} should fit one viewport`).toBeLessThanOrEqual(1);
-    expect(geometry.bodyOverflow, `${route.path} body should fit one viewport`).toBeLessThanOrEqual(1);
-    expect(geometry.panelOverflow, `${route.path} tab content should not be clipped`).toBeLessThanOrEqual(1);
-
-    await page.keyboard.press("ArrowLeft");
-    await expect(buildTab).toBeFocused();
-    await expect(buildTab).toHaveAttribute("aria-selected", "true");
-  }
-});
-
-test("flagship case studies pin all five interface steps before delivery", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "Flagship case studies use a desktop overlay story.");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.setViewportSize({ width: 1440, height: 1000 });
-
-  for (const route of flagshipRoutes) {
-    await page.goto(route.path, { waitUntil: "networkidle" });
-    const caseStudy = page.locator("[data-flagship-project]");
-    await expect(caseStudy).toBeVisible();
-    await expect(caseStudy.getByRole("heading", { level: 1 })).toContainText(route.heading);
-    await expect(caseStudy.getByRole("link", { name: "项目索引" })).toHaveAttribute("href", "/projects");
-
-    const heroImage = caseStudy.locator(".flagship-hero-figure > img");
-    await expect(heroImage).toHaveAttribute("src", route.heroImage);
-    const imageState = await heroImage.evaluate(async (node) => {
-      const target = node as HTMLImageElement;
-      await target.decode();
-      return { complete: target.complete, naturalWidth: target.naturalWidth };
-    });
-    expect(imageState.complete).toBe(true);
-    expect(imageState.naturalWidth).toBeGreaterThan(0);
-
-    await expect(caseStudy.locator("[data-flagship-scene]")).toHaveCount(4);
-    await expect(caseStudy.locator(".flagship-facts > div")).toHaveCount(4);
-    await expect(caseStudy.locator(".flagship-flow-track > div")).toHaveCount(5);
-    await expect(caseStudy.locator(".flagship-tour-steps button")).toHaveCount(5);
-    await expect(caseStudy.locator(".flagship-decision-grid article")).toHaveCount(4);
-    await expect(caseStudy.locator(".flagship-result-grid > div")).toHaveCount(4);
-
-    const story = caseStudy.locator(".flagship-story");
-    const rail = caseStudy.getByRole("navigation", { name: "项目案例章节" });
-    await rail.getByRole("button", { name: "闭环" }).click();
-    const flowGeometry = await page.evaluate(() => {
-      const gridBox = document.querySelector<HTMLElement>(".flagship-problem-grid")!.getBoundingClientRect();
-      const statementBox = document.querySelector<HTMLElement>(".flagship-statement > strong")!.getBoundingClientRect();
-      const trackBox = document.querySelector<HTMLElement>(".flagship-flow-track")!.getBoundingClientRect();
-      return {
-        gridTop: gridBox.top,
-        statementTop: statementBox.top,
-        trackTop: trackBox.top,
-      };
-    });
-    expect(Math.abs(flowGeometry.trackTop - flowGeometry.gridTop)).toBeLessThanOrEqual(1);
-    expect(flowGeometry.statementTop - flowGeometry.gridTop).toBeLessThanOrEqual(90);
-
-    await rail.getByRole("button", { name: "界面" }).click();
-    await expect(rail.getByRole("button", { name: "界面" })).toHaveClass(/is-active/);
-
-    const tourSteps = caseStudy.locator(".flagship-tour-steps button");
-    const tourImage = caseStudy.locator(".flagship-tour-screen img");
-    await expect(tourImage).toHaveCSS("padding", "0px");
-    await expect(tourImage).toHaveCSS("object-fit", "cover");
-
-    const storyHeight = await story.evaluate((element) => element.clientHeight);
-    for (let shotIndex = 0; shotIndex < route.tourImages.length; shotIndex += 1) {
-      await story.evaluate((element, top) => element.scrollTo({ top, behavior: "auto" }), storyHeight * (2 + shotIndex));
-      await expect(tourSteps.nth(shotIndex)).toHaveClass(/is-active/);
-      await expect(tourSteps.nth(shotIndex)).toHaveAttribute("aria-pressed", "true");
-      await expect(tourImage).toHaveAttribute("src", route.tourImages[shotIndex]);
-      await expect(rail.getByRole("button", { name: "界面" })).toHaveClass(/is-active/);
-
-      const pinnedGeometry = await page.evaluate(() => {
-        const storyBox = document.querySelector<HTMLElement>(".flagship-story")!.getBoundingClientRect();
-        const pinBox = document.querySelector<HTMLElement>(".flagship-interface-pin")!.getBoundingClientRect();
-        const deliveryBox = document.querySelector<HTMLElement>('[data-flagship-scene="delivery"]')!.getBoundingClientRect();
-        return {
-          pinTop: pinBox.top,
-          storyTop: storyBox.top,
-          storyBottom: storyBox.bottom,
-          deliveryTop: deliveryBox.top,
-        };
-      });
-      expect(Math.abs(pinnedGeometry.pinTop - pinnedGeometry.storyTop)).toBeLessThanOrEqual(1);
-      expect(pinnedGeometry.deliveryTop).toBeGreaterThanOrEqual(pinnedGeometry.storyBottom - 1);
+    const article = papersWithArticles.find((entry) => entry.id === id);
+    const related = paper.getByRole("link", { name: /相关文章/ });
+    if (article) {
+      await expect(related, id).toHaveAttribute("href", `/blog/${article.slug}`);
+      await expect(related.locator("strong")).toHaveText(getBlogPost(article.slug)!.title);
+    } else {
+      await expect(related, id).toHaveCount(0);
     }
 
-    await story.evaluate((element, top) => element.scrollTo({ top, behavior: "auto" }), storyHeight * 7);
-    await expect(rail.getByRole("button", { name: "交付" })).toHaveClass(/is-active/);
+    const isPrivate = papersWithoutLinks.includes(id);
+    await expect(paper.locator(".project-paper-private"), id).toHaveCount(isPrivate ? 1 : 0);
+    const outside = paper.locator('.project-paper-links a[target="_blank"]');
+    if (isPrivate) await expect(outside, id).toHaveCount(0);
+    else expect(await outside.count(), id).toBeGreaterThan(0);
+    expect(await outside.evaluateAll((links) => links.every((item) => item.getAttribute("rel") === "noreferrer"))).toBe(true);
 
-    await rail.getByRole("button", { name: "界面" }).click();
-    await tourSteps.nth(2).click();
-    await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeCloseTo(storyHeight * 4, 0);
-    await expect(tourSteps.nth(2)).toHaveClass(/is-active/);
-    await expect(tourImage).toHaveAttribute("src", route.tourImages[2]);
-
-    await rail.getByRole("button", { name: "交付" }).click();
-    await expect(rail.getByRole("button", { name: "交付" })).toHaveClass(/is-active/);
-    const nextProject = caseStudy.locator(".flagship-next");
-    await expect(nextProject).toHaveAttribute("href", /\/projects\//);
-
-    const geometry = await page.evaluate(() => {
-      const storyElement = document.querySelector<HTMLElement>(".flagship-story")!;
-      const scenes = Array.from(document.querySelectorAll<HTMLElement>("[data-flagship-scene]"));
+    const clipped = await paper.locator(".project-paper-sheet").evaluate((sheet) => {
+      const copy = sheet.querySelector<HTMLElement>(".project-paper-copy")!;
+      const layout = sheet.querySelector<HTMLElement>(".project-paper-layout")!;
       return {
-        horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        documentOverflow: document.documentElement.scrollHeight - document.documentElement.clientHeight,
-        bodyOverflow: document.body.scrollHeight - window.innerHeight,
-        storyOverflow: storyElement.scrollHeight - storyElement.clientHeight,
-        storyHeight: storyElement.clientHeight,
-        windowScrollY: window.scrollY,
-        scenePositions: scenes.map((scene) => getComputedStyle(scene).position),
-        sceneZIndexes: scenes.map((scene) => Number(getComputedStyle(scene).zIndex)),
-        interfacePinPosition: getComputedStyle(document.querySelector<HTMLElement>(".flagship-interface-pin")!).position,
+        width: sheet.scrollWidth - sheet.clientWidth,
+        // The phone sheet scrolls; on desktop everything fits the paper.
+        height: getComputedStyle(layout).overflowY === "auto" ? 0 : copy.scrollHeight - copy.clientHeight,
       };
     });
-    expect(geometry.horizontalOverflow, `${route.path} should not overflow horizontally`).toBeLessThanOrEqual(1);
-    expect(geometry.documentOverflow, `${route.path} document should fit one viewport`).toBeLessThanOrEqual(1);
-    expect(geometry.bodyOverflow, `${route.path} body should fit one viewport`).toBeLessThanOrEqual(1);
-    expect(geometry.storyOverflow, `${route.path} should keep scene travel inside the story`).toBeGreaterThan(geometry.storyHeight * 6.5);
-    expect(geometry.windowScrollY, `${route.path} should not move the outer page`).toBe(0);
-    expect(geometry.scenePositions).toEqual(["sticky", "sticky", "relative", "sticky"]);
-    expect(geometry.interfacePinPosition).toBe("sticky");
-    expect(geometry.sceneZIndexes).toEqual([1, 2, 3, 4]);
+    expect(clipped.width, id).toBeLessThanOrEqual(1);
+    expect(clipped.height, id).toBeLessThanOrEqual(1);
 
-    await rail.getByRole("button", { name: "概览" }).click();
-    await expect.poll(() => story.evaluate((element) => element.scrollTop)).toBeLessThanOrEqual(1);
+    await page.keyboard.press("Escape");
+    await expect(paper, id).toHaveCount(0);
+    await expect(link, id).toBeFocused();
   }
 });
 
-test("flagship interface centers its content and smoothly transitions between screens", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "The interface tour uses a desktop overlay layout.");
-  await page.setViewportSize({ width: 1720, height: 946 });
-  await page.goto("/projects/408", { waitUntil: "networkidle" });
+test("a paper's related post opens, and is translated on the English page", async ({ page }) => {
+  await page.goto("/en/projects", { waitUntil: "networkidle" });
+  const link = page.locator('.index-item[data-project-id="home-lab"] .project-card-link');
+  await expect(link).toHaveAttribute("href", "/en/projects");
+  await link.focus();
+  await page.keyboard.press("Enter");
+  const paper = page.getByRole("dialog");
+  const related = paper.getByRole("link", { name: /Related post/ });
+  await expect(related).toHaveAttribute("href", "/en/blog/home-server-as-a-product");
+  await expect(paper.locator(".project-paper-private")).toHaveText("Private project");
+  await expect.poll(async () => /[\u3400-\u9fff]/u.test(await paper.innerText())).toBe(false);
+  await related.click();
+  await expect(page).toHaveURL(/\/en\/blog\/home-server-as-a-product$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveClass(/project-transition-active/);
+});
 
-  const caseStudy = page.locator("[data-flagship-project]");
-  const story = caseStudy.locator(".flagship-story");
-  await story.evaluate((element) => element.scrollTo({ top: element.clientHeight * 2, behavior: "auto" }));
-  await expect(caseStudy.locator(".flagship-tour-screen img").first()).toHaveAttribute("src", "/assets/408-quiz.webp");
+test("a project reopened while its paper is closing can be closed again", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/projects", { waitUntil: "networkidle" });
+  const link = page.locator('.index-item[data-project-id="meshatlas"] .project-card-link');
+  const paper = page.getByRole("dialog");
+  for (let round = 0; round < 2; round += 1) {
+    await link.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("body")).toHaveClass(/project-transition-active/);
+    await expect(paper.getByRole("button", { name: "关闭项目预览" })).toBeFocused();
+    await expect(paper.locator(".project-paper-sheet")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("body")).not.toHaveClass(/project-transition-active/);
+    await expect(link).toBeFocused();
+  }
+  await expect(paper).toHaveCount(0);
+});
 
-  const centeredGeometry = await page.evaluate(() => {
-    const shell = document.querySelector<HTMLElement>(".flagship-interface-shell")!.getBoundingClientRect();
-    const heading = document.querySelector<HTMLElement>(".flagship-interface-shell .flagship-section-heading")!.getBoundingClientRect();
-    const tour = document.querySelector<HTMLElement>(".flagship-tour-layout")!.getBoundingClientRect();
-    const contentCenter = (heading.top + tour.bottom) / 2;
-    return {
-      offset: Math.abs(contentCenter - (shell.top + shell.bottom) / 2),
-      tourTop: tour.top,
-      headingBottom: heading.bottom,
-    };
-  });
-  expect(centeredGeometry.offset).toBeLessThanOrEqual(3);
-  expect(centeredGeometry.tourTop - centeredGeometry.headingBottom).toBeLessThanOrEqual(30);
-
-  const stepHeights = await caseStudy.locator(".flagship-tour-steps button").evaluateAll((buttons) => (
-    buttons.map((button) => button.getBoundingClientRect().height)
-  ));
-  expect(Math.max(...stepHeights) - Math.min(...stepHeights)).toBeLessThanOrEqual(1);
-
-  await caseStudy.locator('[data-tour-shot-index="1"]').evaluate((button) => (button as HTMLButtonElement).click());
-  const tourImages = caseStudy.locator(".flagship-tour-screen img");
-  await expect(tourImages).toHaveCount(2);
-  await expect(tourImages.last()).toHaveAttribute("src", "/assets/408-feedback.webp");
-  await expect(tourImages).toHaveCount(1, { timeout: 1_200 });
-  await expect(tourImages).toHaveAttribute("src", "/assets/408-feedback.webp");
+test("retired project addresses all land on the project index", async ({ page }) => {
+  expect(retiredProjectPaths).toHaveLength(12);
+  for (const prefix of ["", "/en"]) {
+    for (const retired of retiredProjectPaths) {
+      await page.goto(`${prefix}${retired}`, { waitUntil: "domcontentloaded" });
+      await expect(page, retired).toHaveURL(new RegExp(`:\\d+${prefix}/projects$`));
+      await expect(page.locator("#project-dna-title")).toHaveText(prefix ? "Project index" : "项目索引");
+    }
+  }
 });
 
 test("server story stays visual-only", async ({ page }, testInfo) => {

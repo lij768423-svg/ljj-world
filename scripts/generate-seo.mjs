@@ -3,6 +3,7 @@
 //     canonical, Open Graph / Twitter tags and JSON-LD, so crawlers and link previews see the
 //     page instead of the home page shell;
 //   - dist/404.html and dist/en/404.html (noindex) for the static host to serve with a 404 status;
+//   - a redirect to the project index at each retired project address;
 //   - dist/sitemap.xml and dist/rss.xml.
 // Route data comes from src/seo/routes.ts, loaded through Vite so it shares the app's own
 // page metadata, project list and blog posts.
@@ -222,6 +223,13 @@ for (const route of [...localizedRoutes, ...notFoundPages]) {
   await writeFile(target, renderRoute(html, route));
   written.push(path.relative(dist, target));
 }
+for (const language of seo.seoLanguages) {
+  for (const retired of seo.retiredProjectPaths) {
+    const target = outputFile(`${language === "en" ? "/en" : ""}${retired}`);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, seo.renderRetiredProjectPage(language, siteOrigin));
+  }
+}
 await writeFile(path.join(dist, "sitemap.xml"), renderSitemap());
 await writeFile(path.join(dist, "rss.xml"), renderFeed());
-console.log(`generate-seo: ${routes.length} routes × ${seo.seoLanguages.length} languages + 404 pages, sitemap.xml (${localizedRoutes.length} urls), rss.xml (${feedItems.length} items)`);
+console.log(`generate-seo: ${routes.length} routes × ${seo.seoLanguages.length} languages + 404 pages, ${seo.retiredProjectPaths.length * seo.seoLanguages.length} redirects, sitemap.xml (${localizedRoutes.length} urls), rss.xml (${feedItems.length} items)`);

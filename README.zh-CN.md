@@ -94,7 +94,8 @@ npm run test:e2e
 | 博客文章：段落以及代码、列表、配图块 | [`src/blog.ts`](./src/blog.ts) |
 | /systems 上的服务器数字（快照，用 `npm run snapshot:server` 刷新） | [`src/data/serverSnapshot.json`](./src/data/serverSnapshot.json) |
 | 中英文映射与全局文字过渡 | [`src/i18n`](./src/i18n) |
-| DNA 项目索引与纸张式项目详情 | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
+| DNA 项目索引 | [`src/components/ProjectHelix.tsx`](./src/components/ProjectHelix.tsx) |
+| 电脑和手机共用的项目纸片 | [`src/components/ProjectPaper.tsx`](./src/components/ProjectPaper.tsx) |
 | 服务器主机和服务拆解 | [`src/components/ServerExplodedStory.tsx`](./src/components/ServerExplodedStory.tsx) |
 | 桌搭弧线画廊与全屏查看器 | [`src/components/CircularGallery.tsx`](./src/components/CircularGallery.tsx) |
 | 主视觉与页面布局 | [`src/styles.css`](./src/styles.css) |

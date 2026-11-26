@@ -1,10 +1,11 @@
-import { getPageMetadata, projects } from "../App";
+import { getPageMetadata } from "../App";
 import { blogPosts, type BlogContent, type BlogPost } from "../blog";
 import { withLanguagePrefix } from "../i18n/languageRouting";
 import { translatePortfolioText, type PortfolioLanguage } from "../i18n/PortfolioLanguage";
 import { shareCardPath, shareCardSize } from "./shareCards";
 
 export { shareCardPath, shareCardSize };
+export { renderRetiredProjectPage, retiredProjectPaths } from "./retiredProjects";
 
 export const siteOrigin = "https://ljj.world";
 export const siteName = "ljj.world";
@@ -49,12 +50,6 @@ export function escapeHtml(value: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-export function projectPath(projectId: string) {
-  const project = projects.find((item) => item.id === projectId);
-  if (!project) throw new Error(`Unknown project: ${projectId}`);
-  return project.detail ?? `/projects/${project.id}`;
 }
 
 function staticRoute(path: string, lastmod?: string): SeoRoute {
@@ -112,7 +107,6 @@ export function getSeoRoutes(): SeoRoute[] {
   return [
     staticRoute("/"),
     staticRoute("/projects"),
-    ...projects.map((project) => staticRoute(project.detail ?? `/projects/${project.id}`)),
     staticRoute("/systems"),
     staticRoute("/about"),
     staticRoute("/desk"),
